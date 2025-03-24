@@ -2,7 +2,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,7 +18,6 @@ import ActivityTemplatesScreen from '../screens/main/ActivityTemplatesScreen';
 import CollaborativeListScreen from '../screens/main/CollaborativeListScreen';
 
 const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
 
 // Auth Navigator
 const AuthNavigator = () => (
@@ -30,43 +28,14 @@ const AuthNavigator = () => (
   </Stack.Navigator>
 );
 
-// Main Tab Navigator
-const MainTabNavigator = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
-
-        if (route.name === 'Home') {
-          iconName = focused ? 'home' : 'home-outline';
-        } else if (route.name === 'Create') {
-          iconName = focused ? 'add-circle' : 'add-circle-outline';
-        } else if (route.name === 'Profile') {
-          iconName = focused ? 'person' : 'person-outline';
-        }
-
-        return <Ionicons name={iconName} size={size} color={color} />;
-      },
-      tabBarActiveTintColor: '#6E8B3D',
-      tabBarInactiveTintColor: 'gray',
-    })}
-  >
-    <Tab.Screen name="Home" component={HomeScreen} />
-    <Tab.Screen name="Create" component={CreateListScreen} />
-    <Tab.Screen name="Profile" component={ProfileScreen} />
-  </Tab.Navigator>
-);
-
-// Main Stack Navigator (includes the tabs)
+// Main Stack Navigator
 const MainStackNavigator = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="MainTabs" 
-      component={MainTabNavigator} 
-      options={{ headerShown: false }} 
-    />
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="Create" component={CreateListScreen} />
     <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
     <Stack.Screen name="ActivityTemplates" component={ActivityTemplatesScreen} />
+    <Stack.Screen name="Profile" component={ProfileScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="CollaborativeList" component={CollaborativeListScreen} />
   </Stack.Navigator>

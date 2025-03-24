@@ -1,5 +1,5 @@
 // src/screens/main/ListDetailsScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -77,10 +77,10 @@ const ListDetailsScreen = ({ route, navigation }) => {
     try {
       await updatePackingList(listId, { items: updatedItems });
       
-      setPackingList({
-        ...packingList,
+      setPackingList(prevList => ({
+        ...prevList,
         items: updatedItems
-      });
+      }));
     } catch (error) {
       console.error('Error updating item:', error);
       Alert.alert('Error', 'Failed to update item');
@@ -88,16 +88,21 @@ const ListDetailsScreen = ({ route, navigation }) => {
   };
   
   // Handle reordering items
-  const handleReorderItems = async (reorderedItems) => {
+  const handleReorderItems = async ({ data }) => {
     if (!packingList) return;
     
     try {
+      // Create a copy of the data to avoid modifying shared values
+      const reorderedItems = [...data];
+      
+      // Update Firestore with the new order
       await updatePackingList(listId, { items: reorderedItems });
       
-      setPackingList({
-        ...packingList,
+      // Update local state with functional update
+      setPackingList(prevList => ({
+        ...prevList,
         items: reorderedItems
-      });
+      }));
     } catch (error) {
       console.error('Error reordering items:', error);
       Alert.alert('Error', 'Failed to reorder items');
@@ -113,10 +118,10 @@ const ListDetailsScreen = ({ route, navigation }) => {
     try {
       await updatePackingList(listId, { items: updatedItems });
       
-      setPackingList({
-        ...packingList,
+      setPackingList(prevList => ({
+        ...prevList,
         items: updatedItems
-      });
+      }));
     } catch (error) {
       console.error('Error deleting item:', error);
       Alert.alert('Error', 'Failed to delete item');
@@ -139,14 +144,54 @@ const ListDetailsScreen = ({ route, navigation }) => {
     try {
       await updatePackingList(listId, { items: updatedItems });
       
-      setPackingList({
-        ...packingList,
+      setPackingList(prevList => ({
+        ...prevList,
         items: updatedItems
-      });
+      }));
       setNewItemText('');
     } catch (error) {
       console.error('Error adding item:', error);
       Alert.alert('Error', 'Failed to add item');
+    }
+  };
+  
+  // Add item suggestion based on activity type
+  const getSuggestedItems = () => {
+    const suggestions = {
+      travel: ['Passport', 'Travel adapter', 'Headphones', 'Phone charger'],
+      beach: ['Swimsuit', 'Sunscreen', 'Beach towel', 'Sunglasses'],
+      camping: ['Tent', 'Sleeping bag', 'Flashlight', 'First aid kit'],
+      hiking: ['Hiking boots', 'Water bottle', 'Backpack', 'Trail mix'],
+      skiing: ['Ski jacket', 'Ski pants', 'Gloves', 'Ski goggles'],
+      default: ['Clothing', 'Toiletries', 'Electronics', 'Documents']
+    };
+    
+    return suggestions[packingList?.activity || 'default'] || suggestions.default;
+  };
+  
+  // Add suggested item
+  const handleAddSuggestedItem = async (itemName) => {
+    if (!packingList) return;
+    
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: itemName,
+      type: 'default',
+      checked: false
+    };
+    
+    const updatedItems = [...packingList.items, newItem];
+    
+    try {
+      await updatePackingList(listId, { items: updatedItems });
+      
+      setPackingList(prevList => ({
+        ...prevList,
+        items: updatedItems
+      }));
+    } catch (error) {
+      console.error('Error adding suggested item:', error);
+      Alert.alert('Error', 'Failed to add suggested item');
     }
   };
   
@@ -160,16 +205,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
     }
     
     try {
-      await updatePackingList(listId, {
+      const updates = {
         title: title.trim(),
         destination: destination.trim() || null
-      });
+      };
       
-      setPackingList({
-        ...packingList,
-        title: title.trim(),
-        destination: destination.trim() || null
-      });
+      await updatePackingList(listId, updates);
+      
+      setPackingList(prevList => ({
+        ...prevList,
+        ...updates
+      }));
       
       setIsEditMode(false);
     } catch (error) {
@@ -231,6 +277,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
     return (checkedItems.length / packingList.items.length) * 100;
   };
   
+  // Calculate sorted items with unchecked items at the top
+  const sortedItems = useMemo(() => {
+    if (!packingList?.items) return [];
+    
+    return [...packingList.items].sort((a, b) => {
+      if (a.checked && !b.checked) return 1;
+      if (!a.checked && b.checked) return -1;
+      return 0;
+    });
+  }, [packingList?.items]);
+  
   // Loading state
   if (isLoading) {
     return (
@@ -257,7 +314,10 @@ const ListDetailsScreen = ({ route, navigation }) => {
   };
   
   // Custom Draggable Item Component
-  const DraggableItem = ({ item, onToggleChecked, onDelete, isOwner, drag, isActive }) => {
+  const DraggableItem = ({ item, onToggleChecked, onDeleteItem, drag, isActive }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState(item.name);
+    const [isPressing, setIsPressing] = useState(false);
     const scale = useSharedValue(1);
     
     const animatedStyle = useAnimatedStyle(() => {
@@ -266,71 +326,222 @@ const ListDetailsScreen = ({ route, navigation }) => {
       };
     });
 
-    const onPressIn = () => {
-      scale.value = withSpring(1.05);
-    };
+    // Update scale based on isPressing state
+    useEffect(() => {
+      scale.value = withSpring(isPressing ? 0.95 : 1);
+    }, [isPressing, scale]);
 
+    const onPressIn = () => {
+      setIsPressing(true);
+    };
+    
     const onPressOut = () => {
-      scale.value = withSpring(1);
+      setIsPressing(false);
+    };
+    
+    const handleDrag = () => {
+      onPressIn();
+      drag();
+    };
+    
+    const startEdit = () => {
+      setEditText(item.name);
+      setIsEditing(true);
+    };
+    
+    const saveEdit = async () => {
+      if (!editText.trim()) {
+        setEditText(item.name);
+        setIsEditing(false);
+        return;
+      }
+      
+      if (editText !== item.name) {
+        try {
+          // Clone the packingList to avoid modifying the shared value
+          const updatedItems = packingList.items.map(i => 
+            i.id === item.id ? { ...i, name: editText.trim() } : i
+          );
+          
+          await updatePackingList(listId, { items: updatedItems });
+          
+          setPackingList(prevList => ({
+            ...prevList,
+            items: updatedItems
+          }));
+        } catch (error) {
+          console.error('Error updating item name:', error);
+          Alert.alert('Error', 'Failed to update item name');
+        }
+      }
+      
+      setIsEditing(false);
     };
 
     return (
-      <Animated.View
+      <Animated.View 
         style={[
-          styles.itemRow,
-          item.checked && styles.checkedItem,
-          isActive && styles.activeItem,
+          styles.itemContainer, 
+          isActive && styles.itemActiveContainer,
           animatedStyle
         ]}
       >
-        {/* Checkbox */}
-        <TouchableOpacity
-          style={styles.checkbox}
+        <TouchableOpacity 
+          style={styles.checkboxContainer}
           onPress={() => onToggleChecked(item.id)}
         >
-          <Ionicons
-            name={item.checked ? "checkbox" : "square-outline"}
-            size={24}
-            color={item.checked ? '#6E8B3D' : '#757575'}
-          />
+          <View style={[
+            styles.checkbox,
+            item.checked && styles.checkboxChecked
+          ]}>
+            {item.checked && (
+              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            )}
+          </View>
         </TouchableOpacity>
-        
-        {/* Item Icon */}
-        <ItemIcon 
-          type={item.type || 'default'} 
-          size={22} 
-          backgroundColor={item.checked ? '#E0E0E0' : '#E8F5E9'} 
-        />
-        
-        {/* Item Name */}
-        <Text style={[styles.itemText, item.checked && styles.checkedText]}>
-          {item.name}
-        </Text>
-        
-        {/* Delete button */}
-        {isOwner && (
+          
+        {isEditing ? (
+          <TextInput
+            style={styles.itemNameInput}
+            value={editText}
+            onChangeText={setEditText}
+            autoFocus
+            onBlur={saveEdit}
+            onSubmitEditing={saveEdit}
+          />
+        ) : (
+          <TouchableOpacity 
+            style={styles.itemNameContainer}
+            onPress={startEdit}
+            onLongPress={startEdit}
+          >
+            <Text style={[
+              styles.itemName,
+              item.checked && styles.itemNameChecked
+            ]}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        )}
+          
+        <View style={styles.itemActions}>
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => onDelete(item.id)}
+            onPress={() => onDeleteItem(item.id)}
           >
             <Ionicons name="trash-outline" size={20} color="#FF5252" />
           </TouchableOpacity>
-        )}
-        
-        {/* Drag Handle */}
-        {isOwner && !item.checked && (
+            
           <TouchableOpacity
             style={styles.dragHandle}
-            onPressIn={() => {
-              onPressIn();
-              drag();
-            }}
+            onPressIn={handleDrag}
             onPressOut={onPressOut}
           >
             <Ionicons name="reorder-three-outline" size={22} color="#777" />
           </TouchableOpacity>
-        )}
+        </View>
       </Animated.View>
+    );
+  };
+  
+  // Edit Mode Section
+  const renderEditMode = () => {
+    return (
+      <>
+        <View style={styles.editSection}>
+          <Text style={styles.editLabel}>Description</Text>
+          <TextInput
+            style={styles.editInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g., Weekend Trip to the Beach"
+            maxLength={50}
+          />
+          
+          <Text style={styles.editLabel}>Activity Type</Text>
+          <View style={styles.activityTypesContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.activityTypeButton,
+                packingList?.activity === 'beach' && styles.activityTypeSelected
+              ]}
+              onPress={() => {
+                setPackingList(prevList => ({
+                  ...prevList,
+                  activity: 'beach'
+                }));
+              }}
+            >
+              <Text style={styles.activityIcon}>🏖️</Text>
+              <Text style={styles.activityLabel}>Beach</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.activityTypeButton,
+                packingList?.activity === 'camping' && styles.activityTypeSelected
+              ]}
+              onPress={() => {
+                setPackingList(prevList => ({
+                  ...prevList,
+                  activity: 'camping'
+                }));
+              }}
+            >
+              <Text style={styles.activityIcon}>🏕️</Text>
+              <Text style={styles.activityLabel}>Camping</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.activityTypeButton,
+                packingList?.activity === 'hiking' && styles.activityTypeSelected
+              ]}
+              onPress={() => {
+                setPackingList(prevList => ({
+                  ...prevList,
+                  activity: 'hiking'
+                }));
+              }}
+            >
+              <Text style={styles.activityIcon}>🥾</Text>
+              <Text style={styles.activityLabel}>Hiking</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.activityTypeButton,
+                packingList?.activity === 'skiing' && styles.activityTypeSelected
+              ]}
+              onPress={() => {
+                setPackingList(prevList => ({
+                  ...prevList,
+                  activity: 'skiing'
+                }));
+              }}
+            >
+              <Text style={styles.activityIcon}>🎿</Text>
+              <Text style={styles.activityLabel}>Skiing</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.editLabel}>Destination (Optional)</Text>
+          <TextInput
+            style={styles.editInput}
+            value={destination}
+            onChangeText={setDestination}
+            placeholder="e.g., Malibu Beach"
+          />
+          
+          <Text style={styles.editLabel}>Date & Time</Text>
+          <View style={styles.dateContainer}>
+            <Text style={styles.dateText}>
+              {packingList?.date ? format(new Date(packingList.date.toDate()), 'MMMM d, yyyy h:mm a') : 'Select date and time'}
+            </Text>
+            <Ionicons name="calendar-outline" size={24} color="#777" />
+          </View>
+        </View>
+      </>
     );
   };
   
@@ -353,6 +564,10 @@ const ListDetailsScreen = ({ route, navigation }) => {
           >
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
+          
+          <Text style={styles.headerTitle}>
+            {isEditMode ? 'Edit Packing List' : 'Create Packing List'}
+          </Text>
           
           <View style={styles.headerButtons}>
             {isOwner && (
@@ -391,29 +606,12 @@ const ListDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
         
-        {/* List Info */}
-        <View style={styles.infoSection}>
+        <ScrollView style={{ flex: 1 }}>
+          {/* List Info or Edit Section */}
           {isEditMode ? (
-            <>
-              {/* Editable Title */}
-              <TextInput
-                style={styles.titleInput}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="List Title"
-                maxLength={50}
-              />
-              
-              {/* Editable Destination */}
-              <TextInput
-                style={styles.destinationInput}
-                value={destination}
-                onChangeText={setDestination}
-                placeholder="Destination (Optional)"
-              />
-            </>
+            renderEditMode()
           ) : (
-            <>
+            <View style={styles.infoSection}>
               {/* Title and Activity */}
               <View style={styles.titleRow}>
                 <Text style={styles.activityEmoji}>
@@ -436,7 +634,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
                   <View style={styles.detailItem}>
                     <Ionicons name="calendar-outline" size={16} color="#777" />
                     <Text style={styles.detailText}>
-                      {format(new Date(packingList.date.toDate()), 'MMM d, yyyy')}
+                      {format(new Date(packingList.date.toDate()), 'MMM d, yyyy h:mm a')}
                     </Text>
                   </View>
                 )}
@@ -461,62 +659,60 @@ const ListDetailsScreen = ({ route, navigation }) => {
                   />
                 </View>
               </View>
-            </>
+            </View>
           )}
-        </View>
-        
-        {/* Items List Section */}
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>Items</Text>
           
-          {isLoading ? (
-            <ActivityIndicator size="large" color="#6E8B3D" />
-          ) : packingList?.items?.length > 0 ? (
-            <DraggableFlatList
-              data={packingList.items.sort((a, b) => {
-                if (a.checked && !b.checked) return 1;
-                if (!a.checked && b.checked) return -1;
-                return 0;
-              })}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, drag, isActive }) => (
-                <DraggableItem
-                  item={item}
-                  onToggleChecked={handleToggleChecked}
-                  onDelete={handleDeleteItem}
-                  isOwner={isOwner}
-                  drag={drag}
-                  isActive={isActive}
-                />
-              )}
-              onDragEnd={({ data }) => handleReorderItems(data)}
-              activationDistance={10}
-              contentContainerStyle={styles.listContent}
-            />
-          ) : (
-            <Text style={styles.emptyListText}>
-              No items in this list yet
-            </Text>
-          )}
-        </View>
+          {/* Items List Section */}
+          <View style={styles.itemsSection}>
+            <Text style={styles.sectionTitle}>Items</Text>
+            
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#6E8B3D" />
+            ) : packingList?.items?.length > 0 ? (
+              <DraggableFlatList
+                data={sortedItems}
+                keyExtractor={(item) => item.id}
+                onDragEnd={handleReorderItems}
+                scrollEnabled={false}
+                renderItem={({ item, drag, isActive }) => (
+                  <DraggableItem
+                    item={item}
+                    onToggleChecked={handleToggleChecked}
+                    onDeleteItem={handleDeleteItem}
+                    drag={drag}
+                    isActive={isActive}
+                  />
+                )}
+                contentContainerStyle={styles.listContent}
+              />
+            ) : (
+              <View style={styles.emptyList}>
+                <Text style={styles.emptyText}>No items in this list</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
         
         {/* Add Item Input (Only visible to owner) */}
         {isOwner && (
           <View style={styles.addItemContainer}>
             <TextInput
               style={styles.addItemInput}
-              placeholder="Add new item..."
+              placeholder="Add a new item..."
               value={newItemText}
               onChangeText={setNewItemText}
               onSubmitEditing={handleAddItem}
             />
             <TouchableOpacity
-              style={styles.addItemButton}
+              style={[
+                styles.addItemButton,
+                !newItemText.trim() && styles.addItemButtonDisabled
+              ]}
               onPress={handleAddItem}
               disabled={!newItemText.trim()}
             >
               <Ionicons
-                name="add-circle"
+                name="add"
                 size={24}
                 color={newItemText.trim() ? '#6E8B3D' : '#BDBDBD'}
               />
@@ -551,6 +747,13 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 5,
   },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    textAlign: 'center',
+  },
   headerButtons: {
     flexDirection: 'row',
   },
@@ -565,10 +768,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   itemsSection: {
-    flex: 1,
     padding: 20,
-    paddingBottom: 0,
-    minHeight: 300,
+    paddingBottom: 80,
   },
   titleRow: {
     flexDirection: 'row',
@@ -593,13 +794,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDD',
     paddingVertical: 5,
     marginBottom: 10,
-  },
-  destinationInput: {
-    fontSize: 16,
-    color: '#555',
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
-    paddingVertical: 5,
   },
   detailsRow: {
     flexDirection: 'row',
@@ -650,35 +844,90 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
   },
-  emptyListText: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    padding: 20,
-  },
-  addItemContainer: {
+  itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    marginVertical: 5,
+    marginHorizontal: 2,
+    borderRadius: 10,
     backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
-  addItemInput: {
-    flex: 1,
-    height: 50,
+  itemActiveContainer: {
+    backgroundColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 999,
+  },
+  checkboxContainer: {
+    marginRight: 12,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    marginRight: 10,
+    borderColor: '#757575',
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  addItemButton: {
+  checkboxChecked: {
+    backgroundColor: '#6E8B3D',
+    borderColor: '#6E8B3D',
+  },
+  itemNameContainer: {
+    flex: 1,
+    paddingVertical: 5,
+  },
+  itemName: {
+    fontSize: 16,
+    color: '#333',
+  },
+  itemNameChecked: {
+    textDecorationLine: 'line-through',
+    color: '#777',
+  },
+  itemNameInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDD',
+    paddingVertical: 5,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
     padding: 5,
   },
-  itemRow: {
+  dragHandle: {
+    padding: 5,
+    marginLeft: 5,
+  },
+  listContent: {
+    paddingBottom: 80,
+  },
+  emptyList: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#777',
+  },
+  editItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
@@ -692,42 +941,144 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
     elevation: 1,
   },
-  checkedItem: {
-    backgroundColor: '#F5F5F5',
-    opacity: 0.8,
-  },
-  activeItem: {
-    backgroundColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-    zIndex: 999,
-  },
-  checkbox: {
-    padding: 5,
-    marginRight: 5,
-  },
-  itemText: {
+  editItemText: {
     flex: 1,
     fontSize: 16,
     color: '#333',
-    marginLeft: 10,
   },
-  checkedText: {
-    textDecorationLine: 'line-through',
+  editDeleteButton: {
+    padding: 5,
+  },
+  addItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    backgroundColor: 'white',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  addItemInput: {
+    flex: 1,
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    marginRight: 10,
+    backgroundColor: '#FAFAFA',
+  },
+  addItemButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+  },
+  addItemButtonDisabled: {
+    backgroundColor: '#BDBDBD',
+  },
+  editSection: {
+    padding: 20,
+  },
+  editLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    marginTop: 15,
+  },
+  editInput: {
+    fontSize: 16,
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FAFAFA',
+  },
+  activityTypesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    flexWrap: 'wrap',
+  },
+  activityTypeButton: {
+    width: '23%',
+    aspectRatio: 1,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    marginBottom: 10,
+  },
+  activityTypeSelected: {
+    borderColor: '#6E8B3D',
+    backgroundColor: '#E8F5E9',
+  },
+  activityIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  activityLabel: {
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#FAFAFA',
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  suggestedItemsMessage: {
+    marginTop: 10,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  suggestedItemsText: {
+    fontSize: 14,
     color: '#777',
+    textAlign: 'center',
   },
-  deleteButton: {
-    padding: 5,
+  suggestedItemsContainer: {
+    flexDirection: 'column',
+    marginBottom: 20,
   },
-  dragHandle: {
-    padding: 5,
-    marginLeft: 5,
+  suggestedItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    marginVertical: 5,
+    backgroundColor: '#FAFAFA',
   },
-  listContent: {
-    paddingBottom: 80,
+  suggestedItemText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 

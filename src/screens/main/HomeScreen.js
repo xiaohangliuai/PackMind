@@ -12,13 +12,16 @@ import {
   RefreshControl,
   StatusBar,
   Dimensions,
-  Alert
+  Alert,
+  Platform,
+  Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { getUserPackingLists, getSharedLists } from '../../models/firestoreModels';
 import { firestore } from '../../config/firebase';
+import { Appbar, Avatar, Badge } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
 
@@ -28,7 +31,8 @@ const HomeScreen = ({ navigation }) => {
   const [sharedLists, setSharedLists] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('myLists');
+  const [hasNotifications, setHasNotifications] = useState(true); // Demo state for notification badge
+  const [pulseAnim] = useState(new Animated.Value(1));
   
   // Fetch user's packing lists
   const fetchPackingLists = async () => {
@@ -173,6 +177,24 @@ const HomeScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation, user]);
   
+  // Start pulse animation for the add button
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+  
   // Calculate progress for a list
   const calculateProgress = (items) => {
     if (!items || items.length === 0) return 0;
@@ -180,10 +202,23 @@ const HomeScreen = ({ navigation }) => {
     return (checkedItems.length / items.length) * 100;
   };
   
+  // Combine both personal and shared lists into one array
+  const getAllLists = () => {
+    let allLists = [...packingLists];
+    
+    // Add shared lists if they exist
+    if (sharedLists && sharedLists.length > 0) {
+      allLists = [...allLists, ...sharedLists];
+    }
+    
+    return allLists;
+  };
+  
   // Render a packing list item
   const renderPackingListItem = ({ item, index }) => {
     const progress = calculateProgress(item.items);
     const formattedDate = item.date ? format(new Date(item.date.toDate()), 'MMM d, yyyy') : 'No date';
+    const isShared = item.sharedWith && item.sharedWith.includes(user.uid);
     
     return (
       <TouchableOpacity
@@ -198,9 +233,14 @@ const HomeScreen = ({ navigation }) => {
         
         {/* List Info */}
         <View style={styles.listInfo}>
-          <Text style={styles.listTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.listTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            {isShared && (
+              <Ionicons name="share-social" size={18} color="#6E8B3D" />
+            )}
+          </View>
           <View style={styles.listDetails}>
             <Text style={styles.listDate}>{formattedDate}</Text>
             <View style={styles.itemCount}>
@@ -265,82 +305,75 @@ const HomeScreen = ({ navigation }) => {
           resizeMode="contain"
         />
         <Text style={styles.emptyTitle}>
-          {activeTab === 'myLists' ? 'No packing lists yet' : 'No shared lists yet'}
+          No packing lists yet
         </Text>
         <Text style={styles.emptyText}>
-          {activeTab === 'myLists'
-            ? 'Create your first packing list to get started'
-            : 'Lists shared with you will appear here'}
+          Create your first packing list to get started
         </Text>
-        {activeTab === 'myLists' && (
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => navigation.navigate('Create')}
-          >
-            <Text style={styles.createButtonText}>Create List</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => navigation.navigate('Create')}
+        >
+          <Text style={styles.createButtonText}>Create List</Text>
+        </TouchableOpacity>
       </View>
     );
   };
   
-  // Render error state for shared lists
-  const renderSharedListsError = () => {
-    return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="warning" size={40} color="#FF6B6B" />
-        <Text style={styles.errorTitle}>Unable to load shared lists</Text>
-        <Text style={styles.errorText}>
-          This feature might not be available right now.
-        </Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={fetchSharedLists}
-        >
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    )
+  // Get avatar initials
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(part => part[0]).join('').toUpperCase();
   };
   
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.container}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>
-            Hello, {user?.displayName?.split(' ')[0] || 'there'}!
-          </Text>
-          <Text style={styles.headerTitle}>Your Packing Lists</Text>
+      {/* App Header Bar */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.appTitle}>PackMind</Text>
+        <View style={styles.rightContainer}>
+          <View style={styles.notificationContainer}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => Alert.alert('Notifications', 'No new notifications')}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            {hasNotifications && (
+              <View style={styles.badge} />
+            )}
+          </View>
+          <TouchableOpacity 
+            style={styles.profileButton} 
+            onPress={() => navigation.navigate('Profile')}
+          >
+            {user?.photoURL ? (
+              <Image 
+                source={{ uri: user.photoURL }} 
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {getInitials(user?.displayName || 'User')}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <Ionicons name="settings-outline" size={24} color="#333" />
-        </TouchableOpacity>
       </View>
       
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'myLists' && styles.activeTab]}
-          onPress={() => setActiveTab('myLists')}
-        >
-          <Text style={[styles.tabText, activeTab === 'myLists' && styles.activeTabText]}>
-            My Lists
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'shared' && styles.activeTab]}
-          onPress={() => setActiveTab('shared')}
-        >
-          <Text style={[styles.tabText, activeTab === 'shared' && styles.activeTabText]}>
-            Shared With Me
-          </Text>
-        </TouchableOpacity>
+      {/* Welcome Text */}
+      <View style={styles.welcomeSection}>
+        <Text style={styles.welcomeText}>
+          Hello, {user?.displayName?.split(' ')[0] || 'there'}!
+        </Text>
       </View>
       
       {/* Loading state */}
@@ -351,15 +384,11 @@ const HomeScreen = ({ navigation }) => {
       ) : (
         // List of packing lists
         <FlatList
-          data={activeTab === 'myLists' ? packingLists : sharedLists}
+          data={getAllLists()}
           renderItem={renderPackingListItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            activeTab === 'shared' && sharedLists === null 
-              ? renderSharedListsError()
-              : renderEmptyState()
-          }
+          ListEmptyComponent={renderEmptyState()}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -371,16 +400,31 @@ const HomeScreen = ({ navigation }) => {
         />
       )}
       
-      {/* Add button (only on My Lists tab) */}
-      {activeTab === 'myLists' && (
+      {/* Add button */}
+      <View style={styles.addButtonContainer}>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('Create')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="add" size={30} color="white" />
+          <Animated.View 
+            style={[
+              styles.addButtonOuterRing,
+              {transform: [{scale: pulseAnim}]}
+            ]}
+          />
+          <View style={styles.addButtonInner}>
+            <View style={styles.buttonPattern}>
+              <Ionicons name="checkmark" size={12} color="rgba(255, 255, 255, 0.15)" style={styles.patternIcon} />
+              <Ionicons name="list" size={12} color="rgba(255, 255, 255, 0.15)" style={styles.patternIcon} />
+              <Ionicons name="bag" size={12} color="rgba(255, 255, 255, 0.15)" style={styles.patternIcon} />
+            </View>
+            <Ionicons name="add" size={30} color="white" />
+          </View>
+          <Text style={styles.addButtonLabel}>New List</Text>
         </TouchableOpacity>
-      )}
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
@@ -389,53 +433,81 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
-  header: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 75 : StatusBar.currentHeight + 40 || 40,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  appTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#6E8B3D',
+  },
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationContainer: {
+    marginRight: 16,
+    position: 'relative',
+  },
+  iconButton: {
+    padding: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FF6B6B',
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#6E8B3D',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  welcomeSection: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 15,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    marginTop: 0,
   },
   welcomeText: {
-    fontSize: 14,
-    color: '#777',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  tab: {
-    marginRight: 20,
-    paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#6E8B3D',
-  },
-  tabText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
-    color: '#777',
-  },
-  activeTabText: {
-    color: '#6E8B3D',
+    color: '#333',
   },
   loadingContainer: {
     flex: 1,
@@ -474,11 +546,18 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
   listTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 5,
+    flex: 1,
+    marginRight: 8,
   },
   listDetails: {
     flexDirection: 'row',
@@ -509,10 +588,27 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#6E8B3D',
   },
-  addButton: {
+  addButtonContainer: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  addButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonOuterRing: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(110, 139, 61, 0.15)',
+  },
+  addButtonInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -520,10 +616,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    overflow: 'hidden',
+  },
+  buttonPattern: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+    padding: 4,
+    opacity: 0.8,
+  },
+  patternIcon: {
+    transform: [{ rotate: '45deg' }],
+    marginHorizontal: -2,
+  },
+  addButtonLabel: {
+    color: '#5c7433',
+    fontWeight: 'bold',
+    marginTop: 6,
+    fontSize: 13,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(255, 255, 255, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -558,36 +681,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#6E8B3D',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  }
 });
 
 export default HomeScreen;

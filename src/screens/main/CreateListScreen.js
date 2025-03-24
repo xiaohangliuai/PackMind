@@ -269,141 +269,125 @@ const CreateListScreen = ({ navigation }) => {
   
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Create Packing List</Text>
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Create Packing List</Text>
+          <View style={{ width: 30 }} />
+        </View>
+        
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* List Title */}
+          <Text style={styles.label}>List Title</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Weekend Trip to the Beach"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={50}
+          />
           
-          {/* Title Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>List Title</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Weekend Trip to the Beach"
-              value={title}
-              onChangeText={setTitle}
-              maxLength={50}
-            />
-          </View>
-          
-          {/* Activity Type Selection */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Activity Type</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.activityTypeContainer}
-            >
+          {/* Activity Type */}
+          <Text style={styles.label}>Activity Type</Text>
+          <ScrollView 
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.activityScroll}
+          >
+            <View style={styles.activityGrid}>
               {activityTypes.map((activity) => (
                 <TouchableOpacity
                   key={activity.id}
                   style={[
-                    styles.activityTypeButton,
-                    selectedActivity?.id === activity.id && styles.selectedActivityButton,
+                    styles.activityButton,
+                    selectedActivity?.id === activity.id && styles.selectedActivity,
                   ]}
                   onPress={() => setSelectedActivity(activity)}
                 >
                   <Text style={styles.activityEmoji}>{activity.emoji}</Text>
-                  <Text style={[
-                    styles.activityLabel,
-                    selectedActivity?.id === activity.id && styles.selectedActivityLabel,
-                  ]}>
-                    {activity.label}
-                  </Text>
+                  <Text style={styles.activityLabel}>{activity.label}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </View>
+            </View>
+          </ScrollView>
           
-          {/* Destination Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Destination (Optional)</Text>
+          {/* Destination */}
+          <Text style={styles.label}>Destination (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Malibu Beach"
+            value={destination}
+            onChangeText={setDestination}
+          />
+          
+          {/* Date & Time */}
+          <Text style={styles.label}>Date</Text>
+          <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
+            <Text style={styles.dateText}>{format(date, 'MMMM d, yyyy')}</Text>
+            <Ionicons name="calendar-outline" size={24} color="#777" />
+          </TouchableOpacity>
+          
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="datetime"
+            date={date}
+            onConfirm={handleConfirmDate}
+            onCancel={hideDatePicker}
+          />
+          
+          {/* Items */}
+          <Text style={styles.label}>Items</Text>
+          <Text style={styles.suggestionText}>
+            Select an activity type to see suggested items
+          </Text>
+          
+          {/* Add new item */}
+          <View style={styles.addItemRow}>
             <TextInput
-              style={styles.input}
-              placeholder="e.g., Malibu Beach"
-              value={destination}
-              onChangeText={setDestination}
+              style={styles.itemInput}
+              placeholder="Add a new item..."
+              value={newItemName}
+              onChangeText={setNewItemName}
+              onSubmitEditing={handleAddItem}
             />
-          </View>
-          
-          {/* Date Picker */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Date</Text>
-            <TouchableOpacity style={styles.datePickerButton} onPress={showDatePicker}>
-              <Text style={styles.datePickerText}>
-                {format(date, 'MMMM d, yyyy')}
-              </Text>
-              <Ionicons name="calendar-outline" size={20} color="#777" />
-            </TouchableOpacity>
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="date"
-              onConfirm={handleConfirmDate}
-              onCancel={hideDatePicker}
-              date={date}
-            />
-          </View>
-          
-          {/* Items List */}
-          <View style={styles.itemsSection}>
-            <Text style={styles.sectionTitle}>Items</Text>
-            <Text style={styles.sectionSubtitle}>
-              {selectedActivity
-                ? `Suggested items for ${selectedActivity.label}`
-                : 'Select an activity type to see suggested items'}
-            </Text>
-            
-            {/* Add New Item */}
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.addItemInput}
-                placeholder="Add a new item..."
-                value={newItemName}
-                onChangeText={setNewItemName}
-                onSubmitEditing={handleAddItem}
-                returnKeyType="done"
+            <TouchableOpacity 
+              style={[
+                styles.addButton,
+                !newItemName.trim() && styles.addButtonDisabled
+              ]}
+              onPress={handleAddItem}
+              disabled={!newItemName.trim()}
+            >
+              <Ionicons 
+                name="add" 
+                size={24} 
+                color={newItemName.trim() ? '#6E8B3D' : '#BDBDBD'} 
               />
-              <TouchableOpacity
-                style={styles.addItemButton}
-                onPress={handleAddItem}
-                disabled={!newItemName.trim()}
-              >
-                <Ionicons
-                  name="add-circle"
-                  size={24}
-                  color={newItemName.trim() ? '#6E8B3D' : '#BDBDBD'}
-                />
-              </TouchableOpacity>
-            </View>
-            
-            {/* Items List */}
-            <View style={styles.itemsList}>
-              {items.length > 0 ? (
-                items.map(renderItem)
-              ) : (
-                <Text style={styles.emptyListText}>
-                  {selectedActivity
-                    ? 'No items added yet. Add some items to your list.'
-                    : 'Select an activity type to see suggested items.'}
-                </Text>
-              )}
-            </View>
+            </TouchableOpacity>
           </View>
           
-          {/* Save Button */}
+          {/* Item list */}
+          {items.map((item, index) => renderItem(item, index))}
+          
+          {/* Create button */}
           <TouchableOpacity
-            style={styles.saveButton}
+            style={styles.createButton}
             onPress={handleSaveList}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Create List</Text>
+              <Text style={styles.createButtonText}>Create Packing List</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -417,29 +401,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
   header: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    paddingHorizontal: 20,
+    marginBottom: 5,
+  },
+  backButton: {
+    padding: 5,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    marginLeft: 10,
+    flex: 1,
+    textAlign: 'center',
   },
-  inputGroup: {
-    marginBottom: 20,
+  content: {
+    padding: 20,
   },
-  inputLabel: {
+  label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
+    marginTop: 15,
   },
   input: {
     borderWidth: 1,
@@ -447,11 +435,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     fontSize: 16,
+    marginBottom: 15,
   },
-  activityTypeContainer: {
+  activityScroll: {
+    marginBottom: 20,
+  },
+  activityGrid: {
+    flexDirection: 'row',
     paddingVertical: 10,
+    paddingRight: 20,
   },
-  activityTypeButton: {
+  activityButton: {
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
@@ -461,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     padding: 10,
   },
-  selectedActivityButton: {
+  selectedActivity: {
     backgroundColor: '#E8F5E9',
     borderWidth: 2,
     borderColor: '#6E8B3D',
@@ -475,11 +469,7 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
-  selectedActivityLabel: {
-    color: '#6E8B3D',
-    fontWeight: '600',
-  },
-  datePickerButton: {
+  dateButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -487,32 +477,23 @@ const styles = StyleSheet.create({
     borderColor: '#DDD',
     borderRadius: 12,
     padding: 15,
+    marginBottom: 15,
   },
-  datePickerText: {
+  dateText: {
     fontSize: 16,
     color: '#333',
   },
-  itemsSection: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
+  suggestionText: {
     color: '#777',
     marginBottom: 15,
+    fontSize: 14,
   },
-  addItemContainer: {
+  addItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
   },
-  addItemInput: {
+  itemInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#DDD',
@@ -521,11 +502,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
-  addItemButton: {
-    padding: 5,
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  itemsList: {
-    marginTop: 10,
+  addButtonDisabled: {
+    backgroundColor: '#DDD',
   },
   itemContainer: {
     flexDirection: 'row',
@@ -533,7 +519,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   itemName: {
     flex: 1,
@@ -544,20 +530,14 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 5,
   },
-  emptyListText: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    padding: 20,
-  },
-  saveButton: {
+  createButton: {
     backgroundColor: '#6E8B3D',
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
-    marginTop: 10,
+    marginVertical: 25,
   },
-  saveButtonText: {
+  createButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
