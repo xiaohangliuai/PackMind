@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Background circle -->
+  <circle cx="150" cy="150" r="130" fill="#F8F8F8" />
+  
+  <!-- Empty Clipboard/List -->
+  <rect x="100" y="70" width="100" height="160" rx="8" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="4"/>
+  <rect x="110" y="60" width="80" height="20" rx="6" fill="#EEEEEE" stroke="#DDDDDD" stroke-width="4"/>
+  
+  <!-- Lines representing empty list items -->
+  <rect x="120" y="100" width="60" height="8" rx="4" fill="#EEEEEE"/>
+  <circle cx="115" cy="104" r="5" fill="#EEEEEE" stroke="#DDDDDD" stroke-width="2"/>
+  
+  <rect x="120" y="130" width="60" height="8" rx="4" fill="#EEEEEE"/>
+  <circle cx="115" cy="134" r="5" fill="#EEEEEE" stroke="#DDDDDD" stroke-width="2"/>
+  
+  <rect x="120" y="160" width="60" height="8" rx="4" fill="#EEEEEE"/>
+  <circle cx="115" cy="164" r="5" fill="#EEEEEE" stroke="#DDDDDD" stroke-width="2"/>
+  
+  <rect x="120" y="190" width="60" height="8" rx="4" fill="#EEEEEE"/>
+  <circle cx="115" cy="194" r="5" fill="#EEEEEE" stroke="#DDDDDD" stroke-width="2"/>
+  
+  <!-- PackMind logo/icon -->
+  <circle cx="150" cy="230" r="15" fill="#6E8B3D" opacity="0.6" />
+  <text x="150" y="236" font-family="Arial" font-size="20" fill="white" text-anchor="middle">P</text>
+</svg>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "850172508224",
+    "project_id": "packmind-568eb",
+    "storage_bucket": "packmind-568eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850172508224:android:f1bdcd109560ba27cd47a5",
+        "android_client_info": {
+          "package_name": "com.yutoliu.packmind"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCht3WitV1gdcFhLLnmsoKMOQYtEqhFzNg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

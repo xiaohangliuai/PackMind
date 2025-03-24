@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" fill="#6E8B3D" />
+  
+  <!-- Checklist -->
+  <rect x="262" y="262" width="500" height="650" rx="40" fill="#FFFFFF" />
+  
+  <!-- Checkmarks and items -->
+  <rect x="312" y="362" width="400" height="60" rx="10" fill="#F0F0F0" />
+  <circle cx="342" cy="392" r="20" fill="#6E8B3D" />
+  <path d="M335 392 L342 399 L352 385" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="372" y="372" width="320" height="20" rx="5" fill="#BBBBBB" />
+  <rect x="372" y="402" width="240" height="10" rx="5" fill="#DDDDDD" />
+  
+  <rect x="312" y="452" width="400" height="60" rx="10" fill="#F0F0F0" />
+  <circle cx="342" cy="482" r="20" fill="#6E8B3D" />
+  <path d="M335 482 L342 489 L352 475" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="372" y="462" width="280" height="20" rx="5" fill="#BBBBBB" />
+  <rect x="372" y="492" width="200" height="10" rx="5" fill="#DDDDDD" />
+  
+  <rect x="312" y="542" width="400" height="60" rx="10" fill="#FFFFFF" />
+  <circle cx="342" cy="572" r="20" fill="#E0E0E0" stroke="#6E8B3D" stroke-width="4" />
+  <rect x="372" y="552" width="340" height="20" rx="5" fill="#444444" />
+  <rect x="372" y="582" width="220" height="10" rx="5" fill="#777777" />
+  
+  <rect x="312" y="632" width="400" height="60" rx="10" fill="#FFFFFF" />
+  <circle cx="342" cy="662" r="20" fill="#E0E0E0" stroke="#6E8B3D" stroke-width="4" />
+  <rect x="372" y="642" width="300" height="20" rx="5" fill="#444444" />
+  <rect x="372" y="672" width="180" height="10" rx="5" fill="#777777" />
+  
+  <rect x="312" y="722" width="400" height="60" rx="10" fill="#FFFFFF" />
+  <circle cx="342" cy="752" r="20" fill="#E0E0E0" stroke="#6E8B3D" stroke-width="4" />
+  <rect x="372" y="732" width="320" height="20" rx="5" fill="#444444" />
+  <rect x="372" y="762" width="230" height="10" rx="5" fill="#777777" />
+  
+  <!-- Progress bar -->
+  <rect x="312" y="822" width="400" height="20" rx="10" fill="#F0F0F0" />
+  <rect x="312" y="822" width="160" height="20" rx="10" fill="#6E8B3D" />
+  
+  <!-- Title -->
+  <rect x="312" y="282" width="300" height="40" rx="5" fill="#6E8B3D" opacity="0.8" />
+  <rect x="312" y="322" width="200" height="20" rx="5" fill="#6E8B3D" opacity="0.6" />
+  
+  <!-- Cute packing icons around the checklist -->
+  <!-- Suitcase -->
+  <rect x="652" y="202" width="70" height="50" rx="8" fill="#444444" />
+  <rect x="662" y="192" width="50" height="10" rx="5" fill="#444444" />
+  
+  <!-- Passport -->
+  <rect x="182" y="342" width="60" height="80" rx="5" fill="#003366" />
+  <circle cx="212" cy="372" r="15" fill="#FFD700" />
+  <rect x="192" y="402" width="40" height="10" rx="2" fill="#FFFFFF" />
+  
+  <!-- Sunglasses -->
+  <path d="M182 502 C182 492, 192 482, 212 482 C232 482, 242 492, 242 502" stroke="#000000" stroke-width="6" fill="none" />
+  <rect x="182" y="502" width="25" height="15" rx="5" fill="#000000" />
+  <rect x="217" y="502" width="25" height="15" rx="5" fill="#000000" />
+  
+  <!-- Plane -->
+  <path d="M722 562 L772 512 L802 512 L772 562 L802 612 L772 612 L722 562 Z" fill="#64B5F6" />
+  <circle cx="732" cy="562" r="10" fill="#FFFFFF" />
+  
+  <!-- Sun -->
+  <circle cx="792" cy="422" r="30" fill="#FFD54F" />
+  <path d="M792 372 L792 392 M792 452 L792 472 M742 422 L762 422 M822 422 L842 422 M754 384 L768 398 M816 446 L830 460 M754 460 L768 446 M816 398 L830 384" stroke="#FFD54F" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Mountain -->
+  <path d="M762 712 L812 662 L862 712" fill="#81C784" />
+</svg>
