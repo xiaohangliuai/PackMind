@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.yutoliu.packmind"
     },
     "android": {
-      "bundleIdentifier": "com.yutoliu.packmind",
+      "package": "com.yutoliu.packmind",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

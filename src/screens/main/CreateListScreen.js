@@ -189,23 +189,63 @@ const CreateListScreen = ({ navigation }) => {
     setIsLoading(true);
     
     try {
+      if (!user || !user.uid) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Debug information
+      console.log('Creating list with user ID:', user.uid);
+      console.log('Selected activity:', selectedActivity);
+      
       const newList = {
-        title,
+        title: title.trim(),
         activity: selectedActivity.id,
         destination: destination.trim() || null,
-        date,
-        items,
+        date: date, // This will be converted to Timestamp in the model
+        items: items,
         userId: user.uid,
         sharedWith: [],
+        // Add additional metadata to help with debugging
+        createdBy: user.email || 'anonymous',
+        clientTimestamp: new Date().toISOString()
       };
       
-      await createPackingList(newList);
+      // Debug - log the list being created
+      console.log('Creating packing list:', JSON.stringify(newList));
       
-      // Navigate back to home screen
-      navigation.navigate('Home');
+      try {
+        const docRef = await createPackingList(newList);
+        console.log('List created successfully with ID:', docRef.id);
+        
+        Alert.alert(
+          'Success',
+          'Your packing list has been created!',
+          [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+        );
+      } catch (innerError) {
+        console.error('Error in createPackingList:', innerError);
+        
+        // Special handling for permission-denied errors
+        if (innerError.code === 'permission-denied') {
+          Alert.alert(
+            'Permission Error',
+            'You do not have permission to create lists. This may be due to Firebase security rules. Please contact support.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          throw innerError; // Rethrow for general error handling
+        }
+      }
     } catch (error) {
       console.error('Error creating packing list:', error);
-      Alert.alert('Error', 'Failed to create packing list. Please try again.');
+      
+      // More specific error message
+      let errorMessage = 'Failed to create packing list. Please try again.';
+      if (error.code) {
+        errorMessage += ` (Error code: ${error.code})`;
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }

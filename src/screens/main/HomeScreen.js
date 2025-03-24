@@ -11,19 +11,21 @@ import {
   ActivityIndicator,
   RefreshControl,
   StatusBar,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { getUserPackingLists, getSharedLists } from '../../models/firestoreModels';
+import { firestore } from '../../config/firebase';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [packingLists, setPackingLists] = useState([]);
-  const [sharedLists, setSharedLists] = useState([]);
+  const [sharedLists, setSharedLists] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('myLists');
@@ -31,20 +33,62 @@ const HomeScreen = ({ navigation }) => {
   // Fetch user's packing lists
   const fetchPackingLists = async () => {
     try {
+      if (!user || !user.uid) {
+        console.error('No authenticated user found');
+        return;
+      }
+      console.log('Fetching packing lists for user ID:', user.uid);
       const lists = await getUserPackingLists(user.uid);
+      console.log('Successfully retrieved', lists.length, 'packing lists');
       setPackingLists(lists);
     } catch (error) {
       console.error('Error fetching packing lists:', error);
+      
+      // Provide a more detailed error message for debugging
+      let errorMessage = 'Failed to load your packing lists. Please try again.';
+      
+      // Check for specific Firebase error codes
+      if (error.code) {
+        if (error.code === 'permission-denied') {
+          errorMessage = 'Permission denied. You do not have access to these lists.';
+        } else if (error.code === 'unavailable') {
+          errorMessage = 'Database is currently unavailable. Please try again later.';
+        } else if (error.code === 'not-found') {
+          errorMessage = 'The collection or document was not found.';
+        } else {
+          errorMessage += ` (Error code: ${error.code})`;
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
   };
   
   // Fetch shared lists
   const fetchSharedLists = async () => {
     try {
+      if (!user || !user.uid) {
+        console.error('No authenticated user found');
+        // Set sharedLists to empty array, not null, since this is a normal state
+        setSharedLists([]);
+        return;
+      }
+      
+      console.log('Fetching shared lists for user:', user.uid);
       const lists = await getSharedLists(user.uid);
-      setSharedLists(lists);
+      setSharedLists(lists); // Normal successful state
+      
     } catch (error) {
       console.error('Error fetching shared lists:', error);
+      
+      // For permission denied or other critical errors, keep as null to show the error UI
+      if (error.code === 'permission-denied') {
+        console.error('Permission denied when fetching shared lists');
+        // Keep as null to show error state
+      } else {
+        // For network errors or other non-critical errors, set to empty array
+        setSharedLists([]); 
+      }
     }
   };
   
@@ -52,14 +96,59 @@ const HomeScreen = ({ navigation }) => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([
-        fetchPackingLists(),
-        fetchSharedLists()
-      ]);
+      if (!user) {
+        console.log('User not authenticated, skipping data fetch');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch own packing lists first (primary functionality)
+      await fetchPackingLists();
+      
+      try {
+        // Try to fetch shared lists but don't let errors disrupt the main UI
+        await fetchSharedLists();
+      } catch (error) {
+        console.error('Shared lists fetch failed, but continuing anyway:', error);
+        // Just set empty shared lists to prevent UI issues
+        setSharedLists([]);
+      }
+      
+      // Debug: Log that user is authenticated
+      console.log('User is authenticated:', user.email);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Debug Firebase connection
+  const debugFirebaseConnection = () => {
+    try {
+      console.log('====== FIREBASE DEBUG INFO ======');
+      console.log('User authenticated:', !!user);
+      if (user) {
+        console.log('User ID:', user.uid);
+        console.log('User email:', user.email);
+        console.log('User display name:', user.displayName);
+      }
+      
+      // Check if Firestore is available
+      const checkFirestore = firestore._databaseId ? 'Available' : 'Not available';
+      console.log('Firestore status:', checkFirestore);
+      
+      Alert.alert(
+        'Debug Info', 
+        `User authenticated: ${!!user}\n` +
+        `User ID: ${user?.uid || 'None'}\n` +
+        `Email: ${user?.email || 'None'}\n` +
+        `Firestore status: ${checkFirestore}\n\n` +
+        'Check console logs for more details.'
+      );
+    } catch (error) {
+      console.error('Error in debugFirebaseConnection:', error);
+      Alert.alert('Debug Error', `Error: ${error.message}`);
     }
   };
   
@@ -73,7 +162,7 @@ const HomeScreen = ({ navigation }) => {
   // Fetch data on mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]); // Add user as dependency to reload when user changes
   
   // Focus listener to refresh data when navigating back to this screen
   useEffect(() => {
@@ -82,7 +171,7 @@ const HomeScreen = ({ navigation }) => {
     });
     
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user]);
   
   // Calculate progress for a list
   const calculateProgress = (items) => {
@@ -195,6 +284,25 @@ const HomeScreen = ({ navigation }) => {
     );
   };
   
+  // Render error state for shared lists
+  const renderSharedListsError = () => {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="warning" size={40} color="#FF6B6B" />
+        <Text style={styles.errorTitle}>Unable to load shared lists</Text>
+        <Text style={styles.errorText}>
+          This feature might not be available right now.
+        </Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={fetchSharedLists}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -247,7 +355,11 @@ const HomeScreen = ({ navigation }) => {
           renderItem={renderPackingListItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyState}
+          ListEmptyComponent={
+            activeTab === 'shared' && sharedLists === null 
+              ? renderSharedListsError()
+              : renderEmptyState()
+          }
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -443,6 +555,35 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   createButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#6E8B3D',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+  },
+  retryButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',

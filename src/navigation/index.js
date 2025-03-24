@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 // Import screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -73,8 +74,9 @@ const MainStackNavigator = () => (
 
 // Root Navigator
 const RootNavigator = () => {
-  // Here we would normally check if the user is logged in
-  const isLoggedIn = false; // This will be replaced with authentication state
+  // Use the auth context to check if the user is logged in
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
 
   return (
     <NavigationContainer>

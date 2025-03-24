@@ -69,7 +69,17 @@ const RegisterScreen = ({ navigation }) => {
         premium: false
       });
       
-      // Navigation will be handled by the auth state change in AuthContext
+      // Show success message and navigate to login
+      Alert.alert(
+        'Registration Successful', 
+        'Your account has been created successfully!',
+        [
+          { 
+            text: 'Login Now', 
+            onPress: () => navigation.navigate('Login') 
+          }
+        ]
+      );
     } catch (error) {
       let errorMessage = 'Failed to create account. Please try again.';
       

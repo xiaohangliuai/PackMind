@@ -14,17 +14,20 @@ const DraggableList = ({
   editable = true,
   checkedItemsAtBottom = true
 }) => {
+  // Safety check for items
+  const safeItems = items || [];
+  
   // Sort items to put checked items at the bottom if required
   const sortedItems = React.useMemo(() => {
     if (checkedItemsAtBottom) {
-      return [...items].sort((a, b) => {
+      return [...safeItems].sort((a, b) => {
         if (a.checked && !b.checked) return 1;
         if (!a.checked && b.checked) return -1;
         return 0;
       });
     }
-    return items;
-  }, [items, checkedItemsAtBottom]);
+    return safeItems;
+  }, [safeItems, checkedItemsAtBottom]);
 
   // Render each item in the list
   const renderItem = ({ item, drag, isActive }) => {
@@ -116,6 +119,8 @@ const DraggableList = ({
       onDragEnd={({ data }) => onReorder(data)}
       activationDistance={10}
       style={styles.list}
+      contentContainerStyle={styles.listContent}
+      showsVerticalScrollIndicator={false}
     />
   );
 };
@@ -125,13 +130,16 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  listContent: {
+    paddingBottom: 20,
+  },
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     padding: 15,
     marginVertical: 5,
-    marginHorizontal: 10,
+    marginHorizontal: 0,
     borderRadius: 10,
     elevation: 2,
     shadowColor: '#000',
@@ -145,7 +153,8 @@ const styles = StyleSheet.create({
   },
   checkedItem: {
     backgroundColor: '#F5F5F5',
-    opacity: 0.7,
+    opacity: 0.8,
+    textDecorationLine: 'line-through',
   },
   checkbox: {
     marginRight: 10,
@@ -153,11 +162,11 @@ const styles = StyleSheet.create({
   itemText: {
     flex: 1,
     fontSize: 16,
-    marginLeft: 10,
+    color: '#333',
   },
   checkedText: {
     textDecorationLine: 'line-through',
-    color: '#9E9E9E',
+    color: '#777',
   },
   actions: {
     flexDirection: 'row',
@@ -165,6 +174,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 5,
+    marginLeft: 5,
   },
   dragHandle: {
     padding: 5,

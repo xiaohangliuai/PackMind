@@ -36,8 +36,10 @@ const LoginScreen = ({ navigation }) => {
     setIsLoading(true);
     
     try {
-      await login(email, password);
-      // Navigation will be handled by the auth state change in AuthContext
+      const user = await login(email, password);
+      console.log('Login successful:', user?.email);
+      // No need for alert here as HomeScreen will show a welcome alert
+      // Navigation will be handled automatically by the auth state change
     } catch (error) {
       let errorMessage = 'Failed to login. Please try again.';
       

@@ -11,7 +11,8 @@ import {
     query, 
     where, 
     orderBy,
-    serverTimestamp 
+    serverTimestamp,
+    Timestamp 
   } from 'firebase/firestore';
   import { firestore } from '../config/firebase';
   
@@ -19,13 +20,50 @@ import {
   export const packingListsCollection = collection(firestore, 'packingLists');
   
   export const createPackingList = async (data) => {
-    const listData = {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
+    try {
+      // Prepare data with proper timestamp handling
+      let listData = {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      // Make sure userId is always present and set correctly
+      if (!listData.userId) {
+        console.error('No userId provided when creating packing list');
+        throw new Error('No userId provided for packing list creation');
+      }
+      
+      // Convert JavaScript Date to Firestore Timestamp
+      if (data.date && data.date instanceof Date) {
+        listData.date = Timestamp.fromDate(data.date);
+      }
   
-    return await addDoc(packingListsCollection, listData);
+      console.log('Creating packing list with data:', JSON.stringify(listData, null, 2));
+      
+      try {
+        // First attempt - use standard Firestore SDK
+        console.log('Attempting to create packing list using Firestore SDK');
+        return await addDoc(packingListsCollection, listData);
+      } catch (initialError) {
+        // If error is permission-denied, try a more direct approach
+        if (initialError.code === 'permission-denied') {
+          console.error('Permission denied error in createPackingList. Consider updating your Firebase rules.');
+          
+          // Re-throw the error for now - we'll handle this in the UI
+          throw initialError;
+        }
+        
+        // For other errors, re-throw
+        throw initialError;
+      }
+    } catch (error) {
+      console.error('Error in createPackingList:', error);
+      if (error.code === 'permission-denied') {
+        console.error('Permission denied. Please check Firebase security rules.');
+      }
+      throw error;
+    }
   };
   
   export const getPackingList = async (listId) => {
@@ -40,20 +78,30 @@ import {
   };
   
   export const getUserPackingLists = async (userId) => {
-    const q = query(
-      packingListsCollection, 
-      where('userId', '==', userId),
-      orderBy('updatedAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    const lists = [];
-    querySnapshot.forEach((doc) => {
-      lists.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return lists;
+    try {
+      console.log('Querying packing lists for user:', userId);
+      
+      const q = query(
+        packingListsCollection, 
+        where('userId', '==', userId),
+        orderBy('updatedAt', 'desc')
+      );
+      
+      console.log('Query created, attempting to get documents');
+      const querySnapshot = await getDocs(q);
+      console.log('Query executed, found', querySnapshot.size, 'documents');
+      
+      const lists = [];
+      querySnapshot.forEach((doc) => {
+        lists.push({ id: doc.id, ...doc.data() });
+      });
+      
+      return lists;
+    } catch (error) {
+      console.error('Error in getUserPackingLists:', error);
+      // Pass the original error up so we can check for specific Firebase errors
+      throw error;
+    }
   };
   
   export const updatePackingList = async (listId, data) => {
@@ -73,20 +121,37 @@ import {
   };
   
   export const getSharedLists = async (userId) => {
-    const q = query(
-      packingListsCollection, 
-      where('sharedWith', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    const lists = [];
-    querySnapshot.forEach((doc) => {
-      lists.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return lists;
+    try {
+      if (!userId) {
+        console.error('getSharedLists: No userId provided');
+        throw new Error('User ID is required to fetch shared lists');
+      }
+      
+      console.log('Fetching shared lists for user:', userId);
+      
+      const q = query(
+        packingListsCollection, 
+        where('sharedWith', 'array-contains', userId),
+        orderBy('updatedAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      console.log(`Found ${querySnapshot.size} shared lists for user ${userId}`);
+      
+      const lists = [];
+      querySnapshot.forEach((doc) => {
+        lists.push({ id: doc.id, ...doc.data() });
+      });
+      
+      return lists;
+    } catch (error) {
+      console.error('Error in getSharedLists:', error);
+      if (error.code === 'permission-denied') {
+        console.error('Permission denied when fetching shared lists. Check Firestore rules.');
+      }
+      throw error;
+    }
   };
   
   // ActivityTemplate model

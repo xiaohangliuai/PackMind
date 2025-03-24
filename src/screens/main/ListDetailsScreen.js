@@ -10,13 +10,17 @@ import {
   Share,
   ActivityIndicator,
   SafeAreaView,
-  ScrollView
+  ScrollView,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { getPackingList, updatePackingList, deletePackingList } from '../../models/firestoreModels';
-import DraggableList from '../../components/DraggableList';
+import ItemIcon from '../../components/ItemIcon';
+import DraggableFlatList from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const ListDetailsScreen = ({ route, navigation }) => {
   const { listId } = route.params;
@@ -252,9 +256,87 @@ const ListDetailsScreen = ({ route, navigation }) => {
     return emojis[activity] || emojis.default;
   };
   
+  // Custom Draggable Item Component
+  const DraggableItem = ({ item, onToggleChecked, onDelete, isOwner, drag, isActive }) => {
+    const scale = useSharedValue(1);
+    
+    const animatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: scale.value }],
+      };
+    });
+
+    const onPressIn = () => {
+      scale.value = withSpring(1.05);
+    };
+
+    const onPressOut = () => {
+      scale.value = withSpring(1);
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.itemRow,
+          item.checked && styles.checkedItem,
+          isActive && styles.activeItem,
+          animatedStyle
+        ]}
+      >
+        {/* Checkbox */}
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => onToggleChecked(item.id)}
+        >
+          <Ionicons
+            name={item.checked ? "checkbox" : "square-outline"}
+            size={24}
+            color={item.checked ? '#6E8B3D' : '#757575'}
+          />
+        </TouchableOpacity>
+        
+        {/* Item Icon */}
+        <ItemIcon 
+          type={item.type || 'default'} 
+          size={22} 
+          backgroundColor={item.checked ? '#E0E0E0' : '#E8F5E9'} 
+        />
+        
+        {/* Item Name */}
+        <Text style={[styles.itemText, item.checked && styles.checkedText]}>
+          {item.name}
+        </Text>
+        
+        {/* Delete button */}
+        {isOwner && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => onDelete(item.id)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF5252" />
+          </TouchableOpacity>
+        )}
+        
+        {/* Drag Handle */}
+        {isOwner && !item.checked && (
+          <TouchableOpacity
+            style={styles.dragHandle}
+            onPressIn={() => {
+              onPressIn();
+              drag();
+            }}
+            onPressOut={onPressOut}
+          >
+            <Ionicons name="reorder-three-outline" size={22} color="#777" />
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    );
+  };
+  
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.container}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -309,102 +391,114 @@ const ListDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
         
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* List Info */}
-          <View style={styles.infoSection}>
-            {isEditMode ? (
-              <>
-                {/* Editable Title */}
-                <TextInput
-                  style={styles.titleInput}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="List Title"
-                  maxLength={50}
-                />
-                
-                {/* Editable Destination */}
-                <TextInput
-                  style={styles.destinationInput}
-                  value={destination}
-                  onChangeText={setDestination}
-                  placeholder="Destination (Optional)"
-                />
-              </>
-            ) : (
-              <>
-                {/* Title and Activity */}
-                <View style={styles.titleRow}>
-                  <Text style={styles.activityEmoji}>
-                    {getActivityEmoji(packingList.activity)}
-                  </Text>
-                  <Text style={styles.title} numberOfLines={2}>
-                    {packingList.title}
-                  </Text>
-                </View>
-                
-                {/* Destination and Date */}
-                <View style={styles.detailsRow}>
-                  {packingList.destination && (
-                    <View style={styles.detailItem}>
-                      <Ionicons name="location-outline" size={16} color="#777" />
-                      <Text style={styles.detailText}>{packingList.destination}</Text>
-                    </View>
-                  )}
-                  {packingList.date && (
-                    <View style={styles.detailItem}>
-                      <Ionicons name="calendar-outline" size={16} color="#777" />
-                      <Text style={styles.detailText}>
-                        {format(new Date(packingList.date.toDate()), 'MMM d, yyyy')}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                
-                {/* Progress Bar */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressInfo}>
-                    <Text style={styles.progressText}>
-                      {`${packingList.items.filter(item => item.checked).length}/${packingList.items.length} packed`}
-                    </Text>
-                    <Text style={styles.progressPercentage}>
-                      {`${Math.round(calculateProgress())}%`}
-                    </Text>
-                  </View>
-                  <View style={styles.progressBarContainer}>
-                    <View 
-                      style={[
-                        styles.progressBar, 
-                        { width: `${calculateProgress()}%` }
-                      ]} 
-                    />
-                  </View>
-                </View>
-              </>
-            )}
-          </View>
-          
-          {/* Items List */}
-          <View style={styles.itemsSection}>
-            <Text style={styles.sectionTitle}>Items</Text>
-            
-            {/* Item List */}
-            {packingList.items.length > 0 ? (
-              <DraggableList
-                items={packingList.items}
-                onReorder={handleReorderItems}
-                onToggleChecked={handleToggleChecked}
-                onDelete={handleDeleteItem}
-                editable={isOwner}
-                checkedItemsAtBottom={true}
+        {/* List Info */}
+        <View style={styles.infoSection}>
+          {isEditMode ? (
+            <>
+              {/* Editable Title */}
+              <TextInput
+                style={styles.titleInput}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="List Title"
+                maxLength={50}
               />
-            ) : (
-              <Text style={styles.emptyListText}>
-                No items in this list yet
-              </Text>
-            )}
-          </View>
-        </ScrollView>
+              
+              {/* Editable Destination */}
+              <TextInput
+                style={styles.destinationInput}
+                value={destination}
+                onChangeText={setDestination}
+                placeholder="Destination (Optional)"
+              />
+            </>
+          ) : (
+            <>
+              {/* Title and Activity */}
+              <View style={styles.titleRow}>
+                <Text style={styles.activityEmoji}>
+                  {getActivityEmoji(packingList.activity)}
+                </Text>
+                <Text style={styles.title} numberOfLines={2}>
+                  {packingList.title}
+                </Text>
+              </View>
+              
+              {/* Destination and Date */}
+              <View style={styles.detailsRow}>
+                {packingList.destination && (
+                  <View style={styles.detailItem}>
+                    <Ionicons name="location-outline" size={16} color="#777" />
+                    <Text style={styles.detailText}>{packingList.destination}</Text>
+                  </View>
+                )}
+                {packingList.date && (
+                  <View style={styles.detailItem}>
+                    <Ionicons name="calendar-outline" size={16} color="#777" />
+                    <Text style={styles.detailText}>
+                      {format(new Date(packingList.date.toDate()), 'MMM d, yyyy')}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              
+              {/* Progress Bar */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressInfo}>
+                  <Text style={styles.progressText}>
+                    {`${packingList.items.filter(item => item.checked).length}/${packingList.items.length} packed`}
+                  </Text>
+                  <Text style={styles.progressPercentage}>
+                    {`${Math.round(calculateProgress())}%`}
+                  </Text>
+                </View>
+                <View style={styles.progressBarContainer}>
+                  <View 
+                    style={[
+                      styles.progressBar, 
+                      { width: `${calculateProgress()}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+        
+        {/* Items List Section */}
+        <View style={styles.itemsSection}>
+          <Text style={styles.sectionTitle}>Items</Text>
+          
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#6E8B3D" />
+          ) : packingList?.items?.length > 0 ? (
+            <DraggableFlatList
+              data={packingList.items.sort((a, b) => {
+                if (a.checked && !b.checked) return 1;
+                if (!a.checked && b.checked) return -1;
+                return 0;
+              })}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, drag, isActive }) => (
+                <DraggableItem
+                  item={item}
+                  onToggleChecked={handleToggleChecked}
+                  onDelete={handleDeleteItem}
+                  isOwner={isOwner}
+                  drag={drag}
+                  isActive={isActive}
+                />
+              )}
+              onDragEnd={({ data }) => handleReorderItems(data)}
+              activationDistance={10}
+              contentContainerStyle={styles.listContent}
+            />
+          ) : (
+            <Text style={styles.emptyListText}>
+              No items in this list yet
+            </Text>
+          )}
+        </View>
         
         {/* Add Item Input (Only visible to owner) */}
         {isOwner && (
@@ -429,8 +523,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
@@ -464,12 +558,17 @@ const styles = StyleSheet.create({
     padding: 5,
     marginLeft: 15,
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
   infoSection: {
-    marginBottom: 20,
+    padding: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  itemsSection: {
+    flex: 1,
+    padding: 20,
+    paddingBottom: 0,
+    minHeight: 300,
   },
   titleRow: {
     flexDirection: 'row',
@@ -545,9 +644,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#6E8B3D',
   },
-  itemsSection: {
-    flex: 1,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -581,6 +677,57 @@ const styles = StyleSheet.create({
   },
   addItemButton: {
     padding: 5,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 5,
+    marginHorizontal: 2,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  checkedItem: {
+    backgroundColor: '#F5F5F5',
+    opacity: 0.8,
+  },
+  activeItem: {
+    backgroundColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 999,
+  },
+  checkbox: {
+    padding: 5,
+    marginRight: 5,
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
+  },
+  checkedText: {
+    textDecorationLine: 'line-through',
+    color: '#777',
+  },
+  deleteButton: {
+    padding: 5,
+  },
+  dragHandle: {
+    padding: 5,
+    marginLeft: 5,
+  },
+  listContent: {
+    paddingBottom: 80,
   },
 });
 
