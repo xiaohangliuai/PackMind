@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
-  FlatList
+  FlatList,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -21,6 +22,8 @@ import ItemIcon from '../../components/ItemIcon';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import firebase from '../../firebase/firebaseConfig';
 
 const ListDetailsScreen = ({ route, navigation }) => {
   const { listId } = route.params;
@@ -32,6 +35,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [newItemText, setNewItemText] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   
@@ -50,6 +55,24 @@ const ListDetailsScreen = ({ route, navigation }) => {
       setPackingList(list);
       setTitle(list.title);
       setDestination(list.destination || '');
+      
+      // Safely set the date from the list
+      if (list.date) {
+        try {
+          // Handle both Firestore Timestamp objects and Date objects
+          if (list.date.toDate) {
+            setDate(list.date.toDate());
+          } else {
+            setDate(new Date(list.date));
+          }
+        } catch (error) {
+          console.error('Error converting date:', error);
+          setDate(new Date()); // Fallback to current date if conversion fails
+        }
+      } else {
+        setDate(new Date());
+      }
+      
       setIsOwner(list.userId === user.uid);
       
     } catch (error) {
@@ -195,7 +218,21 @@ const ListDetailsScreen = ({ route, navigation }) => {
     }
   };
   
-  // Handle saving list edits
+  // Date picker handlers
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+  
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+  
+  const handleConfirmDate = (selectedDate) => {
+    setDate(selectedDate);
+    hideDatePicker();
+  };
+  
+  // Handle saving edits
   const handleSaveEdits = async () => {
     if (!packingList) return;
     
@@ -203,24 +240,33 @@ const ListDetailsScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Title cannot be empty');
       return;
     }
+
+    setIsLoading(true);
     
     try {
-      const updates = {
+      // Update the list information
+      const listUpdates = {
         title: title.trim(),
-        destination: destination.trim() || null
+        activity: packingList.activity,
+        destination: destination.trim(),
+        date: date,
+        items: packingList.items,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
-      await updatePackingList(listId, updates);
+      // Update Firestore with the information
+      await updatePackingList(listId, listUpdates);
       
-      setPackingList(prevList => ({
-        ...prevList,
-        ...updates
-      }));
-      
+      // Update local state
+      setPackingList(listUpdates);
       setIsEditMode(false);
+      setIsLoading(false);
+      
+      Alert.alert('Success', 'Your packing list has been updated!');
     } catch (error) {
-      console.error('Error updating list:', error);
-      Alert.alert('Error', 'Failed to update list');
+      console.error('Error updating packing list:', error);
+      Alert.alert('Error', 'Failed to update packing list. Please try again.');
+      setIsLoading(false);
     }
   };
   
@@ -236,6 +282,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Delete the list
               await deletePackingList(listId);
               navigation.goBack();
             } catch (error) {
@@ -459,71 +506,141 @@ const ListDetailsScreen = ({ route, navigation }) => {
           />
           
           <Text style={styles.editLabel}>Activity Type</Text>
-          <View style={styles.activityTypesContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.activityTypeButton,
-                packingList?.activity === 'beach' && styles.activityTypeSelected
-              ]}
-              onPress={() => {
-                setPackingList(prevList => ({
-                  ...prevList,
-                  activity: 'beach'
-                }));
-              }}
-            >
-              <Text style={styles.activityIcon}>🏖️</Text>
-              <Text style={styles.activityLabel}>Beach</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.activityTypeButton,
-                packingList?.activity === 'camping' && styles.activityTypeSelected
-              ]}
-              onPress={() => {
-                setPackingList(prevList => ({
-                  ...prevList,
-                  activity: 'camping'
-                }));
-              }}
-            >
-              <Text style={styles.activityIcon}>🏕️</Text>
-              <Text style={styles.activityLabel}>Camping</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.activityTypeButton,
-                packingList?.activity === 'hiking' && styles.activityTypeSelected
-              ]}
-              onPress={() => {
-                setPackingList(prevList => ({
-                  ...prevList,
-                  activity: 'hiking'
-                }));
-              }}
-            >
-              <Text style={styles.activityIcon}>🥾</Text>
-              <Text style={styles.activityLabel}>Hiking</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.activityTypeButton,
-                packingList?.activity === 'skiing' && styles.activityTypeSelected
-              ]}
-              onPress={() => {
-                setPackingList(prevList => ({
-                  ...prevList,
-                  activity: 'skiing'
-                }));
-              }}
-            >
-              <Text style={styles.activityIcon}>🎿</Text>
-              <Text style={styles.activityLabel}>Skiing</Text>
-            </TouchableOpacity>
-          </View>
+          <ScrollView 
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.activityScroll}
+          >
+            <View style={styles.activityGrid}>
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'other' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'other'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>📦</Text>
+                <Text style={styles.activityLabel}>Custom</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'travel' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'travel'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>✈️</Text>
+                <Text style={styles.activityLabel}>Travel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'beach' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'beach'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>🏖️</Text>
+                <Text style={styles.activityLabel}>Beach</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'camping' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'camping'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>🏕️</Text>
+                <Text style={styles.activityLabel}>Camping</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'hiking' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'hiking'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>🥾</Text>
+                <Text style={styles.activityLabel}>Hiking</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'skiing' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'skiing'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>🎿</Text>
+                <Text style={styles.activityLabel}>Skiing</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'business' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'business'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>💼</Text>
+                <Text style={styles.activityLabel}>Business</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  packingList?.activity === 'gym' && styles.activityTypeSelected
+                ]}
+                onPress={() => {
+                  setPackingList(prevList => ({
+                    ...prevList,
+                    activity: 'gym'
+                  }));
+                }}
+              >
+                <Text style={styles.activityIcon}>🏋️</Text>
+                <Text style={styles.activityLabel}>Gym</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
           
           <Text style={styles.editLabel}>Destination (Optional)</Text>
           <TextInput
@@ -534,12 +651,23 @@ const ListDetailsScreen = ({ route, navigation }) => {
           />
           
           <Text style={styles.editLabel}>Date & Time</Text>
-          <View style={styles.dateContainer}>
+          <TouchableOpacity 
+            style={styles.dateContainer}
+            onPress={showDatePicker}
+          >
             <Text style={styles.dateText}>
-              {packingList?.date ? format(new Date(packingList.date.toDate()), 'MMMM d, yyyy h:mm a') : 'Select date and time'}
+              {format(date, 'MMMM d, h:mm a')}
             </Text>
             <Ionicons name="calendar-outline" size={24} color="#777" />
-          </View>
+          </TouchableOpacity>
+          
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="datetime"
+            date={date}
+            onConfirm={handleConfirmDate}
+            onCancel={hideDatePicker}
+          />
         </View>
       </>
     );
@@ -566,7 +694,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
           </TouchableOpacity>
           
           <Text style={styles.headerTitle}>
-            {isEditMode ? 'Edit Packing List' : 'Create Packing List'}
+            {isEditMode ? 'Edit Packing List' : 'Your Packing List'}
           </Text>
           
           <View style={styles.headerButtons}>
@@ -634,7 +762,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
                   <View style={styles.detailItem}>
                     <Ionicons name="calendar-outline" size={16} color="#777" />
                     <Text style={styles.detailText}>
-                      {format(new Date(packingList.date.toDate()), 'MMM d, yyyy h:mm a')}
+                      {packingList.date.toDate ? 
+                        format(new Date(packingList.date.toDate()), 'MMM d, h:mm a') :
+                        format(new Date(packingList.date), 'MMM d, h:mm a')}
                     </Text>
                   </View>
                 )}
@@ -1005,27 +1135,28 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#FAFAFA',
   },
-  activityTypesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  activityScroll: {
     marginBottom: 20,
-    flexWrap: 'wrap',
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingRight: 20,
   },
   activityTypeButton: {
-    width: '23%',
-    aspectRatio: 1,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+    width: 80,
+    height: 80,
+    borderRadius: 15,
     backgroundColor: '#F5F5F5',
-    marginBottom: 10,
+    padding: 10,
   },
   activityTypeSelected: {
-    borderColor: '#6E8B3D',
     backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#6E8B3D',
   },
   activityIcon: {
     fontSize: 24,
@@ -1079,6 +1210,30 @@ const styles = StyleSheet.create({
   suggestedItemText: {
     fontSize: 16,
     color: '#333',
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  optionDescription: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 2,
   },
 });
 

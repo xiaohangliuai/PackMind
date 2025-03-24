@@ -19,8 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import { getUserPackingLists, getSharedLists } from '../../models/firestoreModels';
-import { firestore } from '../../config/firebase';
+import firebase from '../../firebase/firebaseConfig';
 import { Appbar, Avatar, Badge } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
@@ -28,11 +27,13 @@ const { width } = Dimensions.get('window');
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [packingLists, setPackingLists] = useState([]);
-  const [sharedLists, setSharedLists] = useState(null);
+  const [sharedLists, setSharedLists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNotifications, setHasNotifications] = useState(true); // Demo state for notification badge
   const [pulseAnim] = useState(new Animated.Value(1));
+  
+  console.log("HomeScreen rendered, user:", user ? user.uid : "no user");
   
   // Fetch user's packing lists
   const fetchPackingLists = async () => {
@@ -41,148 +42,60 @@ const HomeScreen = ({ navigation }) => {
         console.error('No authenticated user found');
         return;
       }
+      
       console.log('Fetching packing lists for user ID:', user.uid);
-      const lists = await getUserPackingLists(user.uid);
+      
+      // Use Firebase compat API directly - removed orderBy to avoid need for index
+      const snapshot = await firebase.firestore()
+        .collection('packingLists')
+        .where('userId', '==', user.uid)
+        .get();
+      
+      // Get the data and sort in memory instead
+      const lists = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Sort by createdAt in descending order
+      lists.sort((a, b) => {
+        const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+        const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+        return dateB - dateA;
+      });
+      
       console.log('Successfully retrieved', lists.length, 'packing lists');
       setPackingLists(lists);
     } catch (error) {
       console.error('Error fetching packing lists:', error);
-      
-      // Provide a more detailed error message for debugging
-      let errorMessage = 'Failed to load your packing lists. Please try again.';
-      
-      // Check for specific Firebase error codes
-      if (error.code) {
-        if (error.code === 'permission-denied') {
-          errorMessage = 'Permission denied. You do not have access to these lists.';
-        } else if (error.code === 'unavailable') {
-          errorMessage = 'Database is currently unavailable. Please try again later.';
-        } else if (error.code === 'not-found') {
-          errorMessage = 'The collection or document was not found.';
-        } else {
-          errorMessage += ` (Error code: ${error.code})`;
-        }
-      }
-      
-      Alert.alert('Error', errorMessage);
-    }
-  };
-  
-  // Fetch shared lists
-  const fetchSharedLists = async () => {
-    try {
-      if (!user || !user.uid) {
-        console.error('No authenticated user found');
-        // Set sharedLists to empty array, not null, since this is a normal state
-        setSharedLists([]);
-        return;
-      }
-      
-      console.log('Fetching shared lists for user:', user.uid);
-      const lists = await getSharedLists(user.uid);
-      setSharedLists(lists); // Normal successful state
-      
-    } catch (error) {
-      console.error('Error fetching shared lists:', error);
-      
-      // For permission denied or other critical errors, keep as null to show the error UI
-      if (error.code === 'permission-denied') {
-        console.error('Permission denied when fetching shared lists');
-        // Keep as null to show error state
-      } else {
-        // For network errors or other non-critical errors, set to empty array
-        setSharedLists([]); 
-      }
-    }
-  };
-  
-  // Fetch all data
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      if (!user) {
-        console.log('User not authenticated, skipping data fetch');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Fetch own packing lists first (primary functionality)
-      await fetchPackingLists();
-      
-      try {
-        // Try to fetch shared lists but don't let errors disrupt the main UI
-        await fetchSharedLists();
-      } catch (error) {
-        console.error('Shared lists fetch failed, but continuing anyway:', error);
-        // Just set empty shared lists to prevent UI issues
-        setSharedLists([]);
-      }
-      
-      // Debug: Log that user is authenticated
-      console.log('User is authenticated:', user.email);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      Alert.alert('Error', 'Failed to load your packing lists. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
   
-  // Debug Firebase connection
-  const debugFirebaseConnection = () => {
-    try {
-      console.log('====== FIREBASE DEBUG INFO ======');
-      console.log('User authenticated:', !!user);
-      if (user) {
-        console.log('User ID:', user.uid);
-        console.log('User email:', user.email);
-        console.log('User display name:', user.displayName);
-      }
-      
-      // Check if Firestore is available
-      const checkFirestore = firestore._databaseId ? 'Available' : 'Not available';
-      console.log('Firestore status:', checkFirestore);
-      
-      Alert.alert(
-        'Debug Info', 
-        `User authenticated: ${!!user}\n` +
-        `User ID: ${user?.uid || 'None'}\n` +
-        `Email: ${user?.email || 'None'}\n` +
-        `Firestore status: ${checkFirestore}\n\n` +
-        'Check console logs for more details.'
-      );
-    } catch (error) {
-      console.error('Error in debugFirebaseConnection:', error);
-      Alert.alert('Debug Error', `Error: ${error.message}`);
-    }
+  // Navigation handlers with added debugging
+  const handleCreateList = () => {
+    console.log("Navigating to Create List screen");
+    navigation.navigate('Create');
   };
   
-  // Handle refresh
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchData();
-    setIsRefreshing(false);
+  const handleOpenList = (list) => {
+    console.log("Navigating to List Details screen with id:", list.id);
+    navigation.navigate('ListDetails', { listId: list.id });
   };
   
-  // Fetch data on mount
+  // Load packing lists on component mount
   useEffect(() => {
-    fetchData();
-  }, [user]); // Add user as dependency to reload when user changes
-  
-  // Focus listener to refresh data when navigating back to this screen
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchData();
-    });
+    console.log("HomeScreen useEffect running, fetching lists");
+    fetchPackingLists();
     
-    return unsubscribe;
-  }, [navigation, user]);
-  
-  // Start pulse animation for the add button
-  useEffect(() => {
+    // Setup loading animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
+          toValue: 1.2,
           duration: 1000,
           useNativeDriver: true,
         }),
@@ -217,13 +130,24 @@ const HomeScreen = ({ navigation }) => {
   // Render a packing list item
   const renderPackingListItem = ({ item, index }) => {
     const progress = calculateProgress(item.items);
-    const formattedDate = item.date ? format(new Date(item.date.toDate()), 'MMM d, yyyy') : 'No date';
+    
+    let formattedDate = 'No date';
+    if (item.date) {
+      try {
+        // Handle both Firestore Timestamp objects and Date objects
+        const dateObj = item.date.toDate ? new Date(item.date.toDate()) : new Date(item.date);
+        formattedDate = format(dateObj, 'MMM d, h:mm a');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
+    }
+    
     const isShared = item.sharedWith && item.sharedWith.includes(user.uid);
     
     return (
       <TouchableOpacity
         style={styles.listCard}
-        onPress={() => navigation.navigate('ListDetails', { listId: item.id })}
+        onPress={() => handleOpenList(item)}
         activeOpacity={0.7}
       >
         {/* Activity Icon */}
@@ -312,7 +236,7 @@ const HomeScreen = ({ navigation }) => {
         </Text>
         <TouchableOpacity
           style={styles.createButton}
-          onPress={() => navigation.navigate('Create')}
+          onPress={handleCreateList}
         >
           <Text style={styles.createButtonText}>Create List</Text>
         </TouchableOpacity>
@@ -392,7 +316,7 @@ const HomeScreen = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={handleRefresh}
+              onRefresh={fetchPackingLists}
               colors={['#6E8B3D']}
               tintColor="#6E8B3D"
             />
@@ -404,7 +328,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.addButtonContainer}>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('Create')}
+          onPress={handleCreateList}
           activeOpacity={0.8}
         >
           <Animated.View 

@@ -1,206 +1,227 @@
 // src/models/firestoreModels.js
-import { 
-    collection, 
-    doc, 
-    setDoc, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    getDoc, 
-    getDocs, 
-    query, 
-    where, 
-    orderBy,
-    serverTimestamp,
-    Timestamp 
-  } from 'firebase/firestore';
-  import { firestore } from '../config/firebase';
-  
-  // PackingList model
-  export const packingListsCollection = collection(firestore, 'packingLists');
-  
-  export const createPackingList = async (data) => {
-    try {
-      // Prepare data with proper timestamp handling
-      let listData = {
-        ...data,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-      
-      // Make sure userId is always present and set correctly
-      if (!listData.userId) {
-        console.error('No userId provided when creating packing list');
-        throw new Error('No userId provided for packing list creation');
-      }
-      
-      // Convert JavaScript Date to Firestore Timestamp
-      if (data.date && data.date instanceof Date) {
-        listData.date = Timestamp.fromDate(data.date);
-      }
-  
-      console.log('Creating packing list with data:', JSON.stringify(listData, null, 2));
-      
-      try {
-        // First attempt - use standard Firestore SDK
-        console.log('Attempting to create packing list using Firestore SDK');
-        return await addDoc(packingListsCollection, listData);
-      } catch (initialError) {
-        // If error is permission-denied, try a more direct approach
-        if (initialError.code === 'permission-denied') {
-          console.error('Permission denied error in createPackingList. Consider updating your Firebase rules.');
-          
-          // Re-throw the error for now - we'll handle this in the UI
-          throw initialError;
-        }
-        
-        // For other errors, re-throw
-        throw initialError;
-      }
-    } catch (error) {
-      console.error('Error in createPackingList:', error);
-      if (error.code === 'permission-denied') {
-        console.error('Permission denied. Please check Firebase security rules.');
-      }
-      throw error;
-    }
-  };
-  
-  export const getPackingList = async (listId) => {
-    const docRef = doc(firestore, 'packingLists', listId);
-    const docSnap = await getDoc(docRef);
+import firebase from '../firebase/firebaseConfig';
+import { firestore } from '../config/firebase';
+
+// PackingList model
+const packingListsCollection = 'packingLists';
+
+export const createPackingList = async (data) => {
+  try {
+    // Prepare data with proper timestamp handling
+    let listData = {
+      ...data,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
     
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+    // Make sure userId is always present and set correctly
+    if (!listData.userId) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        listData.userId = currentUser.uid;
+      } else {
+        throw new Error('No authenticated user found');
+      }
+    }
+    
+    // Add the document
+    const docRef = await firebase.firestore().collection(packingListsCollection).add(listData);
+    return { id: docRef.id, ...listData };
+  } catch (error) {
+    console.error('Error creating packing list:', error);
+    throw error;
+  }
+};
+
+// Get a specific packing list
+export const getPackingList = async (listId) => {
+  try {
+    const docRef = await firebase.firestore().collection(packingListsCollection).doc(listId).get();
+    
+    if (docRef.exists) {
+      return { id: docRef.id, ...docRef.data() };
     } else {
       return null;
     }
-  };
-  
-  export const getUserPackingLists = async (userId) => {
-    try {
-      console.log('Querying packing lists for user:', userId);
-      
-      const q = query(
-        packingListsCollection, 
-        where('userId', '==', userId),
-        orderBy('updatedAt', 'desc')
-      );
-      
-      console.log('Query created, attempting to get documents');
-      const querySnapshot = await getDocs(q);
-      console.log('Query executed, found', querySnapshot.size, 'documents');
-      
-      const lists = [];
-      querySnapshot.forEach((doc) => {
-        lists.push({ id: doc.id, ...doc.data() });
-      });
-      
-      return lists;
-    } catch (error) {
-      console.error('Error in getUserPackingLists:', error);
-      // Pass the original error up so we can check for specific Firebase errors
-      throw error;
+  } catch (error) {
+    console.error('Error getting packing list:', error);
+    throw error;
+  }
+};
+
+// Get all packing lists for a user
+export const getUserPackingLists = async (userId) => {
+  try {
+    if (!userId) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        userId = currentUser.uid;
+      } else {
+        throw new Error('No authenticated user found');
+      }
     }
-  };
-  
-  export const updatePackingList = async (listId, data) => {
-    const docRef = doc(firestore, 'packingLists', listId);
     
+    // Removed orderBy to avoid need for index
+    const querySnapshot = await firebase.firestore()
+      .collection(packingListsCollection)
+      .where('userId', '==', userId)
+      .get();
+    
+    const lists = [];
+    querySnapshot.forEach((doc) => {
+      lists.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by updatedAt in descending order
+    lists.sort((a, b) => {
+      const dateA = a.updatedAt ? (a.updatedAt.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt)) : new Date(0);
+      const dateB = b.updatedAt ? (b.updatedAt.toDate ? b.updatedAt.toDate() : new Date(b.updatedAt)) : new Date(0);
+      return dateB - dateA;
+    });
+    
+    return lists;
+  } catch (error) {
+    console.error('Error getting user packing lists:', error);
+    throw error;
+  }
+};
+
+// Update an existing packing list
+export const updatePackingList = async (listId, data) => {
+  try {
     const updateData = {
       ...data,
-      updatedAt: serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    return await updateDoc(docRef, updateData);
-  };
-  
-  export const deletePackingList = async (listId) => {
-    const docRef = doc(firestore, 'packingLists', listId);
-    return await deleteDoc(docRef);
-  };
-  
-  export const getSharedLists = async (userId) => {
-    try {
-      if (!userId) {
-        console.error('getSharedLists: No userId provided');
-        throw new Error('User ID is required to fetch shared lists');
+    await firebase.firestore().collection(packingListsCollection).doc(listId).update(updateData);
+    return { id: listId, ...updateData };
+  } catch (error) {
+    console.error('Error updating packing list:', error);
+    throw error;
+  }
+};
+
+// Delete a packing list
+export const deletePackingList = async (listId) => {
+  try {
+    await firebase.firestore().collection(packingListsCollection).doc(listId).delete();
+    return true;
+  } catch (error) {
+    console.error('Error deleting packing list:', error);
+    throw error;
+  }
+};
+
+// Get all shared lists for a user
+export const getSharedLists = async (userId) => {
+  try {
+    if (!userId) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        userId = currentUser.uid;
+      } else {
+        throw new Error('No authenticated user found');
       }
-      
-      console.log('Fetching shared lists for user:', userId);
-      
-      const q = query(
-        packingListsCollection, 
-        where('sharedWith', 'array-contains', userId),
-        orderBy('updatedAt', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      console.log(`Found ${querySnapshot.size} shared lists for user ${userId}`);
-      
-      const lists = [];
-      querySnapshot.forEach((doc) => {
-        lists.push({ id: doc.id, ...doc.data() });
-      });
-      
-      return lists;
-    } catch (error) {
-      console.error('Error in getSharedLists:', error);
-      if (error.code === 'permission-denied') {
-        console.error('Permission denied when fetching shared lists. Check Firestore rules.');
-      }
-      throw error;
     }
-  };
-  
-  // ActivityTemplate model
-  export const activityTemplatesCollection = collection(firestore, 'activityTemplates');
-  
-  export const getActivityTemplates = async () => {
-    const querySnapshot = await getDocs(activityTemplatesCollection);
+    
+    // Query for lists where the user is in the collaborators array
+    // Removed orderBy to avoid need for index
+    const querySnapshot = await firebase.firestore()
+      .collection(packingListsCollection)
+      .where('collaborators', 'array-contains', userId)
+      .get();
+    
+    const lists = [];
+    querySnapshot.forEach((doc) => {
+      lists.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by updatedAt in descending order
+    lists.sort((a, b) => {
+      const dateA = a.updatedAt ? (a.updatedAt.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt)) : new Date(0);
+      const dateB = b.updatedAt ? (b.updatedAt.toDate ? b.updatedAt.toDate() : new Date(b.updatedAt)) : new Date(0);
+      return dateB - dateA;
+    });
+    
+    return lists;
+  } catch (error) {
+    console.error('Error getting shared lists:', error);
+    throw error;
+  }
+};
+
+// Get activity templates
+export const getActivityTemplates = async () => {
+  try {
+    const querySnapshot = await firebase.firestore()
+      .collection('activityTemplates')
+      .get();
     
     const templates = [];
     querySnapshot.forEach((doc) => {
-      templates.push({ id: doc.id, ...doc.data() });
+      templates.push({
+        id: doc.id,
+        ...doc.data()
+      });
     });
     
     return templates;
-  };
-  
-  // UserProfile model
-  export const userProfilesCollection = collection(firestore, 'userProfiles');
-  
-  export const createUserProfile = async (userId, data) => {
-    const docRef = doc(firestore, 'userProfiles', userId);
-    
+  } catch (error) {
+    console.error('Error getting activity templates:', error);
+    throw error;
+  }
+};
+
+// User profile functions
+export const createUserProfile = async (userId, data) => {
+  try {
     const profileData = {
       ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    return await setDoc(docRef, profileData);
-  };
-  
-  export const getUserProfile = async (userId) => {
-    const docRef = doc(firestore, 'userProfiles', userId);
-    const docSnap = await getDoc(docRef);
+    await firebase.firestore().collection('userProfiles').doc(userId).set(profileData);
+    return { userId, ...profileData };
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    const docRef = await firebase.firestore().collection('userProfiles').doc(userId).get();
     
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+    if (docRef.exists) {
+      return { userId, ...docRef.data() };
     } else {
       return null;
     }
-  };
-  
-  export const updateUserProfile = async (userId, data) => {
-    const docRef = doc(firestore, 'userProfiles', userId);
-    
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    throw error;
+  }
+};
+
+export const updateUserProfile = async (userId, data) => {
+  try {
     const updateData = {
       ...data,
-      updatedAt: serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    return await updateDoc(docRef, updateData);
-  };
+    await firebase.firestore().collection('userProfiles').doc(userId).update(updateData);
+    return { userId, ...updateData };
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
