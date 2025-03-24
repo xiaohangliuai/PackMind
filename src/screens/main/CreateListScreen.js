@@ -19,9 +19,12 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAuth } from '../../context/AuthContext';
 import { createPackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
+import { v4 as uuidv4 } from 'uuid';
+import firebase from '../../firebase/firebaseConfig';
 
 // Activity types with emojis
 const activityTypes = [
+  { id: 'other', label: 'Custom', emoji: '📦' },
   { id: 'travel', label: 'Travel', emoji: '✈️' },
   { id: 'beach', label: 'Beach', emoji: '🏖️' },
   { id: 'camping', label: 'Camping', emoji: '🏕️' },
@@ -29,7 +32,6 @@ const activityTypes = [
   { id: 'skiing', label: 'Skiing', emoji: '🎿' },
   { id: 'business', label: 'Business', emoji: '💼' },
   { id: 'gym', label: 'Gym', emoji: '🏋️' },
-  { id: 'other', label: 'Other', emoji: '📦' },
 ];
 
 // Template items for each activity type
@@ -165,17 +167,26 @@ const CreateListScreen = ({ navigation }) => {
   // Validate form before saving
   const validateForm = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title for your packing list');
+      Alert.alert(
+        '',
+        'Please enter a description for your packing list'
+      );
       return false;
     }
     
     if (!selectedActivity) {
-      Alert.alert('Error', 'Please select an activity type');
+      Alert.alert(
+        '',
+        'Please select an activity type'
+      );
       return false;
     }
     
     if (items.length === 0) {
-      Alert.alert('Error', 'Please add at least one item to your packing list');
+      Alert.alert(
+        '',
+        'Please add at least one item to your packing list'
+      );
       return false;
     }
     
@@ -184,116 +195,83 @@ const CreateListScreen = ({ navigation }) => {
   
   // Save packing list
   const handleSaveList = async () => {
-    if (!validateForm()) return;
-    
     setIsLoading(true);
-    
+    // Validate the form fields
+    if (!title.trim() || !selectedActivity || !date) {
+      Alert.alert('Error', 'Please fill in all required fields: title, activity, and date.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      if (!user || !user.uid) {
-        throw new Error('No authenticated user found');
-      }
+      const user = firebase.auth().currentUser;
       
-      // Debug information
-      console.log('Creating list with user ID:', user.uid);
-      console.log('Selected activity:', selectedActivity);
-      
-      const newList = {
+      // Create the new packing list
+      const newPackingList = {
         title: title.trim(),
-        activity: selectedActivity.id,
-        destination: destination.trim() || null,
-        date: date, // This will be converted to Timestamp in the model
-        items: items,
+        activity: selectedActivity,
+        destination: destination.trim(),
+        date: date,
+        items: items.map(item => ({ ...item, id: item.id || uuidv4() })),
+        completed: false,
         userId: user.uid,
-        sharedWith: [],
-        // Add additional metadata to help with debugging
-        createdBy: user.email || 'anonymous',
-        clientTimestamp: new Date().toISOString()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
-      // Debug - log the list being created
-      console.log('Creating packing list:', JSON.stringify(newList));
+      // Save to Firestore
+      await firebase.firestore().collection('packingLists').add(newPackingList);
       
-      try {
-        const docRef = await createPackingList(newList);
-        console.log('List created successfully with ID:', docRef.id);
-        
-        Alert.alert(
-          'Success',
-          'Your packing list has been created!',
-          [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
-        );
-      } catch (innerError) {
-        console.error('Error in createPackingList:', innerError);
-        
-        // Special handling for permission-denied errors
-        if (innerError.code === 'permission-denied') {
-          Alert.alert(
-            'Permission Error',
-            'You do not have permission to create lists. This may be due to Firebase security rules. Please contact support.',
-            [{ text: 'OK' }]
-          );
-        } else {
-          throw innerError; // Rethrow for general error handling
-        }
-      }
+      Alert.alert('Success', 'Your packing list has been created!');
+      navigation.goBack();
     } catch (error) {
       console.error('Error creating packing list:', error);
-      
-      // More specific error message
-      let errorMessage = 'Failed to create packing list. Please try again.';
-      if (error.code) {
-        errorMessage += ` (Error code: ${error.code})`;
-      }
-      
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', 'There was a problem creating your packing list. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Render item in the list
+
+  // Render an item in the list
   const renderItem = (item, index) => {
     return (
-      <View key={item.id} style={styles.itemContainer}>
-        <ItemIcon type={item.type} size={20} />
-        <Text style={styles.itemName}>{item.name}</Text>
-        <TouchableOpacity
-          style={styles.removeButton}
-          onPress={() => handleRemoveItem(item.id)}
-        >
-          <Ionicons name="close-circle" size={20} color="#FF5252" />
+      <View key={item.id} style={styles.itemRow}>
+        <View style={styles.itemInfo}>
+          <TouchableOpacity 
+            style={styles.itemIconContainer}
+            onPress={() => item.type === 'default' ? null : handleChangeItemType(item.id, 'default')}
+            onLongPress={() => handleChangeItemType(item.id, item.type === 'default' ? 'shirt' : 'default')}
+          >
+            <ItemIcon type={item.type} size={24} />
+          </TouchableOpacity>
+          <Text style={styles.itemText}>{item.name}</Text>
+        </View>
+        <TouchableOpacity onPress={() => handleRemoveItem(item.id)}>
+          <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
         </TouchableOpacity>
       </View>
     );
   };
-  
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Packing List</Text>
-          <View style={{ width: 30 }} />
-        </View>
-        
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.screenTitle}>Create Packing List</Text>
+          
           {/* List Title */}
-          <Text style={styles.label}>List Title</Text>
+          <Text style={styles.label}>Description</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., Weekend Trip to the Beach"
+            placeholder="Where am I going..."
             value={title}
             onChangeText={setTitle}
-            maxLength={50}
+            placeholderTextColor="#A0A0A0"
           />
           
           {/* Activity Type */}
@@ -308,8 +286,8 @@ const CreateListScreen = ({ navigation }) => {
                 <TouchableOpacity
                   key={activity.id}
                   style={[
-                    styles.activityButton,
-                    selectedActivity?.id === activity.id && styles.selectedActivity,
+                    styles.activityTypeButton,
+                    selectedActivity?.id === activity.id && styles.activityTypeSelected,
                   ]}
                   onPress={() => setSelectedActivity(activity)}
                 >
@@ -321,19 +299,20 @@ const CreateListScreen = ({ navigation }) => {
           </ScrollView>
           
           {/* Destination */}
-          <Text style={styles.label}>Destination (Optional)</Text>
+          <Text style={styles.label}>Destination</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., Malibu Beach"
+            placeholder="Where are you going?"
             value={destination}
             onChangeText={setDestination}
+            placeholderTextColor="#A0A0A0"
           />
           
-          {/* Date & Time */}
-          <Text style={styles.label}>Date</Text>
+          {/* Date */}
+          <Text style={styles.label}>Date & Time</Text>
           <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
-            <Text style={styles.dateText}>{format(date, 'MMMM d, yyyy')}</Text>
-            <Ionicons name="calendar-outline" size={24} color="#777" />
+            <Text style={styles.dateText}>{format(date, 'MMMM d, yyyy h:mm a')}</Text>
+            <Ionicons name="calendar-outline" size={22} color="#4a4a4a" />
           </TouchableOpacity>
           
           <DateTimePickerModal
@@ -351,43 +330,38 @@ const CreateListScreen = ({ navigation }) => {
           </Text>
           
           {/* Add new item */}
-          <View style={styles.addItemRow}>
+          <View style={styles.addItemContainer}>
             <TextInput
-              style={styles.itemInput}
-              placeholder="Add a new item..."
+              style={styles.addItemInput}
+              placeholder="Add an item..."
               value={newItemName}
               onChangeText={setNewItemName}
+              placeholderTextColor="#A0A0A0"
               onSubmitEditing={handleAddItem}
             />
             <TouchableOpacity 
-              style={[
-                styles.addButton,
-                !newItemName.trim() && styles.addButtonDisabled
-              ]}
+              style={styles.addButton}
               onPress={handleAddItem}
-              disabled={!newItemName.trim()}
             >
-              <Ionicons 
-                name="add" 
-                size={24} 
-                color={newItemName.trim() ? '#6E8B3D' : '#BDBDBD'} 
-              />
+              <Ionicons name="add" size={22} color="white" />
             </TouchableOpacity>
           </View>
           
-          {/* Item list */}
-          {items.map((item, index) => renderItem(item, index))}
+          {/* Items list */}
+          <View style={styles.itemsList}>
+            {items.map((item, index) => renderItem(item, index))}
+          </View>
           
-          {/* Create button */}
-          <TouchableOpacity
-            style={styles.createButton}
+          {/* Save Button */}
+          <TouchableOpacity 
+            style={styles.saveButton}
             onPress={handleSaveList}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.createButtonText}>Create Packing List</Text>
+              <Text style={styles.saveButtonText}>Create Packing List</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -397,55 +371,43 @@ const CreateListScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    padding: 20,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    paddingHorizontal: 20,
-    marginBottom: 5,
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
+  screenTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginLeft: 10,
-    flex: 1,
-    textAlign: 'center',
-  },
-  content: {
-    padding: 20,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginTop: 20,
     marginBottom: 8,
-    marginTop: 15,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    marginBottom: 15,
+    color: '#333',
   },
   activityScroll: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   activityGrid: {
     flexDirection: 'row',
     paddingVertical: 10,
     paddingRight: 20,
   },
-  activityButton: {
+  activityTypeButton: {
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
@@ -453,94 +415,99 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 15,
     backgroundColor: '#F5F5F5',
-    padding: 10,
   },
-  selectedActivity: {
-    backgroundColor: '#E8F5E9',
+  activityTypeSelected: {
     borderWidth: 2,
     borderColor: '#6E8B3D',
   },
   activityEmoji: {
-    fontSize: 24,
+    fontSize: 28,
     marginBottom: 5,
   },
   activityLabel: {
-    fontSize: 14,
-    color: '#555',
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#4a4a4a',
   },
   dateButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
   },
   dateText: {
     fontSize: 16,
     color: '#333',
   },
-  suggestionText: {
-    color: '#777',
-    marginBottom: 15,
-    fontSize: 14,
-  },
-  addItemRow: {
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  itemInput: {
+  itemInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 16,
-    marginRight: 10,
   },
-  addButton: {
+  itemIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  itemText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  addItemContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  addItemInput: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  addButton: {
+    backgroundColor: '#6E8B3D',
+    borderRadius: 8,
+    width: 45,
+    height: 45,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addButtonDisabled: {
-    backgroundColor: '#DDD',
+  itemsList: {
+    marginTop: 10,
   },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-  },
-  itemName: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 10,
-  },
-  removeButton: {
-    padding: 5,
-  },
-  createButton: {
+  saveButton: {
     backgroundColor: '#6E8B3D',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 10,
+    padding: 16,
     alignItems: 'center',
-    marginVertical: 25,
+    marginTop: 30,
+    marginBottom: 40,
   },
-  createButtonText: {
-    color: 'white',
+  saveButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  suggestionText: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 10,
   },
 });
 

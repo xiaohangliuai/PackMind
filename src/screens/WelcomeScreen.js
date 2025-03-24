@@ -1,7 +1,8 @@
 // src/screens/WelcomeScreen.js
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { signInAnonymously } from '../firebase/firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -12,6 +13,16 @@ const WelcomeScreen = ({ navigation }) => {
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Anonymous login for testing
+  const handleAnonymousLogin = async () => {
+    try {
+      await signInAnonymously();
+      // The auth state change will handle navigation
+    } catch (error) {
+      Alert.alert('Login Error', error.message);
+    }
+  };
   
   // Start animation on component mount
   useEffect(() => {
@@ -55,7 +66,7 @@ const WelcomeScreen = ({ navigation }) => {
   
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       <View style={styles.content}>
         {/* Logo placeholder */}
@@ -68,7 +79,7 @@ const WelcomeScreen = ({ navigation }) => {
             }
           ]}
         >
-          <View style={styles.logoPlaceholder} />
+          <Text style={styles.emoji}>🎒</Text>
         </Animated.View>
         
         {/* Title */}
@@ -95,6 +106,14 @@ const WelcomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Register')}
           >
             <Text style={styles.buttonRegisterText}>Sign Up</Text>
+          </TouchableOpacity>
+          
+          {/* Dev/Debug Login Button */}
+          <TouchableOpacity
+            style={styles.tempButton}
+            onPress={handleAnonymousLogin}
+          >
+            <Text style={styles.tempButtonText}>Anonymous Login (Debug)</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -169,6 +188,60 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  button: {
+    backgroundColor: 'white',
+    paddingVertical: 15,
+    borderRadius: 30,
+    marginBottom: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  buttonText: {
+    color: '#6E8B3D',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    borderWidth: 2,
+    borderColor: 'white',
+    paddingVertical: 15,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tempButton: {
+    backgroundColor: '#FF5722',
+    paddingVertical: 15,
+    borderRadius: 30,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    width: width * 0.8,
+  },
+  tempButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emoji: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
 

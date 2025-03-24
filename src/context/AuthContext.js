@@ -1,13 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { auth } from '../config/firebase';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
+import firebase from '../firebase/firebaseConfig';
 
 // Create the context
 export const AuthContext = createContext();
@@ -20,13 +13,14 @@ export const AuthProvider = ({ children }) => {
   // Register a new user
   const register = async (email, password, displayName) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
       // Update the user profile with displayName
-      await updateProfile(userCredential.user, {
+      await userCredential.user.updateProfile({
         displayName: displayName
       });
       return userCredential.user;
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     }
   };
@@ -34,9 +28,10 @@ export const AuthProvider = ({ children }) => {
   // Sign in an existing user
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
       return userCredential.user;
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
     }
   };
@@ -44,21 +39,31 @@ export const AuthProvider = ({ children }) => {
   // Sign out the current user
   const logout = async () => {
     try {
-      await signOut(auth);
+      await firebase.auth().signOut();
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    console.log("Setting up auth state listener");
+    setLoading(true);
+
+    const unsubscribe = firebase.auth().onAuthStateChanged((currentUser) => {
+      if (currentUser) {
+        console.log("User authenticated:", currentUser.uid);
+        setUser(currentUser);
+      } else {
+        console.log("No user authenticated");
+        setUser(null);
+      }
       setLoading(false);
     });
 
     // Cleanup subscription
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   // Context value
@@ -70,9 +75,10 @@ export const AuthProvider = ({ children }) => {
     logout
   };
 
+  // Provider return
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
