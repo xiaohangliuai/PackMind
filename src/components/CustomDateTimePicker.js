@@ -193,6 +193,41 @@ const CustomDateTimePicker = ({
     }
   };
 
+  // Format recurrence text for display
+  const formatRecurrenceText = () => {
+    if (!recurrence || recurrence.type === 'none') {
+      return 'No recurrence';
+    }
+    
+    switch (recurrence.type) {
+      case 'daily':
+        return 'Repeats daily';
+      case 'weekly':
+        if (recurrence.days && recurrence.days.length > 0) {
+          // Sort days to display in order from Sunday to Saturday
+          const selectedDays = recurrence.days
+            .sort((a, b) => a - b)
+            .map(index => WEEKDAYS[index]);
+            
+          // Different formatting based on number of selected days
+          if (selectedDays.length === 1) {
+            return `Every ${selectedDays[0]}`;
+          } else if (selectedDays.length === 7) {
+            return 'Every day';
+          } else if (selectedDays.length <= 3) {
+            return `Every ${selectedDays.join(', ')}`;
+          } else {
+            return `${selectedDays.length} days weekly`;
+          }
+        }
+        return 'Weekly';
+      case 'monthly':
+        return 'Repeats monthly';
+      default:
+        return 'No recurrence';
+    }
+  };
+
   // Render the main view
   const renderMainView = () => (
     <View style={styles.mainContainer}>
@@ -220,7 +255,7 @@ const CustomDateTimePicker = ({
           </View>
           <View style={styles.optionRight}>
             <Text style={styles.optionValue}>
-              {FREQUENCIES.find(f => f.id === recurrence.type)?.label}
+              {formatRecurrenceText()}
             </Text>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </View>
@@ -521,6 +556,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+    paddingBottom: 10,
   },
   header: {
     flexDirection: 'row',
@@ -564,7 +600,7 @@ const styles = StyleSheet.create({
   iconLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '45%',
+    width: '40%',
   },
   optionLabel: {
     fontSize: 17,
@@ -575,11 +611,15 @@ const styles = StyleSheet.create({
   optionRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   optionValue: {
-    fontSize: 17,
+    fontSize: 16,
     color: APP_COLOR,
     marginRight: 5,
+    textAlign: 'right',
+    flexShrink: 1,
   },
   valueContainer: {
     backgroundColor: '#f7f7f7', 
@@ -618,7 +658,8 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 15,
+    marginBottom: 10,
   },
   clearText: {
     fontSize: 18,
@@ -740,27 +781,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   recurrenceOptions: {
-    marginTop: 20,
-    padding: 15,
+    marginTop: 8,
+    padding: 12,
     backgroundColor: '#f7f7f7',
     borderRadius: 10,
+    marginHorizontal: 10,
+    marginBottom: 8,
   },
   recurrenceTitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   weekdaysContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   weekdayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#eee',
+    marginHorizontal: 1,
   },
   weekdayButtonSelected: {
     backgroundColor: APP_COLOR,
@@ -768,6 +815,7 @@ const styles = StyleSheet.create({
   weekdayText: {
     color: '#333',
     fontSize: 12,
+    fontWeight: '500',
   },
   weekdayTextSelected: {
     color: 'white',
