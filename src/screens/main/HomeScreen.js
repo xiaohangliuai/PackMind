@@ -24,11 +24,9 @@ import { Appbar, Avatar, Badge } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { cancelPackingReminders } from '../../services/NotificationService';
+import { COLORS, THEME } from '../../constants/theme';
 
 const { width } = Dimensions.get('window');
-
-// Define APP_COLOR constant
-const APP_COLOR = '#a6c13c';
 
 // Constants for day names
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -300,10 +298,10 @@ const HomeScreen = ({ navigation }) => {
             </Text>
             <View style={styles.iconContainer}>
               {isShared && (
-                <Ionicons name="share-social" size={18} color={APP_COLOR} style={styles.titleIcon} />
+                <Ionicons name="share-social" size={18} color={THEME.PRIMARY} style={styles.titleIcon} />
               )}
               {hasNotifications && (
-                <Ionicons name="notifications" size={18} color={APP_COLOR} style={styles.titleIcon} />
+                <Ionicons name="notifications" size={18} color={THEME.PRIMARY} style={styles.titleIcon} />
               )}
             </View>
           </View>
@@ -325,7 +323,7 @@ const HomeScreen = ({ navigation }) => {
           {/* Recurrence info if available */}
           {hasRecurrence && (
             <View style={styles.recurrenceContainer}>
-              <Ionicons name="repeat" size={14} color={APP_COLOR} style={styles.detailIcon} />
+              <Ionicons name="repeat" size={14} color={THEME.PRIMARY} style={styles.detailIcon} />
               <Text style={styles.recurrenceText}>
                 {formatRecurrence(item.recurrence)}
               </Text>
@@ -357,14 +355,14 @@ const HomeScreen = ({ navigation }) => {
   // Get activity color
   const getActivityColor = (activity) => {
     const colors = {
-      travel: '#64B5F6',
-      camping: '#81C784',
-      hiking: '#AED581',
-      beach: '#FFD54F',
-      skiing: '#90CAF9',
-      business: '#9FA8DA',
-      gym: '#F48FB1',
-      default: '#BDBDBD',
+      travel: COLORS.LIGHT_PURPLE,
+      camping: COLORS.MEDIUM_PURPLE,
+      hiking: COLORS.MEDIUM_PURPLE,
+      beach: COLORS.LIGHT_PURPLE,
+      skiing: COLORS.MEDIUM_PURPLE,
+      business: COLORS.DARK_PURPLE,
+      gym: COLORS.LIGHT_PURPLE,
+      default: COLORS.LIGHT_GRAY,
     };
     
     return colors[activity] || colors.default;
@@ -470,7 +468,7 @@ const HomeScreen = ({ navigation }) => {
       {/* Loading state */}
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={APP_COLOR} />
+          <ActivityIndicator size="large" color={THEME.PRIMARY} />
         </View>
       ) : (
         // List of packing lists
@@ -485,8 +483,8 @@ const HomeScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={isRefreshing}
                 onRefresh={fetchPackingLists}
-                colors={[APP_COLOR]}
-                tintColor={APP_COLOR}
+                colors={[THEME.PRIMARY]}
+                tintColor={THEME.PRIMARY}
               />
             }
           />
@@ -540,7 +538,7 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
   },
   rightContainer: {
     flexDirection: 'row',
@@ -579,7 +577,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -693,7 +691,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
   },
   addButtonContainer: {
     position: 'absolute',
@@ -713,13 +711,13 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(166, 193, 60, 0.15)',
+    backgroundColor: COLORS.MEDIUM_PURPLE_15,
   },
   addButtonInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -746,7 +744,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -2,
   },
   addButtonLabel: {
-    color: '#8da633',
+    color: COLORS.MEDIUM_PURPLE,
     fontWeight: 'bold',
     marginTop: 6,
     fontSize: 13,
@@ -779,7 +777,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   createButton: {
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 30,
@@ -797,12 +795,12 @@ const styles = StyleSheet.create({
   },
   recurrenceText: {
     fontSize: 12,
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontWeight: '500',
   },
   deleteButtonContainer: {
     width: 80,
-    backgroundColor: '#FF5252',
+    backgroundColor: COLORS.ERROR,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,

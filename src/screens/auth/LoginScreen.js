@@ -17,6 +17,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { COLORS, THEME } from '../../constants/theme';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -211,12 +212,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   forgotPasswordText: {
-    color: '#6E8B3D',
+    color: THEME.PRIMARY,
     fontSize: 14,
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 12,
     height: 55,
     justifyContent: 'center',
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signupText: {
-    color: '#6E8B3D',
+    color: THEME.PRIMARY,
     fontSize: 14,
     fontWeight: 'bold',
   },

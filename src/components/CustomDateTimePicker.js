@@ -13,11 +13,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import ScrollPicker from 'react-native-wheel-scrollview-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { COLORS, THEME } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
-
-// App theme color
-const APP_COLOR = '#a6c13c';
 
 // Frequency options for recurring reminders
 const FREQUENCIES = [
@@ -355,7 +353,7 @@ const CustomDateTimePicker = ({
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
         <TouchableOpacity onPress={() => setView('main')}>
-          <Ionicons name="chevron-back" size={24} color={APP_COLOR} />
+          <Ionicons name="chevron-back" size={24} color={THEME.PRIMARY} />
         </TouchableOpacity>
         <Text style={styles.calendarTitle}>Select Date</Text>
         <TouchableOpacity onPress={() => {
@@ -368,19 +366,19 @@ const CustomDateTimePicker = ({
         current={format(date, 'yyyy-MM-dd')}
         onDayPress={handleDateChange}
         markedDates={{
-          [format(date, 'yyyy-MM-dd')]: { selected: true, selectedColor: APP_COLOR }
+          [format(date, 'yyyy-MM-dd')]: { selected: true, selectedColor: THEME.PRIMARY }
         }}
         theme={{
           backgroundColor: 'white',
           calendarBackground: 'white',
           textSectionTitleColor: '#333',
-          selectedDayBackgroundColor: APP_COLOR,
+          selectedDayBackgroundColor: THEME.PRIMARY,
           selectedDayTextColor: 'white',
-          todayTextColor: APP_COLOR,
+          todayTextColor: THEME.PRIMARY,
           dayTextColor: '#333',
           textDisabledColor: '#ccc',
           monthTextColor: '#333',
-          indicatorColor: APP_COLOR,
+          indicatorColor: THEME.PRIMARY,
           textDayFontWeight: '300',
           textMonthFontWeight: 'bold',
           textDayHeaderFontWeight: '500',
@@ -408,7 +406,7 @@ const CustomDateTimePicker = ({
             onChange={handleTimeChange}
             textColor="#333"
             style={styles.iosTimePicker}
-            accentColor={APP_COLOR}
+            accentColor={THEME.PRIMARY}
           />
         </View>
       );
@@ -442,7 +440,7 @@ const CustomDateTimePicker = ({
               itemHeight={60}
               highlightColor="#f7f7f7"
               highlightBorderWidth={1}
-              activeItemColor={APP_COLOR}
+              activeItemColor={THEME.PRIMARY}
               itemColor="#333"
             />
             
@@ -469,7 +467,7 @@ const CustomDateTimePicker = ({
               itemHeight={60}
               highlightColor="#f7f7f7"
               highlightBorderWidth={1}
-              activeItemColor={APP_COLOR}
+              activeItemColor={THEME.PRIMARY}
               itemColor="#333"
             />
           </View>
@@ -483,7 +481,7 @@ const CustomDateTimePicker = ({
     <View style={styles.frequencyContainer}>
       <View style={styles.frequencyHeader}>
         <TouchableOpacity onPress={() => setView('main')}>
-          <Ionicons name="chevron-back" size={24} color={APP_COLOR} />
+          <Ionicons name="chevron-back" size={24} color={THEME.PRIMARY} />
         </TouchableOpacity>
         <Text style={styles.frequencyTitle}>Recurrence</Text>
         <View style={{ width: 24 }} />
@@ -616,7 +614,7 @@ const styles = StyleSheet.create({
   },
   optionValue: {
     fontSize: 16,
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     marginRight: 5,
     textAlign: 'right',
     flexShrink: 1,
@@ -638,7 +636,7 @@ const styles = StyleSheet.create({
   notificationSwitch: {
     width: 60,
     height: 30,
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 15,
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -663,7 +661,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 18,
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontWeight: 'bold',
   },
   calendarContainer: {
@@ -687,7 +685,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   todayText: {
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontSize: 16,
   },
   timePickerContainer: {
@@ -730,7 +728,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   androidTimePickerTextSelected: {
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontWeight: 'bold',
   },
   androidTimePickerColon: {
@@ -777,7 +775,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   frequencyTextSelected: {
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontWeight: 'bold',
   },
   recurrenceOptions: {
@@ -810,7 +808,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 1,
   },
   weekdayButtonSelected: {
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
   },
   weekdayText: {
     color: '#333',

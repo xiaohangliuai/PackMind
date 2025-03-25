@@ -8,14 +8,19 @@ import RootNavigator from './navigation/RootNavigator';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { registerForPushNotifications } from './services/NotificationService';
+import { COLORS, THEME } from './constants/theme';
 
 // Custom theme to match app brand colors
 const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#a6c13c',
-    background: '#F8F8F8',
+    primary: THEME.PRIMARY,
+    background: THEME.BACKGROUND.SECONDARY,
+    card: THEME.BACKGROUND.PRIMARY,
+    text: THEME.TEXT.PRIMARY,
+    border: THEME.UI.BORDER,
+    notification: COLORS.ERROR,
   },
 };
 
@@ -49,7 +54,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PaperProvider>
+      <PaperProvider theme={{
+        colors: {
+          primary: THEME.PRIMARY,
+          accent: THEME.ACCENT,
+        }
+      }}>
         <AuthProvider>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
           <NavigationContainer ref={navigationRef} theme={theme}>

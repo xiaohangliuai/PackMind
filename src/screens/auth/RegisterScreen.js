@@ -19,6 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { createUserProfile } from '../../models/firestoreModels';
+import { COLORS, THEME } from '../../constants/theme';
 
 const RegisterScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   registerButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 12,
     height: 55,
     justifyContent: 'center',
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginText: {
-    color: '#6E8B3D',
+    color: THEME.PRIMARY,
     fontSize: 14,
     fontWeight: 'bold',
   },

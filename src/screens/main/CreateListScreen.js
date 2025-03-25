@@ -22,9 +22,7 @@ import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
-
-// App theme color
-const APP_COLOR = '#a6c13c';
+import { COLORS, THEME } from '../../constants/theme';
 
 // Activity types with emojis
 const activityTypes = [
@@ -385,7 +383,7 @@ const CreateListScreen = ({ navigation }) => {
               </View>
               {formatRecurrence(recurrence) && (
                 <View style={styles.recurrenceContainer}>
-                  <Ionicons name="repeat" size={16} color={APP_COLOR} />
+                  <Ionicons name="repeat" size={16} color={THEME.PRIMARY} />
                   <Text style={styles.recurrenceText}>{formatRecurrence(recurrence)}</Text>
                 </View>
               )}
@@ -496,7 +494,7 @@ const styles = StyleSheet.create({
   },
   activityTypeSelected: {
     borderWidth: 2,
-    borderColor: APP_COLOR,
+    borderColor: THEME.PRIMARY,
   },
   activityEmoji: {
     fontSize: 28,
@@ -537,7 +535,7 @@ const styles = StyleSheet.create({
   },
   recurrenceText: {
     fontSize: 14,
-    color: APP_COLOR,
+    color: THEME.PRIMARY,
     fontWeight: '500',
     marginLeft: 6,
     flexShrink: 1,
@@ -583,7 +581,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   addButton: {
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 8,
     width: 45,
     height: 45,
@@ -594,7 +592,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButton: {
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',

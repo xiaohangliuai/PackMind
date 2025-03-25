@@ -25,6 +25,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
+import { COLORS, THEME } from '../../constants/theme';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -466,7 +467,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6E8B3D" />
+        <ActivityIndicator size="large" color={THEME.PRIMARY} />
       </SafeAreaView>
     );
   }
@@ -601,7 +602,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
             item.checked && styles.checkboxChecked
           ]}>
             {item.checked && (
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={16} color="white" />
             )}
           </View>
         </TouchableOpacity>
@@ -839,7 +840,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
                     style={styles.headerButton}
                     onPress={handleSaveEdits}
                   >
-                    <Ionicons name="checkmark" size={24} color="#6E8B3D" />
+                    <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
                   </TouchableOpacity>
                 ) : (
                   <>
@@ -939,7 +940,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.sectionTitle}>Items</Text>
             
             {isLoading ? (
-              <ActivityIndicator size="large" color="#6E8B3D" />
+              <ActivityIndicator size="large" color={THEME.PRIMARY} />
             ) : packingList?.items?.length > 0 ? (
               <DraggableFlatList
                 data={sortedItems}
@@ -986,7 +987,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <Ionicons
                 name="add"
                 size={24}
-                color={newItemText.trim() ? '#6E8B3D' : '#BDBDBD'}
+                color={newItemText.trim() ? THEME.PRIMARY : THEME.UI.DISABLED}
               />
             </TouchableOpacity>
           </View>
@@ -1080,7 +1081,7 @@ const styles = StyleSheet.create({
   progressPercentage: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#6E8B3D',
+    color: THEME.PRIMARY,
   },
   progressBarContainer: {
     height: 10,
@@ -1090,7 +1091,7 @@ const styles = StyleSheet.create({
   progressBar: {
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#6E8B3D',
+    backgroundColor: THEME.PRIMARY,
   },
   itemsSection: {
     padding: 15,
@@ -1138,8 +1139,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#6E8B3D',
-    borderColor: '#6E8B3D',
+    backgroundColor: THEME.PRIMARY,
+    borderColor: THEME.PRIMARY,
   },
   itemIconContainer: {
     width: 40,
@@ -1165,7 +1166,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#6E8B3D',
+    borderBottomColor: THEME.PRIMARY,
     padding: 4,
   },
   itemActions: {
@@ -1248,7 +1249,7 @@ const styles = StyleSheet.create({
   },
   activityTypeSelected: {
     borderWidth: 2,
-    borderColor: '#6E8B3D',
+    borderColor: THEME.PRIMARY,
   },
   activityIcon: {
     fontSize: 28,
@@ -1289,7 +1290,7 @@ const styles = StyleSheet.create({
   },
   recurrenceText: {
     fontSize: 14,
-    color: '#6E8B3D',
+    color: THEME.PRIMARY,
     fontWeight: '500',
     marginLeft: 6,
     flexShrink: 1,

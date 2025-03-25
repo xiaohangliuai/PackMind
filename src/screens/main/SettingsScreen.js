@@ -17,9 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../../models/firestoreModels';
-
-// Define APP_COLOR constant
-const APP_COLOR = '#a6c13c';
+import { COLORS, THEME } from '../../constants/theme';
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -74,92 +72,107 @@ const SettingsScreen = ({ navigation }) => {
     updateSettings({ checkedItemsAtBottom: value });
   };
   
-  // Save settings automatically when changed
+  // Update settings in Firestore
   const updateSettings = async (settingUpdate) => {
+    if (!user) return;
+    
     try {
-      const settings = {
-        notifications: notificationsEnabled,
-        weather: weatherEnabled,
-        checkedItemsAtBottom: checkedItemsAtBottom,
-        ...settingUpdate
+      // Get current settings, merge with update, and save to Firestore
+      const currentSettings = userProfile?.settings || {};
+      const updatedSettings = {
+        ...currentSettings,
+        ...settingUpdate,
       };
       
-      await updateUserProfile(user.uid, { settings });
+      await updateUserProfile(user.uid, { settings: updatedSettings });
+      console.log('Settings updated successfully');
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Error updating settings:', error);
+      Alert.alert('Error', 'Failed to update settings. Please try again.');
     }
   };
   
-  // Handle logout
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              console.error('Error logging out:', error);
-              Alert.alert('Error', 'Failed to logout');
-            }
-          }
-        }
-      ]
-    );
-  };
-  
-  // Share app
+  // Share the app
   const handleShareApp = async () => {
     try {
       await Share.share({
-        message: 'Check out PackM!nd+, the best app for organizing your packing lists! Download it now.',
-        title: 'PackM!nd+ - Packing List Organizer',
+        message: 'Check out PackM!nd+, the smart packing list app! Download it from the App Store or Google Play',
       });
     } catch (error) {
       console.error('Error sharing app:', error);
     }
   };
   
-  // Rate app
+  // Rate the app
   const handleRateApp = () => {
-    const url = Platform.OS === 'ios'
-      ? 'https://apps.apple.com/app/yourappid'
-      : 'https://play.google.com/store/apps/details?id=com.yourapp';
+    const appStoreUrl = 'itms-apps://itunes.apple.com/app/idYOUR_APP_ID';
+    const playStoreUrl = 'market://details?id=com.packmindplus';
+    
+    const url = Platform.OS === 'ios' ? appStoreUrl : playStoreUrl;
     
     Linking.canOpenURL(url).then(supported => {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open the app store');
+        console.error('Cannot open URL:', url);
       }
     });
   };
   
-  // Contact support
-  const handleContactSupport = () => {
-    Linking.openURL('mailto:support@packmind.com?subject=PackM!nd+ Support');
+  // Handle logout
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation will be handled by auth context
+            } catch (error) {
+              console.error('Error logging out:', error);
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
   
-  // Loading state
+  // Handle navigation back
+  const handleGoBack = () => {
+    navigation.navigate('Home');
+  };
+  
+  // Get avatar initials
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(part => part[0]).join('').toUpperCase();
+  };
+  
+  // If loading, show spinner
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={APP_COLOR} />
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.PRIMARY} />
+      </View>
     );
   }
   
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.navigate('Home')}
+          onPress={handleGoBack}
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
@@ -175,20 +188,18 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.accountInfo}>
             <View style={styles.accountAvatar}>
               <Text style={styles.avatarText}>
-                {user.displayName?.charAt(0).toUpperCase() || 'U'}
+                {getInitials(user?.displayName || 'User')}
               </Text>
             </View>
-            
             <View style={styles.accountDetails}>
-              <Text style={styles.accountName}>{user.displayName || 'User'}</Text>
-              <Text style={styles.accountEmail}>{user.email || 'No email'}</Text>
+              <Text style={styles.accountName}>
+                {user?.displayName || 'Anonymous User'}
+              </Text>
+              <Text style={styles.accountEmail}>
+                {user?.email || 'Guest Account'}
+              </Text>
             </View>
           </View>
-          
-          <TouchableOpacity style={styles.optionButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color="#FF5252" />
-            <Text style={[styles.optionText, styles.logoutText]}>Logout</Text>
-          </TouchableOpacity>
         </View>
         
         {/* Notifications Section */}
@@ -203,7 +214,7 @@ const SettingsScreen = ({ navigation }) => {
             <Switch
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
+              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
               thumbColor="white"
             />
           </View>
@@ -221,7 +232,7 @@ const SettingsScreen = ({ navigation }) => {
             <Switch
               value={weatherEnabled}
               onValueChange={handleToggleWeather}
-              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
+              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
               thumbColor="white"
             />
           </View>
@@ -234,7 +245,7 @@ const SettingsScreen = ({ navigation }) => {
             <Switch
               value={checkedItemsAtBottom}
               onValueChange={handleToggleCheckedItems}
-              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
+              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
               thumbColor="white"
             />
           </View>
@@ -244,37 +255,62 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.premiumSection}>
           <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
           <Text style={styles.premiumDescription}>
-            Unlock additional features, custom icons, and remove ads.
+            Get unlimited lists, priority support, and exclusive features.
           </Text>
-          <TouchableOpacity style={styles.premiumButton}>
-            <Text style={styles.premiumButtonText}>Upgrade Now</Text>
+          <TouchableOpacity 
+            style={styles.premiumButton}
+            onPress={() => Alert.alert('Premium', 'Coming soon!')}
+          >
+            <Text style={styles.premiumButtonText}>View Premium Features</Text>
           </TouchableOpacity>
         </View>
         
         {/* Support Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={styles.sectionTitle}>Support & Feedback</Text>
           
-          <TouchableOpacity style={styles.optionButton} onPress={handleShareApp}>
-            <Ionicons name="share-social-outline" size={24} color="#777" style={styles.optionIcon} />
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={handleShareApp}
+          >
+            <Ionicons name="share-outline" size={24} color="#777" style={styles.optionIcon} />
             <Text style={styles.optionText}>Share App</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.optionButton} onPress={handleRateApp}>
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={handleRateApp}
+          >
             <Ionicons name="star-outline" size={24} color="#777" style={styles.optionIcon} />
             <Text style={styles.optionText}>Rate App</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.optionButton} onPress={handleContactSupport}>
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={() => Linking.openURL('mailto:support@packmindplus.app')}
+          >
             <Ionicons name="mail-outline" size={24} color="#777" style={styles.optionIcon} />
             <Text style={styles.optionText}>Contact Support</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Account Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Actions</Text>
+          
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#FF5252" style={styles.optionIcon} />
+            <Text style={[styles.optionText, styles.logoutText]}>Log Out</Text>
           </TouchableOpacity>
         </View>
         
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2025 PackM!nd+</Text>
+          <Text style={styles.appCopyright}>© 2023 PackM!nd+</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -334,7 +370,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -405,7 +441,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   premiumButton: {
-    backgroundColor: APP_COLOR,
+    backgroundColor: THEME.PRIMARY,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: 'center',

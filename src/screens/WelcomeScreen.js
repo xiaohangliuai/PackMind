@@ -4,11 +4,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert }
 import { StatusBar } from 'expo-status-bar';
 import { signInAnonymously } from '../firebase/firebaseConfig';
 import { useAuth } from '../context/AuthContext';
+import { COLORS, THEME } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
-
-// Define APP_COLOR constant
-const APP_COLOR = '#a6c13c';
 
 const WelcomeScreen = ({ navigation }) => {
   // Animation values
@@ -70,54 +68,59 @@ const WelcomeScreen = ({ navigation }) => {
   
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
       <View style={styles.content}>
-        {/* Logo placeholder */}
+        {/* Logo */}
         <Animated.View 
           style={[
-            styles.logoContainer, 
-            {
-              opacity: logoOpacity,
-              transform: [{ scale: logoScale }]
-            }
+            styles.logoContainer,
+            { opacity: logoOpacity, transform: [{ scale: logoScale }] }
           ]}
         >
-          <Text style={styles.emoji}>🎒</Text>
+          <View style={styles.logoPlaceholder}>
+            <Text style={styles.logoText}>P</Text>
+          </View>
         </Animated.View>
         
         {/* Title */}
-        <Animated.Text style={[styles.title, { opacity: titleOpacity }]}>
+        <Animated.Text 
+          style={[styles.title, { opacity: titleOpacity }]}
+        >
           PackM!nd+
         </Animated.Text>
         
         {/* Subtitle */}
-        <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          Never forget what to pack again
+        <Animated.Text 
+          style={[styles.subtitle, { opacity: subtitleOpacity }]}
+        >
+          Smart packing for every journey
         </Animated.Text>
         
         {/* Buttons */}
-        <Animated.View style={[styles.buttonContainer, { opacity: buttonOpacity }]}>
-          <TouchableOpacity 
-            style={styles.buttonLogin}
+        <Animated.View 
+          style={[styles.buttonContainer, { opacity: buttonOpacity }]}
+        >
+          <TouchableOpacity
+            style={styles.button}
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={styles.buttonLoginText}>Login</Text>
+            <Text style={styles.buttonText}>Sign In</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.buttonRegister}
+          <TouchableOpacity
+            style={styles.secondaryButton}
             onPress={() => navigation.navigate('Register')}
           >
-            <Text style={styles.buttonRegisterText}>Sign Up</Text>
+            <Text style={styles.secondaryButtonText}>Create Account</Text>
           </TouchableOpacity>
           
-          {/* Dev/Debug Login Button */}
+          {/* Dev shortcut for testing */}
           <TouchableOpacity
-            style={styles.tempButton}
+            style={[styles.secondaryButton, { marginTop: 20, borderWidth: 1 }]}
             onPress={handleAnonymousLogin}
           >
-            <Text style={styles.tempButtonText}>Anonymous Login (Debug)</Text>
+            <Text style={[styles.secondaryButtonText, { fontSize: 14 }]}>Continue as Guest</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -128,7 +131,7 @@ const WelcomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: APP_COLOR,
+    backgroundColor: COLORS.MEDIUM_PURPLE,
   },
   content: {
     flex: 1,
@@ -148,6 +151,13 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'white',
     borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 60,
+    fontWeight: 'bold',
+    color: COLORS.MEDIUM_PURPLE,
   },
   title: {
     fontSize: 42,
@@ -164,35 +174,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
   },
-  buttonLogin: {
-    backgroundColor: 'white',
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginBottom: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  buttonLoginText: {
-    color: APP_COLOR,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonRegister: {
-    borderWidth: 2,
-    borderColor: 'white',
-    paddingVertical: 15,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-  buttonRegisterText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   button: {
     backgroundColor: 'white',
     paddingVertical: 15,
@@ -206,7 +187,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonText: {
-    color: APP_COLOR,
+    color: COLORS.MEDIUM_PURPLE,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -221,31 +202,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  tempButton: {
-    backgroundColor: '#FF5722',
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginTop: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    width: width * 0.8,
-  },
-  tempButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emoji: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: 'white',
   },
 });
 
