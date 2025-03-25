@@ -25,6 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { cancelPackingReminders } from '../../services/NotificationService';
 import { COLORS, THEME } from '../../constants/theme';
+import { useFonts, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 
 const { width } = Dimensions.get('window');
 
@@ -32,18 +33,24 @@ const { width } = Dimensions.get('window');
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 const HomeScreen = ({ navigation }) => {
+  // Auth context
   const { user, logout } = useAuth();
+  
+  // Font loading
+  const [fontsLoaded] = useFonts({
+    Pacifico_400Regular,
+  });
+
+  // State declarations
   const [packingLists, setPackingLists] = useState([]);
   const [sharedLists, setSharedLists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(true); // Demo state for notification badge
+  const [hasNotifications, setHasNotifications] = useState(true);
   const [pulseAnim] = useState(new Animated.Value(1));
-  
-  console.log("HomeScreen rendered, user:", user ? user.uid : "no user");
-  
-  // Fetch user's packing lists
-  const fetchPackingLists = async () => {
+
+  // Fetch packing lists function
+  const fetchPackingLists = useCallback(async () => {
     try {
       if (!user || !user.uid) {
         console.error('No authenticated user found');
@@ -52,28 +59,23 @@ const HomeScreen = ({ navigation }) => {
       
       console.log('Fetching packing lists for user ID:', user.uid);
       
-      // Use Firebase compat API directly - removed orderBy to avoid need for index
       const snapshot = await firebase.firestore()
         .collection('packingLists')
         .where('userId', '==', user.uid)
         .get();
       
-      // Get the data and sort in memory instead
       const lists = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       
-      // Sort by updatedAt first (if available), then by createdAt
       lists.sort((a, b) => {
-        // First try to use updatedAt for sorting
         if (a.updatedAt || b.updatedAt) {
           const updateDateA = a.updatedAt ? (a.updatedAt.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt)) : new Date(0);
           const updateDateB = b.updatedAt ? (b.updatedAt.toDate ? b.updatedAt.toDate() : new Date(b.updatedAt)) : new Date(0);
           return updateDateB - updateDateA;
         }
         
-        // Fallback to createdAt
         const createDateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
         const createDateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
         return createDateB - createDateA;
@@ -88,7 +90,46 @@ const HomeScreen = ({ navigation }) => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [user]);
+
+  // Effects
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim]);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("HomeScreen focused, refreshing lists");
+      fetchPackingLists();
+      return () => {
+        // Clean up if needed
+      };
+    }, [fetchPackingLists])
+  );
+
+  // Loading screen while font is loading
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.PRIMARY} />
+      </View>
+    );
+  }
+  
+  console.log("HomeScreen rendered, user:", user ? user.uid : "no user");
   
   // Navigation handlers with added debugging
   const handleCreateList = () => {
@@ -145,38 +186,6 @@ const HomeScreen = ({ navigation }) => {
       ]
     );
   };
-  
-  // Refresh lists whenever the screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log("HomeScreen focused, refreshing lists");
-      fetchPackingLists();
-      return () => {
-        // Clean up if needed
-      };
-    }, [user])
-  );
-  
-  // Load packing lists on component mount
-  useEffect(() => {
-    console.log("HomeScreen useEffect running, fetching lists");
-    
-    // Setup loading animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
   
   // Calculate progress for a list
   const calculateProgress = (items) => {
@@ -536,9 +545,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   appTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: 'Pacifico_400Regular',
+    fontSize: 32,
     color: THEME.PRIMARY,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   rightContainer: {
     flexDirection: 'row',
