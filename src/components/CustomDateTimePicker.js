@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, 
   Text, 
@@ -15,6 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 
 const { width } = Dimensions.get('window');
+
+// App theme color
+const APP_COLOR = '#a6c13c';
 
 // Frequency options for recurring reminders
 const FREQUENCIES = [
@@ -50,6 +53,9 @@ const CustomDateTimePicker = ({
   const [selectedHour, setSelectedHour] = useState(initialDate.getHours());
   const [selectedMinute, setSelectedMinute] = useState(initialDate.getMinutes());
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Timer ref for debouncing time selection
+  const timeoutRef = useRef(null);
 
   // Handle initial time values for Android wheel picker
   useEffect(() => {
@@ -58,6 +64,15 @@ const CustomDateTimePicker = ({
       setSelectedMinute(initialDate.getMinutes());
     }
   }, [initialDate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle save
   const handleSave = () => {
@@ -72,7 +87,11 @@ const CustomDateTimePicker = ({
 
   // Handle date change
   const handleDateChange = (day) => {
-    const newDate = new Date(day.dateString);
+    // Fix timezone issue by parsing with explicit time to avoid day offset
+    const dateString = day.dateString; // Format: YYYY-MM-DD
+    const [year, month, dayOfMonth] = dateString.split('-').map(num => parseInt(num, 10));
+    const newDate = new Date(year, month - 1, dayOfMonth, 12, 0, 0); // Set to noon to avoid timezone issues
+    
     setDate(newDate);
     setCalendarVisible(false);
     setView('main');
@@ -83,9 +102,17 @@ const CustomDateTimePicker = ({
     if (selectedTime) {
       setTime(selectedTime);
     }
+    
+    // Auto-close after delay when user stops scrolling
     if (Platform.OS === 'ios') {
-      setTimePickerVisible(false);
-      setView('main');
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        setTimePickerVisible(false);
+        setView('main');
+      }, 1000);
     }
   };
 
@@ -97,6 +124,33 @@ const CustomDateTimePicker = ({
     setTime(newTime);
     setTimePickerVisible(false);
     setView('main');
+  };
+  
+  // Handle Android time value changes with debounce
+  const handleAndroidTimeChange = (value, isHour) => {
+    if (isHour) {
+      setSelectedHour(parseInt(value));
+    } else {
+      setSelectedMinute(parseInt(value));
+    }
+    
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Set a new timeout to update the time value, but don't auto-confirm
+    timeoutRef.current = setTimeout(() => {
+      // Just update the local state without closing the picker
+      const newTime = new Date();
+      newTime.setHours(isHour ? parseInt(value) : selectedHour);
+      newTime.setMinutes(!isHour ? parseInt(value) : selectedMinute);
+      setTime(newTime);
+      
+      // Auto-close after updating the time
+      setTimePickerVisible(false);
+      setView('main');
+    }, 1000);
   };
 
   // Handle frequency selection
@@ -124,12 +178,16 @@ const CustomDateTimePicker = ({
     });
   };
 
-  // Format time display
+  // Format time display - 12 hour format with AM/PM
   const formatTimeDisplay = () => {
     if (Platform.OS === 'android') {
-      const hour = selectedHour.toString().padStart(2, '0');
-      const minute = selectedMinute.toString().padStart(2, '0');
-      return `${hour}:${minute}`;
+      // Convert 24-hour format to 12-hour with AM/PM
+      let hours = selectedHour;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      const minutes = selectedMinute.toString().padStart(2, '0');
+      return `${hours}:${minutes} ${ampm}`;
     } else {
       return format(time, 'h:mm a');
     }
@@ -142,10 +200,10 @@ const CustomDateTimePicker = ({
         <Text style={styles.title}>Reminder</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color="white" />
+            <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-            <Ionicons name="checkmark" size={24} color="white" />
+            <Ionicons name="checkmark" size={24} color="#333" />
           </TouchableOpacity>
         </View>
       </View>
@@ -156,15 +214,15 @@ const CustomDateTimePicker = ({
           style={styles.optionRow}
           onPress={() => setView('frequency')}
         >
-          <View style={styles.optionLeft}>
-            <Ionicons name="repeat" size={24} color="white" />
+          <View style={styles.iconLabelContainer}>
+            <Ionicons name="repeat-outline" size={24} color="#333" />
             <Text style={styles.optionLabel}>Recurrence</Text>
           </View>
           <View style={styles.optionRight}>
             <Text style={styles.optionValue}>
               {FREQUENCIES.find(f => f.id === recurrence.type)?.label}
             </Text>
-            <Ionicons name="chevron-forward" size={20} color="#888" />
+            <Ionicons name="chevron-forward" size={20} color="#666" />
           </View>
         </TouchableOpacity>
 
@@ -173,12 +231,12 @@ const CustomDateTimePicker = ({
           style={styles.optionRow}
           onPress={() => setView('calendar')}
         >
-          <View style={styles.optionLeft}>
-            <Ionicons name="calendar-outline" size={24} color="white" />
+          <View style={styles.iconLabelContainer}>
+            <Ionicons name="calendar-outline" size={24} color="#333" />
             <Text style={styles.optionLabel}>Date</Text>
           </View>
-          <View style={styles.dateContainer}>
-            <Text style={styles.dateText}>
+          <View style={styles.valueContainer}>
+            <Text style={styles.valueText}>
               {format(date, 'MMM d')}
             </Text>
           </View>
@@ -189,12 +247,12 @@ const CustomDateTimePicker = ({
           style={styles.optionRow}
           onPress={() => setView('time')}
         >
-          <View style={styles.optionLeft}>
-            <Ionicons name="time-outline" size={24} color="white" />
+          <View style={styles.iconLabelContainer}>
+            <Ionicons name="time-outline" size={24} color="#333" />
             <Text style={styles.optionLabel}>Time</Text>
           </View>
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>
+          <View style={styles.valueContainer}>
+            <Text style={styles.valueText}>
               {formatTimeDisplay()}
             </Text>
           </View>
@@ -205,8 +263,8 @@ const CustomDateTimePicker = ({
           style={[styles.optionRow, styles.lastRow]}
           onPress={() => setNotificationsEnabled(!notificationsEnabled)}
         >
-          <View style={styles.optionLeft}>
-            <Ionicons name="notifications-outline" size={24} color="white" />
+          <View style={styles.iconLabelContainer}>
+            <Ionicons name="notifications-outline" size={24} color="#333" />
             <Text style={styles.optionLabel}>Push notification</Text>
           </View>
           <View style={[
@@ -262,7 +320,7 @@ const CustomDateTimePicker = ({
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
         <TouchableOpacity onPress={() => setView('main')}>
-          <Ionicons name="chevron-back" size={24} color="#86a637" />
+          <Ionicons name="chevron-back" size={24} color={APP_COLOR} />
         </TouchableOpacity>
         <Text style={styles.calendarTitle}>Select Date</Text>
         <TouchableOpacity onPress={() => {
@@ -275,19 +333,19 @@ const CustomDateTimePicker = ({
         current={format(date, 'yyyy-MM-dd')}
         onDayPress={handleDateChange}
         markedDates={{
-          [format(date, 'yyyy-MM-dd')]: { selected: true, selectedColor: '#86a637' }
+          [format(date, 'yyyy-MM-dd')]: { selected: true, selectedColor: APP_COLOR }
         }}
         theme={{
-          backgroundColor: '#1c2935',
-          calendarBackground: '#1c2935',
-          textSectionTitleColor: 'white',
-          selectedDayBackgroundColor: '#86a637',
+          backgroundColor: 'white',
+          calendarBackground: 'white',
+          textSectionTitleColor: '#333',
+          selectedDayBackgroundColor: APP_COLOR,
           selectedDayTextColor: 'white',
-          todayTextColor: '#86a637',
-          dayTextColor: 'white',
-          textDisabledColor: '#555',
-          monthTextColor: 'white',
-          indicatorColor: '#86a637',
+          todayTextColor: APP_COLOR,
+          dayTextColor: '#333',
+          textDisabledColor: '#ccc',
+          monthTextColor: '#333',
+          indicatorColor: APP_COLOR,
           textDayFontWeight: '300',
           textMonthFontWeight: 'bold',
           textDayHeaderFontWeight: '500',
@@ -306,25 +364,16 @@ const CustomDateTimePicker = ({
       return (
         <View style={styles.timePickerContainer}>
           <View style={styles.timePickerHeader}>
-            <TouchableOpacity onPress={() => setView('main')}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
             <Text style={styles.timePickerTitle}>Select Time</Text>
-            <TouchableOpacity onPress={() => {
-              handleTimeChange(null, time);
-            }}>
-              <Text style={styles.doneText}>Done</Text>
-            </TouchableOpacity>
           </View>
           <DateTimePicker
             value={time}
             mode="time"
             display="spinner"
             onChange={handleTimeChange}
-            textColor="white"
+            textColor="#333"
             style={styles.iosTimePicker}
-            themeVariant="dark"
-            accentColor="#86a637"
+            accentColor={APP_COLOR}
           />
         </View>
       );
@@ -333,13 +382,7 @@ const CustomDateTimePicker = ({
       return (
         <View style={styles.timePickerContainer}>
           <View style={styles.timePickerHeader}>
-            <TouchableOpacity onPress={() => setView('main')}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
             <Text style={styles.timePickerTitle}>Select Time</Text>
-            <TouchableOpacity onPress={handleAndroidTimeConfirm}>
-              <Text style={styles.doneText}>Done</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.androidTimePickerContainer}>
@@ -357,15 +400,15 @@ const CustomDateTimePicker = ({
                 );
               }}
               onValueChange={(data, selectedIndex) => {
-                setSelectedHour(parseInt(data));
+                handleAndroidTimeChange(data, true);
               }}
               wrapperHeight={180}
-              wrapperBackground="#1c2935"
+              wrapperBackground="white"
               itemHeight={60}
-              highlightColor="#2d3b47"
+              highlightColor="#f7f7f7"
               highlightBorderWidth={1}
-              activeItemColor="#86a637"
-              itemColor="white"
+              activeItemColor={APP_COLOR}
+              itemColor="#333"
             />
             
             <Text style={styles.androidTimePickerColon}>:</Text>
@@ -384,15 +427,15 @@ const CustomDateTimePicker = ({
                 );
               }}
               onValueChange={(data, selectedIndex) => {
-                setSelectedMinute(parseInt(data));
+                handleAndroidTimeChange(data, false);
               }}
               wrapperHeight={180}
-              wrapperBackground="#1c2935"
+              wrapperBackground="white"
               itemHeight={60}
-              highlightColor="#2d3b47"
+              highlightColor="#f7f7f7"
               highlightBorderWidth={1}
-              activeItemColor="#86a637"
-              itemColor="white"
+              activeItemColor={APP_COLOR}
+              itemColor="#333"
             />
           </View>
         </View>
@@ -405,7 +448,7 @@ const CustomDateTimePicker = ({
     <View style={styles.frequencyContainer}>
       <View style={styles.frequencyHeader}>
         <TouchableOpacity onPress={() => setView('main')}>
-          <Ionicons name="chevron-back" size={24} color="#86a637" />
+          <Ionicons name="chevron-back" size={24} color={APP_COLOR} />
         </TouchableOpacity>
         <Text style={styles.frequencyTitle}>Recurrence</Text>
         <View style={{ width: 24 }} />
@@ -474,7 +517,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   mainContainer: {
-    backgroundColor: '#1c2935',
+    backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
@@ -483,15 +526,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#1c2935',
+    padding: 16,
+    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#333',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -499,72 +542,69 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     marginLeft: 15,
+    padding: 5,
   },
   content: {
     padding: 20,
-    paddingBottom: 30,
+    paddingBottom: 25,
+    backgroundColor: 'white',
   },
   optionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#eee',
   },
   lastRow: {
     borderBottomWidth: 0,
+    marginBottom: 5,
   },
-  optionLeft: {
+  iconLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '45%',
   },
   optionLabel: {
-    fontSize: 16,
-    color: 'white',
-    marginLeft: 15,
+    fontSize: 17,
+    fontWeight: '500',
+    color: '#333',
+    marginLeft: 12,
   },
   optionRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   optionValue: {
-    fontSize: 16,
-    color: '#86a637',
+    fontSize: 17,
+    color: APP_COLOR,
     marginRight: 5,
   },
-  dateContainer: {
-    backgroundColor: '#2d3b47',
+  valueContainer: {
+    backgroundColor: '#f7f7f7', 
     borderRadius: 8,
     padding: 10,
-    minWidth: 140,
+    minWidth: 110,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 40,
   },
-  dateText: {
+  valueText: {
     fontSize: 16,
-    color: 'white',
-  },
-  timeContainer: {
-    backgroundColor: '#2d3b47',
-    borderRadius: 8,
-    padding: 10,
-    minWidth: 90,
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 16,
-    color: 'white',
+    color: '#333',
+    fontWeight: '500',
   },
   notificationSwitch: {
     width: 60,
     height: 30,
-    backgroundColor: '#86a637',
+    backgroundColor: APP_COLOR,
     borderRadius: 15,
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
   notificationSwitchDisabled: {
-    backgroundColor: '#555',
+    backgroundColor: '#ccc',
   },
   switchKnob: {
     width: 26,
@@ -576,15 +616,138 @@ const styles = StyleSheet.create({
   switchKnobDisabled: {
     marginLeft: 0,
   },
+  clearButton: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  clearText: {
+    fontSize: 18,
+    color: APP_COLOR,
+    fontWeight: 'bold',
+  },
+  calendarContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    paddingBottom: 30,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  todayText: {
+    color: APP_COLOR,
+    fontSize: 16,
+  },
+  timePickerContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    paddingBottom: 30,
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  timePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  iosTimePicker: {
+    backgroundColor: 'white',
+    height: 200,
+  },
+  androidTimePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'white',
+  },
+  androidTimePickerItem: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  androidTimePickerText: {
+    color: '#333',
+    fontSize: 22,
+  },
+  androidTimePickerTextSelected: {
+    color: APP_COLOR,
+    fontWeight: 'bold',
+  },
+  androidTimePickerColon: {
+    color: '#333',
+    fontSize: 24,
+    marginHorizontal: 5,
+  },
+  frequencyContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  frequencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  frequencyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  frequencyOptions: {
+    padding: 10,
+    backgroundColor: 'white',
+  },
+  frequencyOption: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    borderRadius: 10,
+    margin: 5,
+  },
+  frequencyOptionSelected: {
+    backgroundColor: '#f7f7f7',
+  },
+  frequencyText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  frequencyTextSelected: {
+    color: APP_COLOR,
+    fontWeight: 'bold',
+  },
   recurrenceOptions: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#2d3b47',
+    backgroundColor: '#f7f7f7',
     borderRadius: 10,
   },
   recurrenceTitle: {
     fontSize: 16,
-    color: 'white',
+    color: '#333',
     marginBottom: 15,
   },
   weekdaysContainer: {
@@ -597,148 +760,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#3a4b5a',
+    backgroundColor: '#eee',
   },
   weekdayButtonSelected: {
-    backgroundColor: '#86a637',
+    backgroundColor: APP_COLOR,
   },
   weekdayText: {
-    color: 'white',
+    color: '#333',
     fontSize: 12,
   },
   weekdayTextSelected: {
-    fontWeight: 'bold',
-  },
-  clearButton: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  clearText: {
-    fontSize: 16,
-    color: '#86a637',
-    fontWeight: 'bold',
-  },
-  calendarContainer: {
-    backgroundColor: '#1c2935',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    paddingBottom: 30,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     color: 'white',
-  },
-  todayText: {
-    color: '#86a637',
-    fontSize: 16,
-  },
-  timePickerContainer: {
-    backgroundColor: '#1c2935',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    paddingBottom: 30,
-  },
-  timePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  timePickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  cancelText: {
-    color: '#888',
-    fontSize: 16,
-  },
-  doneText: {
-    color: '#86a637',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  iosTimePicker: {
-    backgroundColor: '#1c2935',
-    height: 200,
-  },
-  androidTimePickerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  androidTimePickerItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  androidTimePickerText: {
-    color: 'white',
-    fontSize: 22,
-  },
-  androidTimePickerTextSelected: {
-    color: '#86a637',
-    fontWeight: 'bold',
-  },
-  androidTimePickerColon: {
-    color: 'white',
-    fontSize: 24,
-    marginHorizontal: 5,
-  },
-  frequencyContainer: {
-    backgroundColor: '#1c2935',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  frequencyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  frequencyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  frequencyOptions: {
-    padding: 10,
-  },
-  frequencyOption: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    borderRadius: 10,
-    margin: 5,
-  },
-  frequencyOptionSelected: {
-    backgroundColor: '#2d3b47',
-  },
-  frequencyText: {
-    fontSize: 16,
-    color: 'white',
-  },
-  frequencyTextSelected: {
-    color: '#86a637',
     fontWeight: 'bold',
   },
 });
 
-export default CustomDateTimePicker; 
+export default CustomDateTimePicker;
