@@ -451,6 +451,32 @@ const ListDetailsScreen = ({ route, navigation }) => {
       setIsEditing(true);
     };
     
+    // Change item type/icon
+    const handleChangeItemType = async (newType) => {
+      try {
+        // Clone the packingList to avoid modifying the shared value
+        const updatedItems = packingList.items.map(i => 
+          i.id === item.id ? { ...i, type: newType } : i
+        );
+        
+        const updates = { 
+          items: updatedItems,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await updatePackingList(listId, updates);
+        
+        setPackingList(prevList => ({
+          ...prevList,
+          items: updatedItems,
+          updatedAt: new Date()
+        }));
+      } catch (error) {
+        console.error('Error updating item type:', error);
+        Alert.alert('Error', 'Failed to update item type');
+      }
+    };
+    
     const saveEdit = async () => {
       if (!editText.trim()) {
         setEditText(item.name);
@@ -465,11 +491,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
             i.id === item.id ? { ...i, name: editText.trim() } : i
           );
           
-          await updatePackingList(listId, { items: updatedItems });
+          const updates = { 
+            items: updatedItems,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await updatePackingList(listId, updates);
           
           setPackingList(prevList => ({
             ...prevList,
-            items: updatedItems
+            items: updatedItems,
+            updatedAt: new Date()
           }));
         } catch (error) {
           console.error('Error updating item name:', error);
@@ -500,6 +532,14 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <Ionicons name="checkmark" size={16} color="#FFFFFF" />
             )}
           </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.itemIconContainer}
+          onPress={() => item.type === 'default' ? null : handleChangeItemType('default')}
+          onLongPress={() => handleChangeItemType(item.type === 'default' ? 'shirt' : 'default')}
+        >
+          <ItemIcon type={item.type || 'default'} size={24} />
         </TouchableOpacity>
           
         {isEditing ? (
@@ -871,49 +911,41 @@ const ListDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#EFEFEF',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   backButton: {
     padding: 5,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
-    textAlign: 'center',
   },
   headerButtons: {
     flexDirection: 'row',
   },
   headerButton: {
     padding: 5,
-    marginLeft: 15,
+    marginLeft: 10,
   },
   infoSection: {
-    padding: 20,
-    paddingBottom: 10,
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  itemsSection: {
-    padding: 20,
-    paddingBottom: 80,
+    borderBottomColor: '#EFEFEF',
   },
   titleRow: {
     flexDirection: 'row',
@@ -921,42 +953,32 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   activityEmoji: {
-    fontSize: 30,
+    fontSize: 32,
     marginRight: 10,
   },
   title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     flex: 1,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  titleInput: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
-    paddingVertical: 5,
-    marginBottom: 10,
   },
   detailsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 20,
     marginBottom: 5,
   },
   detailText: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: 14,
+    color: '#666',
     marginLeft: 5,
   },
   progressContainer: {
-    marginTop: 5,
+    marginTop: 10,
   },
   progressInfo: {
     flexDirection: 'row',
@@ -965,7 +987,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
   },
   progressPercentage: {
     fontSize: 14,
@@ -973,54 +995,57 @@ const styles = StyleSheet.create({
     color: '#6E8B3D',
   },
   progressBarContainer: {
-    height: 8,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 4,
-    overflow: 'hidden',
+    height: 10,
+    backgroundColor: '#EFEFEF',
+    borderRadius: 5,
   },
   progressBar: {
-    height: '100%',
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#6E8B3D',
   },
+  itemsSection: {
+    padding: 15,
+  },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 15,
+  },
+  emptyList: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
   },
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginVertical: 5,
-    marginHorizontal: 2,
-    borderRadius: 10,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   itemActiveContainer: {
-    backgroundColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-    zIndex: 999,
+    backgroundColor: '#F8F8F8',
   },
   checkboxContainer: {
-    marginRight: 12,
+    marginRight: 10,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 1,
-    borderColor: '#757575',
-    borderRadius: 5,
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#DDDDDD',
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1028,9 +1053,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#6E8B3D',
     borderColor: '#6E8B3D',
   },
+  itemIconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginRight: 10,
+  },
   itemNameContainer: {
     flex: 1,
-    paddingVertical: 5,
   },
   itemName: {
     fontSize: 16,
@@ -1038,15 +1071,14 @@ const styles = StyleSheet.create({
   },
   itemNameChecked: {
     textDecorationLine: 'line-through',
-    color: '#777',
+    color: '#999',
   },
   itemNameInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
     borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
-    paddingVertical: 5,
+    borderBottomColor: '#6E8B3D',
+    padding: 4,
   },
   itemActions: {
     flexDirection: 'row',
@@ -1054,68 +1086,28 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 5,
+    marginRight: 5,
   },
   dragHandle: {
-    padding: 5,
-    marginLeft: 5,
-  },
-  listContent: {
-    paddingBottom: 80,
-  },
-  emptyList: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#777',
-  },
-  editItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    marginVertical: 5,
-    marginHorizontal: 2,
-    borderRadius: 10,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  editItemText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  editDeleteButton: {
     padding: 5,
   },
   addItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: 'white',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    borderTopColor: '#EFEFEF',
+    backgroundColor: '#FFFFFF',
   },
   addItemInput: {
     flex: 1,
-    height: 45,
+    height: 40,
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
+    borderColor: '#DDDDDD',
+    borderRadius: 20,
+    paddingHorizontal: 15,
     marginRight: 10,
-    backgroundColor: '#FAFAFA',
   },
   addItemButton: {
     width: 40,
@@ -1126,31 +1118,31 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addItemButtonDisabled: {
-    backgroundColor: '#BDBDBD',
+    opacity: 0.5,
+  },
+  listContent: {
+    paddingBottom: 10,
   },
   editSection: {
-    padding: 20,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEFEF',
   },
   editLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontWeight: '600',
+    marginBottom: 8,
     marginTop: 15,
   },
   editInput: {
-    fontSize: 16,
-    color: '#333',
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: '#FAFAFA',
+    borderColor: '#DDDDDD',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
   },
   activityScroll: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   activityGrid: {
     flexDirection: 'row',
@@ -1165,89 +1157,32 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 15,
     backgroundColor: '#F5F5F5',
-    padding: 10,
   },
   activityTypeSelected: {
-    backgroundColor: '#E8F5E9',
     borderWidth: 2,
     borderColor: '#6E8B3D',
   },
   activityIcon: {
-    fontSize: 24,
+    fontSize: 28,
     marginBottom: 5,
   },
   activityLabel: {
     fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
+    color: '#4a4a4a',
   },
   dateContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#FAFAFA',
+    borderColor: '#DDDDDD',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
   },
   dateText: {
-    flex: 1,
     fontSize: 16,
     color: '#333',
-  },
-  suggestedItemsMessage: {
-    marginTop: 10,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  suggestedItemsText: {
-    fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
-  },
-  suggestedItemsContainer: {
-    flexDirection: 'column',
-    marginBottom: 20,
-  },
-  suggestedItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    marginVertical: 5,
-    backgroundColor: '#FAFAFA',
-  },
-  suggestedItemText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  optionsContainer: {
-    marginBottom: 20,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  optionTextContainer: {
-    flex: 1,
-  },
-  optionLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: '#777',
-    marginTop: 2,
   },
 });
 
