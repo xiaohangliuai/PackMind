@@ -15,10 +15,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAuth } from '../../context/AuthContext';
 import { createPackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
+import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
 
@@ -98,7 +98,8 @@ const CreateListScreen = ({ navigation }) => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState(new Date());
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
+  const [recurrence, setRecurrence] = useState({ type: 'none', interval: 1, days: [] });
   const [newItemName, setNewItemName] = useState('');
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,18 +119,18 @@ const CreateListScreen = ({ navigation }) => {
     }
   }, [selectedActivity]);
   
-  // Date picker handlers
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
+  // Date time picker handlers
+  const showDateTimePicker = () => {
+    setDateTimePickerVisible(true);
   };
   
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
+  const hideDateTimePicker = () => {
+    setDateTimePickerVisible(false);
   };
   
-  const handleConfirmDate = (selectedDate) => {
+  const handleSaveDateTime = (selectedDate, reminderRecurrence) => {
     setDate(selectedDate);
-    hideDatePicker();
+    setRecurrence(reminderRecurrence);
   };
   
   // Add new item to the list
@@ -212,10 +213,12 @@ const CreateListScreen = ({ navigation }) => {
         activity: selectedActivity,
         destination: destination.trim(),
         date: date,
+        recurrence: recurrence,
         items: items.map(item => ({ ...item, id: item.id || uuidv4() })),
         completed: false,
         userId: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
       // Save to Firestore
@@ -308,19 +311,19 @@ const CreateListScreen = ({ navigation }) => {
             placeholderTextColor="#A0A0A0"
           />
           
-          {/* Date */}
+          {/* Date & Time */}
           <Text style={styles.label}>Date & Time</Text>
-          <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
-            <Text style={styles.dateText}>{format(date, 'MMMM d, yyyy h:mm a')}</Text>
+          <TouchableOpacity style={styles.dateButton} onPress={showDateTimePicker}>
+            <Text style={styles.dateText}>{format(date, 'MMM d, h:mm a')}</Text>
             <Ionicons name="calendar-outline" size={22} color="#4a4a4a" />
           </TouchableOpacity>
           
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="datetime"
-            date={date}
-            onConfirm={handleConfirmDate}
-            onCancel={hideDatePicker}
+          <CustomDateTimePicker
+            isVisible={isDateTimePickerVisible}
+            onClose={hideDateTimePicker}
+            onSave={handleSaveDateTime}
+            initialDate={date}
+            initialRecurrence={recurrence}
           />
           
           {/* Items */}
