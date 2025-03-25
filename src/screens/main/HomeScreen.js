@@ -343,7 +343,7 @@ const HomeScreen = ({ navigation }) => {
       
       {/* App Header Bar */}
       <View style={styles.headerContainer}>
-        <Text style={styles.appTitle}>PackMind</Text>
+        <Text style={styles.appTitle}>PackM!nd+</Text>
         <View style={styles.rightContainer}>
           <View style={styles.notificationContainer}>
             <TouchableOpacity 

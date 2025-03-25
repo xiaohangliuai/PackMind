@@ -130,7 +130,7 @@ const SettingsScreen = ({ navigation }) => {
   
   // Contact support
   const handleContactSupport = () => {
-    Linking.openURL('mailto:support@packmind.com?subject=PackMind Support');
+    Linking.openURL('mailto:support@packmind.com?subject=PackM!nd+ Support');
   };
   
   // Loading state
@@ -275,7 +275,7 @@ const SettingsScreen = ({ navigation }) => {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2025 PackMind</Text>
+          <Text style={styles.appCopyright}>© 2025 PackM!nd+</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

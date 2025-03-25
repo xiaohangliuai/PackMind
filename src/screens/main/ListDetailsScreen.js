@@ -431,7 +431,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
         .map(item => `- ${item.name}`)
         .join('\n');
       
-      const message = `Check out my packing list for ${packingList.title}!\n\n${itemsList}\n\nCreated with PackMind`;
+      const message = `Check out my packing list for ${packingList.title}!\n\n${itemsList}\n\nCreated with PackM!nd+`;
       
       await Share.share({
         message,

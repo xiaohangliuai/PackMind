@@ -3,8 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { signInAnonymously } from '../firebase/firebaseConfig';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
+
+// Define APP_COLOR constant
+const APP_COLOR = '#a6c13c';
 
 const WelcomeScreen = ({ navigation }) => {
   // Animation values
@@ -84,7 +88,7 @@ const WelcomeScreen = ({ navigation }) => {
         
         {/* Title */}
         <Animated.Text style={[styles.title, { opacity: titleOpacity }]}>
-          PackMind
+          PackM!nd+
         </Animated.Text>
         
         {/* Subtitle */}
@@ -124,7 +128,7 @@ const WelcomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
   },
   content: {
     flex: 1,
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonLoginText: {
-    color: '#6E8B3D',
+    color: APP_COLOR,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -202,7 +206,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonText: {
-    color: '#6E8B3D',
+    color: APP_COLOR,
     fontSize: 16,
     fontWeight: 'bold',
   },
