@@ -36,6 +36,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState(new Date());
+  const [selectedActivity, setSelectedActivity] = useState(null); // New state for temporary activity selection
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [newItemText, setNewItemText] = useState('');
   const [isOwner, setIsOwner] = useState(false);
@@ -55,6 +56,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       setPackingList(list);
       setTitle(list.title);
       setDestination(list.destination || '');
+      setSelectedActivity(list.activity); // Initialize selected activity from list
       
       // Safely set the date from the list
       if (list.date) {
@@ -84,6 +86,26 @@ const ListDetailsScreen = ({ route, navigation }) => {
     }
   };
   
+  // Reset edit states when leaving edit mode
+  const resetEditStates = () => {
+    if (packingList) {
+      setTitle(packingList.title);
+      setDestination(packingList.destination || '');
+      setSelectedActivity(packingList.activity);
+      if (packingList.date) {
+        try {
+          if (packingList.date.toDate) {
+            setDate(packingList.date.toDate());
+          } else {
+            setDate(new Date(packingList.date));
+          }
+        } catch (error) {
+          setDate(new Date());
+        }
+      }
+    }
+  };
+  
   // Initial data fetch
   useEffect(() => {
     fetchPackingList();
@@ -98,11 +120,18 @@ const ListDetailsScreen = ({ route, navigation }) => {
     );
     
     try {
-      await updatePackingList(listId, { items: updatedItems });
+      // Include updatedAt timestamp to ensure the list moves to the top on home screen
+      const updates = { 
+        items: updatedItems,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await updatePackingList(listId, updates);
       
       setPackingList(prevList => ({
         ...prevList,
-        items: updatedItems
+        items: updatedItems,
+        updatedAt: new Date() // Use local date as a temporary value until Firestore updates
       }));
     } catch (error) {
       console.error('Error updating item:', error);
@@ -118,13 +147,19 @@ const ListDetailsScreen = ({ route, navigation }) => {
       // Create a copy of the data to avoid modifying shared values
       const reorderedItems = [...data];
       
-      // Update Firestore with the new order
-      await updatePackingList(listId, { items: reorderedItems });
+      // Update Firestore with the new order and timestamp
+      const updates = { 
+        items: reorderedItems,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await updatePackingList(listId, updates);
       
       // Update local state with functional update
       setPackingList(prevList => ({
         ...prevList,
-        items: reorderedItems
+        items: reorderedItems,
+        updatedAt: new Date()
       }));
     } catch (error) {
       console.error('Error reordering items:', error);
@@ -139,11 +174,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
     const updatedItems = packingList.items.filter(item => item.id !== itemId);
     
     try {
-      await updatePackingList(listId, { items: updatedItems });
+      const updates = { 
+        items: updatedItems,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await updatePackingList(listId, updates);
       
       setPackingList(prevList => ({
         ...prevList,
-        items: updatedItems
+        items: updatedItems,
+        updatedAt: new Date()
       }));
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -165,11 +206,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
     const updatedItems = [...packingList.items, newItem];
     
     try {
-      await updatePackingList(listId, { items: updatedItems });
+      const updates = { 
+        items: updatedItems,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await updatePackingList(listId, updates);
       
       setPackingList(prevList => ({
         ...prevList,
-        items: updatedItems
+        items: updatedItems,
+        updatedAt: new Date()
       }));
       setNewItemText('');
     } catch (error) {
@@ -206,11 +253,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
     const updatedItems = [...packingList.items, newItem];
     
     try {
-      await updatePackingList(listId, { items: updatedItems });
+      const updates = { 
+        items: updatedItems,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await updatePackingList(listId, updates);
       
       setPackingList(prevList => ({
         ...prevList,
-        items: updatedItems
+        items: updatedItems,
+        updatedAt: new Date()
       }));
     } catch (error) {
       console.error('Error adding suggested item:', error);
@@ -247,7 +300,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       // Update the list information
       const listUpdates = {
         title: title.trim(),
-        activity: packingList.activity,
+        activity: selectedActivity, // Use the selected activity from state
         destination: destination.trim(),
         date: date,
         items: packingList.items,
@@ -258,11 +311,13 @@ const ListDetailsScreen = ({ route, navigation }) => {
       await updatePackingList(listId, listUpdates);
       
       // Update local state
-      setPackingList(listUpdates);
+      setPackingList({
+        ...packingList,
+        ...listUpdates
+      });
       setIsEditMode(false);
       setIsLoading(false);
       
-      Alert.alert('Success', 'Your packing list has been updated!');
     } catch (error) {
       console.error('Error updating packing list:', error);
       Alert.alert('Error', 'Failed to update packing list. Please try again.');
@@ -515,14 +570,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'other' && styles.activityTypeSelected
+                  selectedActivity === 'other' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'other'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('other')}
               >
                 <Text style={styles.activityIcon}>📦</Text>
                 <Text style={styles.activityLabel}>Custom</Text>
@@ -531,14 +581,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'travel' && styles.activityTypeSelected
+                  selectedActivity === 'travel' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'travel'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('travel')}
               >
                 <Text style={styles.activityIcon}>✈️</Text>
                 <Text style={styles.activityLabel}>Travel</Text>
@@ -547,14 +592,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'beach' && styles.activityTypeSelected
+                  selectedActivity === 'beach' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'beach'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('beach')}
               >
                 <Text style={styles.activityIcon}>🏖️</Text>
                 <Text style={styles.activityLabel}>Beach</Text>
@@ -563,14 +603,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'camping' && styles.activityTypeSelected
+                  selectedActivity === 'camping' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'camping'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('camping')}
               >
                 <Text style={styles.activityIcon}>🏕️</Text>
                 <Text style={styles.activityLabel}>Camping</Text>
@@ -579,14 +614,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'hiking' && styles.activityTypeSelected
+                  selectedActivity === 'hiking' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'hiking'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('hiking')}
               >
                 <Text style={styles.activityIcon}>🥾</Text>
                 <Text style={styles.activityLabel}>Hiking</Text>
@@ -595,14 +625,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'skiing' && styles.activityTypeSelected
+                  selectedActivity === 'skiing' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'skiing'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('skiing')}
               >
                 <Text style={styles.activityIcon}>🎿</Text>
                 <Text style={styles.activityLabel}>Skiing</Text>
@@ -611,14 +636,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'business' && styles.activityTypeSelected
+                  selectedActivity === 'business' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'business'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('business')}
               >
                 <Text style={styles.activityIcon}>💼</Text>
                 <Text style={styles.activityLabel}>Business</Text>
@@ -627,14 +647,9 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  packingList?.activity === 'gym' && styles.activityTypeSelected
+                  selectedActivity === 'gym' && styles.activityTypeSelected
                 ]}
-                onPress={() => {
-                  setPackingList(prevList => ({
-                    ...prevList,
-                    activity: 'gym'
-                  }));
-                }}
+                onPress={() => setSelectedActivity('gym')}
               >
                 <Text style={styles.activityIcon}>🏋️</Text>
                 <Text style={styles.activityLabel}>Gym</Text>
@@ -683,8 +698,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
             onPress={() => {
               if (isEditMode) {
                 setIsEditMode(false);
-                setTitle(packingList.title);
-                setDestination(packingList.destination || '');
+                resetEditStates(); // Reset all edit fields to original values
               } else {
                 navigation.goBack();
               }

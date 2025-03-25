@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import firebase from '../../firebase/firebaseConfig';
 import { Appbar, Avatar, Badge } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -57,11 +58,19 @@ const HomeScreen = ({ navigation }) => {
         ...doc.data()
       }));
       
-      // Sort by createdAt in descending order
+      // Sort by updatedAt first (if available), then by createdAt
       lists.sort((a, b) => {
-        const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
-        const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
-        return dateB - dateA;
+        // First try to use updatedAt for sorting
+        if (a.updatedAt || b.updatedAt) {
+          const updateDateA = a.updatedAt ? (a.updatedAt.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt)) : new Date(0);
+          const updateDateB = b.updatedAt ? (b.updatedAt.toDate ? b.updatedAt.toDate() : new Date(b.updatedAt)) : new Date(0);
+          return updateDateB - updateDateA;
+        }
+        
+        // Fallback to createdAt
+        const createDateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+        const createDateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+        return createDateB - createDateA;
       });
       
       console.log('Successfully retrieved', lists.length, 'packing lists');
@@ -86,10 +95,20 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('ListDetails', { listId: list.id });
   };
   
+  // Refresh lists whenever the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("HomeScreen focused, refreshing lists");
+      fetchPackingLists();
+      return () => {
+        // Clean up if needed
+      };
+    }, [user])
+  );
+  
   // Load packing lists on component mount
   useEffect(() => {
     console.log("HomeScreen useEffect running, fetching lists");
-    fetchPackingLists();
     
     // Setup loading animation
     Animated.loop(
