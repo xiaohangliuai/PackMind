@@ -1,6 +1,6 @@
 // src/screens/WelcomeScreen.js
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert, ImageBackground, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { signInAnonymously } from '../firebase/firebaseConfig';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,6 @@ const WelcomeScreen = ({ navigation }) => {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(0)).current;
   const backgroundAnimation = useRef(new Animated.Value(0)).current;
   
@@ -69,14 +68,6 @@ const WelcomeScreen = ({ navigation }) => {
       ]),
       Animated.sequence([
         Animated.delay(600),
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.sequence([
-        Animated.delay(900),
         Animated.timing(buttonOpacity, {
           toValue: 1,
           duration: 700,
@@ -107,29 +98,23 @@ const WelcomeScreen = ({ navigation }) => {
             { opacity: logoOpacity, transform: [{ scale: logoScale }] }
           ]}
         >
-          <LinearGradient 
-            colors={GRADIENTS.PRIMARY} 
-            style={styles.logoBackground}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.logoText}>P</Text>
-          </LinearGradient>
+          <Image 
+            source={require('../../assets/logo.jpg')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </Animated.View>
         
         {/* Title */}
-        <Animated.Text 
-          style={[styles.title, { opacity: titleOpacity }]}
+        <Animated.View 
+          style={[styles.titleContainer, { opacity: titleOpacity }]}
         >
-          PackM!nd+
-        </Animated.Text>
-        
-        {/* Subtitle */}
-        <Animated.Text 
-          style={[styles.subtitle, { opacity: subtitleOpacity }]}
-        >
-          Smart packing for every journey
-        </Animated.Text>
+          <Image
+            source={require('../../assets/name-design.png')}
+            style={styles.titleImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
         
         {/* Buttons */}
         <Animated.View 
@@ -200,46 +185,34 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logoContainer: {
-    width: width * 0.35,
-    height: width * 0.35,
-    marginBottom: 30,
+    width: width * 0.45,
+    height: width * 0.45,
+    marginBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: width * 0.175,
-    ...THEME.SHADOWS.LARGE,
+    borderRadius: width * 0.225,
+    backgroundColor: COLORS.ROYAL,
+    overflow: 'hidden',
+    ...THEME.SHADOWS.MEDIUM,
   },
-  logoBackground: {
+  logoImage: {
     width: '100%',
     height: '100%',
-    borderRadius: width * 0.175,
+  },
+  titleContainer: {
+    width: width * 0.8,
+    height: 70,
+    marginBottom: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    color: COLORS.WHITE,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-  },
-  title: {
-    ...TYPOGRAPHY.HEADING_1,
-    fontSize: 42,
-    color: COLORS.WHITE,
-    marginBottom: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.15)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  subtitle: {
-    ...TYPOGRAPHY.BODY_1,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 40,
-    textAlign: 'center',
+  titleImage: {
+    width: '100%',
+    height: '100%',
   },
   buttonContainer: {
     width: '100%',
+    marginTop: 20,
   },
   button: {
     borderRadius: THEME.RADIUS.LARGE,
