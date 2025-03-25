@@ -10,7 +10,6 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import CreateListScreen from '../screens/main/CreateListScreen';
 import ListDetailsScreen from '../screens/main/ListDetailsScreen';
-import ProfileScreen from '../screens/main/ProfileScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 import ActivityTemplatesScreen from '../screens/main/ActivityTemplatesScreen';
 import CollaborativeListScreen from '../screens/main/CollaborativeListScreen';
@@ -33,7 +32,6 @@ const MainStackNavigator = () => (
     <Stack.Screen name="Create" component={CreateListScreen} />
     <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
     <Stack.Screen name="ActivityTemplates" component={ActivityTemplatesScreen} />
-    <Stack.Screen name="Profile" component={ProfileScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="CollaborativeList" component={CollaborativeListScreen} />
   </Stack.Navigator>

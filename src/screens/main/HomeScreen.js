@@ -22,6 +22,8 @@ import { useAuth } from '../../context/AuthContext';
 import firebase from '../../firebase/firebaseConfig';
 import { Appbar, Avatar, Badge } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { cancelPackingReminders } from '../../services/NotificationService';
 
 const { width } = Dimensions.get('window');
 
@@ -99,6 +101,51 @@ const HomeScreen = ({ navigation }) => {
   const handleOpenList = (list) => {
     console.log("Navigating to List Details screen with id:", list.id);
     navigation.navigate('ListDetails', { listId: list.id });
+  };
+  
+  // Handle delete packing list
+  const handleDeleteList = (list) => {
+    Alert.alert(
+      "Delete Packing List",
+      `Are you sure you want to delete "${list.title}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Delete the list document from Firestore
+              await firebase.firestore()
+                .collection('packingLists')
+                .doc(list.id)
+                .delete();
+              
+              console.log('Successfully deleted list:', list.id);
+              
+              // Update local state
+              setPackingLists(prevLists => 
+                prevLists.filter(item => item.id !== list.id)
+              );
+              
+              // Cancel any associated notifications
+              try {
+                await cancelPackingReminders(list.id);
+              } catch (notificationError) {
+                console.error('Error cancelling notifications:', notificationError);
+                // Continue execution even if notification cancellation fails
+              }
+            } catch (error) {
+              console.error('Error deleting list:', error);
+              Alert.alert('Error', 'Failed to delete the packing list. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
   
   // Refresh lists whenever the screen comes into focus
@@ -207,7 +254,34 @@ const HomeScreen = ({ navigation }) => {
     const hasRecurrence = item.recurrence && item.recurrence.type !== 'none';
     const hasNotifications = item.recurrence && item.recurrence.type !== 'none';
     
-    return (
+    // Render right actions (delete button)
+    const renderRightActions = (progress, dragX) => {
+      const trans = dragX.interpolate({
+        inputRange: [-80, 0],
+        outputRange: [0, 80],
+        extrapolate: 'clamp',
+      });
+      
+      return (
+        <View style={styles.deleteButtonContainer}>
+          <Animated.View 
+            style={[
+              styles.deleteButton, 
+              { transform: [{ translateX: trans }] }
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => handleDeleteList(item)}
+              style={styles.deleteButtonInner}
+            >
+              <Ionicons name="trash-outline" size={24} color="white" />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      );
+    };
+    
+    const ListItem = (
       <TouchableOpacity
         style={styles.listCard}
         onPress={() => handleOpenList(item)}
@@ -267,6 +341,16 @@ const HomeScreen = ({ navigation }) => {
         {/* Arrow */}
         <Ionicons name="chevron-forward" size={20} color="#777" />
       </TouchableOpacity>
+    );
+    
+    return (
+      <Swipeable
+        renderRightActions={renderRightActions}
+        friction={2}
+        rightThreshold={40}
+      >
+        {ListItem}
+      </Swipeable>
     );
   };
   
@@ -358,7 +442,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <TouchableOpacity 
             style={styles.profileButton} 
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('Settings')}
           >
             {user?.photoURL ? (
               <Image 
@@ -390,21 +474,23 @@ const HomeScreen = ({ navigation }) => {
         </View>
       ) : (
         // List of packing lists
-        <FlatList
-          data={getAllLists()}
-          renderItem={renderPackingListItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyState()}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={fetchPackingLists}
-              colors={[APP_COLOR]}
-              tintColor={APP_COLOR}
-            />
-          }
-        />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <FlatList
+            data={getAllLists()}
+            renderItem={renderPackingListItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={renderEmptyState()}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={fetchPackingLists}
+                colors={[APP_COLOR]}
+                tintColor={APP_COLOR}
+              />
+            }
+          />
+        </GestureHandlerRootView>
       )}
       
       {/* Add button */}
@@ -713,6 +799,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: APP_COLOR,
     fontWeight: '500',
+  },
+  deleteButtonContainer: {
+    width: 80,
+    backgroundColor: '#FF5252',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    borderTopRightRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  deleteButton: {
+    width: 80,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonInner: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
   },
 });
 

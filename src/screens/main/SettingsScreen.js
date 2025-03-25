@@ -18,13 +18,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../../models/firestoreModels';
 
+// Define APP_COLOR constant
+const APP_COLOR = '#a6c13c';
+
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   
   // State
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -56,25 +58,35 @@ const SettingsScreen = ({ navigation }) => {
     fetchUserProfile();
   }, []);
   
-  // Save settings
-  const saveSettings = async () => {
-    setIsSaving(true);
-    
+  // Update settings when toggled
+  const handleToggleNotifications = (value) => {
+    setNotificationsEnabled(value);
+    updateSettings({ notifications: value });
+  };
+  
+  const handleToggleWeather = (value) => {
+    setWeatherEnabled(value);
+    updateSettings({ weather: value });
+  };
+  
+  const handleToggleCheckedItems = (value) => {
+    setCheckedItemsAtBottom(value);
+    updateSettings({ checkedItemsAtBottom: value });
+  };
+  
+  // Save settings automatically when changed
+  const updateSettings = async (settingUpdate) => {
     try {
       const settings = {
         notifications: notificationsEnabled,
         weather: weatherEnabled,
         checkedItemsAtBottom: checkedItemsAtBottom,
+        ...settingUpdate
       };
       
       await updateUserProfile(user.uid, { settings });
-      
-      Alert.alert('Success', 'Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
-      Alert.alert('Error', 'Failed to save settings');
-    } finally {
-      setIsSaving(false);
     }
   };
   
@@ -105,8 +117,8 @@ const SettingsScreen = ({ navigation }) => {
   const handleShareApp = async () => {
     try {
       await Share.share({
-        message: 'Check out PackMind, the best app for organizing your packing lists! Download it now.',
-        title: 'PackMind - Packing List Organizer',
+        message: 'Check out PackM!nd+, the best app for organizing your packing lists! Download it now.',
+        title: 'PackM!nd+ - Packing List Organizer',
       });
     } catch (error) {
       console.error('Error sharing app:', error);
@@ -137,7 +149,7 @@ const SettingsScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6E8B3D" />
+        <ActivityIndicator size="large" color={APP_COLOR} />
       </SafeAreaView>
     );
   }
@@ -147,7 +159,7 @@ const SettingsScreen = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate('Home')}
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
@@ -169,7 +181,7 @@ const SettingsScreen = ({ navigation }) => {
             
             <View style={styles.accountDetails}>
               <Text style={styles.accountName}>{user.displayName || 'User'}</Text>
-              <Text style={styles.accountEmail}>{user.email}</Text>
+              <Text style={styles.accountEmail}>{user.email || 'No email'}</Text>
             </View>
           </View>
           
@@ -190,8 +202,8 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <Switch
               value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#CCCCCC', true: '#6E8B3D' }}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
               thumbColor="white"
             />
           </View>
@@ -208,8 +220,8 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <Switch
               value={weatherEnabled}
-              onValueChange={setWeatherEnabled}
-              trackColor={{ false: '#CCCCCC', true: '#6E8B3D' }}
+              onValueChange={handleToggleWeather}
+              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
               thumbColor="white"
             />
           </View>
@@ -221,8 +233,8 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <Switch
               value={checkedItemsAtBottom}
-              onValueChange={setCheckedItemsAtBottom}
-              trackColor={{ false: '#CCCCCC', true: '#6E8B3D' }}
+              onValueChange={handleToggleCheckedItems}
+              trackColor={{ false: '#CCCCCC', true: APP_COLOR }}
               thumbColor="white"
             />
           </View>
@@ -258,19 +270,6 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={styles.optionText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
-        
-        {/* Save Button */}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={saveSettings}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.saveButtonText}>Save Settings</Text>
-          )}
-        </TouchableOpacity>
         
         {/* App Info */}
         <View style={styles.appInfo}>
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 30,
   },
   section: {
     marginBottom: 30,
@@ -335,7 +334,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -406,24 +405,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   premiumButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: 'center',
   },
   premiumButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  saveButton: {
-    backgroundColor: '#6E8B3D',
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  saveButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
