@@ -37,7 +37,8 @@
     "react-native-screens": "~4.4.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-wheel-scrollview-picker": "^2.0.9",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "expo-device": "~7.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

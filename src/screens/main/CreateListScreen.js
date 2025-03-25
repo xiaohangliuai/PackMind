@@ -21,6 +21,7 @@ import ItemIcon from '../../components/ItemIcon';
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
+import * as NotificationService from '../../services/NotificationService';
 
 // App theme color
 const APP_COLOR = '#a6c13c';
@@ -215,7 +216,7 @@ const CreateListScreen = ({ navigation }) => {
       // Create the new packing list
       const newPackingList = {
         title: title.trim(),
-        activity: selectedActivity,
+        activity: selectedActivity.id,
         destination: destination.trim(),
         date: date,
         recurrence: recurrence,
@@ -227,7 +228,30 @@ const CreateListScreen = ({ navigation }) => {
       };
       
       // Save to Firestore
-      await firebase.firestore().collection('packingLists').add(newPackingList);
+      const docRef = await firebase.firestore().collection('packingLists').add(newPackingList);
+      
+      // Schedule notifications if recurrence is set
+      if (recurrence && recurrence.type !== 'none') {
+        try {
+          const notificationId = await NotificationService.schedulePackingReminder(
+            docRef.id,
+            title.trim(),
+            destination ? `Don't forget to pack for ${destination}!` : null,
+            date,
+            recurrence
+          );
+          
+          // Update the document with the notification ID
+          await docRef.update({
+            notificationId: notificationId
+          });
+          
+          console.log('Notification scheduled with ID:', notificationId);
+        } catch (notifError) {
+          console.error('Error scheduling notification:', notifError);
+          // Continue without notification if there's an error
+        }
+      }
       
       // No success alert
       navigation.goBack();

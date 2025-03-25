@@ -1,62 +1,62 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
-import { View, ActivityIndicator, Text, LogBox } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StatusBar } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { AuthProvider } from './context/AuthContext';
+import RootNavigator from './navigation/RootNavigator';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { registerForPushNotifications } from './services/NotificationService';
 
-// Import MainNavigator
-import MainNavigator from './navigation';
-
-// Ignore warnings for development
-LogBox.ignoreLogs([
-  'Unsupported top level event type "topInsetsChange"',
-  'Setting a timer',
-  'AsyncStorage has been extracted',
-  'Couldn\'t register the navigator',
-]);
-
-// Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-// App Loading Component
-const AppLoading = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" color="#6E8B3D" />
-    <Text style={{ marginTop: 20 }}>Loading...</Text>
-  </View>
-);
-
-// The main app component with NavigationContainer
-const App = () => {
-  // Set up notification permissions
-  useEffect(() => {
-    const setupNotifications = async () => {
-      try {
-        await Notifications.requestPermissionsAsync();
-      } catch (error) {
-        console.log('Error requesting notification permissions:', error);
-      }
-    };
-    
-    setupNotifications();
-  }, []);
-  
-  return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <NavigationContainer>
-          <MainNavigator />
-        </NavigationContainer>
-      </AuthProvider>
-    </SafeAreaProvider>
-  );
+// Custom theme to match app brand colors
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#a6c13c',
+    background: '#F8F8F8',
+  },
 };
 
-export default App; 
+export default function App() {
+  const navigationRef = useRef(null);
+  const notificationResponseListener = useRef();
+
+  // Set up notifications on app start
+  useEffect(() => {
+    // Register for push notifications
+    registerForPushNotifications();
+
+    // Handler for when app is opened by notification
+    notificationResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      // Extract the list ID from the notification data
+      const listId = response.notification.request.content.data?.listId;
+      
+      if (listId && navigationRef.current) {
+        // Navigate to the list details screen when app is opened from notification
+        navigationRef.current.navigate('ListDetails', { listId });
+      }
+    });
+
+    // Clean up listeners on unmount
+    return () => {
+      if (notificationResponseListener.current) {
+        Notifications.removeNotificationSubscription(notificationResponseListener.current);
+      }
+    };
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <PaperProvider>
+        <AuthProvider>
+          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+          <NavigationContainer ref={navigationRef} theme={theme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
+  );
+} 

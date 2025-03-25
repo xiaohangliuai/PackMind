@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
   },
   addButtonContainer: {
     position: 'absolute',
@@ -627,13 +627,13 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(110, 139, 61, 0.15)',
+    backgroundColor: 'rgba(166, 193, 60, 0.15)',
   },
   addButtonInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -2,
   },
   addButtonLabel: {
-    color: '#5c7433',
+    color: '#8da633',
     fontWeight: 'bold',
     marginTop: 6,
     fontSize: 13,
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   createButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 30,

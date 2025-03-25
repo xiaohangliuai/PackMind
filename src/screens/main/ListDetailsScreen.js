@@ -1,5 +1,5 @@
 // src/screens/main/ListDetailsScreen.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import firebase from '../../firebase/firebaseConfig';
+import * as NotificationService from '../../services/NotificationService';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -351,6 +352,33 @@ const ListDetailsScreen = ({ route, navigation }) => {
         updatedAt: new Date() // Temporary local value until Firestore updates
       });
       
+      // Update notification if recurrence or date changed
+      if (recurrence && recurrence.type !== 'none') {
+        try {
+          const notificationId = await NotificationService.updatePackingReminders(
+            listId,
+            title.trim(),
+            date,
+            recurrence
+          );
+          
+          // Update the notification ID in Firestore
+          await listRef.update({
+            notificationId: notificationId
+          });
+        } catch (notifError) {
+          console.error('Error updating notification:', notifError);
+          // Continue even if notification update fails
+        }
+      } else {
+        // Cancel any existing notifications if recurrence is none
+        try {
+          await NotificationService.cancelPackingReminders(listId);
+        } catch (cancelError) {
+          console.error('Error cancelling notifications:', cancelError);
+        }
+      }
+      
       setIsEditMode(false);
     } catch (error) {
       console.error('Error updating packing list:', error);
@@ -364,24 +392,33 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const handleDeleteList = () => {
     Alert.alert(
       'Delete List',
-      'Are you sure you want to delete this list? This action cannot be undone.',
+      'Are you sure you want to delete this packing list?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete the list
-              await deletePackingList(listId);
+              // Delete list from Firestore
+              await firebase.firestore().collection('packingLists').doc(listId).delete();
+              
+              // Cancel any scheduled notifications for this list
+              await NotificationService.cancelPackingReminders(listId);
+              
+              // Navigate back to home screen
               navigation.goBack();
             } catch (error) {
               console.error('Error deleting list:', error);
-              Alert.alert('Error', 'Failed to delete list');
+              Alert.alert('Error', 'Failed to delete the packing list. Please try again.');
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
+      { cancelable: true }
     );
   };
   
