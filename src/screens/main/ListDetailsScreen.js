@@ -22,8 +22,10 @@ import ItemIcon from '../../components/ItemIcon';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import firebase from '../../firebase/firebaseConfig';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const ListDetailsScreen = ({ route, navigation }) => {
   const { listId } = route.params;
@@ -37,9 +39,12 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState(new Date());
   const [selectedActivity, setSelectedActivity] = useState(null); // New state for temporary activity selection
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
   const [newItemText, setNewItemText] = useState('');
   const [isOwner, setIsOwner] = useState(false);
+  const [recurrence, setRecurrence] = useState(
+    packingList?.recurrence || { type: 'none', interval: 1, days: [] }
+  );
   
   // Fetch packing list data
   const fetchPackingList = async () => {
@@ -75,6 +80,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
         setDate(new Date());
       }
       
+      setRecurrence(list.recurrence || { type: 'none', interval: 1, days: [] });
+      
       setIsOwner(list.userId === user.uid);
       
     } catch (error) {
@@ -88,22 +95,11 @@ const ListDetailsScreen = ({ route, navigation }) => {
   
   // Reset edit states when leaving edit mode
   const resetEditStates = () => {
-    if (packingList) {
-      setTitle(packingList.title);
-      setDestination(packingList.destination || '');
-      setSelectedActivity(packingList.activity);
-      if (packingList.date) {
-        try {
-          if (packingList.date.toDate) {
-            setDate(packingList.date.toDate());
-          } else {
-            setDate(new Date(packingList.date));
-          }
-        } catch (error) {
-          setDate(new Date());
-        }
-      }
-    }
+    setTitle(packingList.title);
+    setDestination(packingList.destination || '');
+    setSelectedActivity(packingList.activity);
+    setDate(packingList.date.toDate ? new Date(packingList.date.toDate()) : new Date(packingList.date));
+    setRecurrence(packingList.recurrence || { type: 'none', interval: 1, days: [] });
   };
   
   // Initial data fetch
@@ -272,55 +268,94 @@ const ListDetailsScreen = ({ route, navigation }) => {
   };
   
   // Date picker handlers
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
+  const showDateTimePicker = () => {
+    setDateTimePickerVisible(true);
   };
   
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
+  const hideDateTimePicker = () => {
+    setDateTimePickerVisible(false);
   };
   
-  const handleConfirmDate = (selectedDate) => {
+  const handleSaveDateTime = (selectedDate, reminderRecurrence) => {
     setDate(selectedDate);
-    hideDatePicker();
+    setRecurrence(reminderRecurrence);
+    hideDateTimePicker();
+  };
+  
+  // Format the recurrence text like in CreateListScreen
+  const formatRecurrence = (recurrence) => {
+    if (!recurrence || recurrence.type === 'none') {
+      return null;
+    }
+    
+    switch (recurrence.type) {
+      case 'daily':
+        return 'Repeats daily';
+      case 'weekly':
+        if (recurrence.days && recurrence.days.length > 0) {
+          // Sort days to display in order from Sunday to Saturday
+          const selectedDays = recurrence.days
+            .sort((a, b) => a - b)
+            .map(index => WEEKDAYS[index]);
+            
+          // Different formatting based on number of selected days
+          if (selectedDays.length === 1) {
+            return `Every ${selectedDays[0]}`;
+          } else if (selectedDays.length === 7) {
+            return 'Every day';
+          } else if (selectedDays.length <= 3) {
+            return `Every ${selectedDays.join(', ')}`;
+          } else {
+            return `${selectedDays.length} days weekly`;
+          }
+        }
+        return 'Repeats weekly';
+      case 'monthly':
+        return 'Repeats monthly';
+      default:
+        return null;
+    }
   };
   
   // Handle saving edits
   const handleSaveEdits = async () => {
-    if (!packingList) return;
-    
     if (!title.trim()) {
       Alert.alert('Error', 'Title cannot be empty');
       return;
     }
-
+    
     setIsLoading(true);
     
     try {
-      // Update the list information
-      const listUpdates = {
+      // Create the updates object without modifying the original packingList
+      const updates = {
         title: title.trim(),
-        activity: selectedActivity, // Use the selected activity from state
+        activity: selectedActivity,
         destination: destination.trim(),
         date: date,
-        items: packingList.items,
+        recurrence: recurrence,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
-      // Update Firestore with the information
-      await updatePackingList(listId, listUpdates);
+      // Get a reference to the document
+      const listRef = firebase.firestore().collection('packingLists').doc(listId);
       
-      // Update local state
+      // Update the document
+      await listRef.update(updates);
+      
+      // Update local state (keeping the id)
       setPackingList({
         ...packingList,
-        ...listUpdates
+        ...updates,
+        id: listId, // Ensure ID is preserved
+        updatedAt: new Date() // Temporary local value until Firestore updates
       });
-      setIsEditMode(false);
-      setIsLoading(false);
       
+      setIsEditMode(false);
     } catch (error) {
       console.error('Error updating packing list:', error);
-      Alert.alert('Error', 'Failed to update packing list. Please try again.');
+      Alert.alert('Error', 'There was a problem updating your packing list. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -707,23 +742,31 @@ const ListDetailsScreen = ({ route, navigation }) => {
           
           <Text style={styles.editLabel}>Date & Time</Text>
           <TouchableOpacity 
-            style={styles.dateContainer}
-            onPress={showDatePicker}
+            style={styles.dateButton}
+            onPress={showDateTimePicker}
           >
-            <Text style={styles.dateText}>
-              {format(date, 'MMMM d, h:mm a')}
-            </Text>
-            <Ionicons name="calendar-outline" size={24} color="#777" />
+            <View style={styles.dateTimeContent}>
+              <View style={styles.dateTimeMain}>
+                <Ionicons name="calendar-outline" size={22} color="#666" style={styles.dateIcon} />
+                <Text style={styles.dateText}>{format(date, 'MMM d, h:mm a')}</Text>
+              </View>
+              {formatRecurrence(recurrence) && (
+                <View style={styles.recurrenceContainer}>
+                  <Ionicons name="repeat" size={16} color="#6E8B3D" />
+                  <Text style={styles.recurrenceText}>{formatRecurrence(recurrence)}</Text>
+                </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#666" />
           </TouchableOpacity>
-          
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="datetime"
-            date={date}
-            onConfirm={handleConfirmDate}
-            onCancel={hideDatePicker}
-          />
         </View>
+        <CustomDateTimePicker
+          isVisible={isDateTimePickerVisible}
+          onClose={hideDateTimePicker}
+          onSave={handleSaveDateTime}
+          initialDate={date}
+          initialRecurrence={recurrence}
+        />
       </>
     );
   };
@@ -819,6 +862,14 @@ const ListDetailsScreen = ({ route, navigation }) => {
                       {packingList.date.toDate ? 
                         format(new Date(packingList.date.toDate()), 'MMM d, h:mm a') :
                         format(new Date(packingList.date), 'MMM d, h:mm a')}
+                    </Text>
+                  </View>
+                )}
+                {packingList.recurrence && packingList.recurrence.type !== 'none' && (
+                  <View style={styles.detailItem}>
+                    <Ionicons name="repeat" size={16} color="#777" />
+                    <Text style={styles.detailText}>
+                      {formatRecurrence(packingList.recurrence)}
                     </Text>
                   </View>
                 )}
@@ -1170,19 +1221,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4a4a4a',
   },
-  dateContainer: {
+  dateButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 8,
-    padding: 12,
     marginBottom: 15,
+  },
+  dateTimeContent: {
+    flex: 1,
+  },
+  dateTimeMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    marginRight: 8,
   },
   dateText: {
     fontSize: 16,
     color: '#333',
+  },
+  recurrenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginLeft: 30,
+  },
+  recurrenceText: {
+    fontSize: 14,
+    color: '#6E8B3D',
+    fontWeight: '500',
+    marginLeft: 6,
+    flexShrink: 1,
   },
 });
 

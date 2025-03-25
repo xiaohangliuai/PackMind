@@ -22,6 +22,9 @@ import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
 
+// App theme color
+const APP_COLOR = '#a6c13c';
+
 // Activity types with emojis
 const activityTypes = [
   { id: 'other', label: 'Custom', emoji: '📦' },
@@ -89,6 +92,8 @@ const activityTemplates = {
   ],
   other: [],
 };
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const CreateListScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -255,6 +260,41 @@ const CreateListScreen = ({ navigation }) => {
     );
   };
 
+  // Format the recurrence text
+  const formatRecurrence = (recurrence) => {
+    if (!recurrence || recurrence.type === 'none') {
+      return null;
+    }
+    
+    switch (recurrence.type) {
+      case 'daily':
+        return 'Repeats daily';
+      case 'weekly':
+        if (recurrence.days && recurrence.days.length > 0) {
+          // Sort days to display in order from Sunday to Saturday
+          const selectedDays = recurrence.days
+            .sort((a, b) => a - b)
+            .map(index => WEEKDAYS[index]);
+            
+          // Different formatting based on number of selected days
+          if (selectedDays.length === 1) {
+            return `Every ${selectedDays[0]}`;
+          } else if (selectedDays.length === 7) {
+            return 'Every day';
+          } else if (selectedDays.length <= 3) {
+            return `Every ${selectedDays.join(', ')}`;
+          } else {
+            return `${selectedDays.length} days weekly`;
+          }
+        }
+        return 'Repeats weekly';
+      case 'monthly':
+        return 'Repeats monthly';
+      default:
+        return null;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -314,8 +354,19 @@ const CreateListScreen = ({ navigation }) => {
           {/* Date & Time */}
           <Text style={styles.label}>Date & Time</Text>
           <TouchableOpacity style={styles.dateButton} onPress={showDateTimePicker}>
-            <Text style={styles.dateText}>{format(date, 'MMM d, h:mm a')}</Text>
-            <Ionicons name="calendar-outline" size={22} color="#4a4a4a" />
+            <View style={styles.dateTimeContent}>
+              <View style={styles.dateTimeMain}>
+                <Ionicons name="calendar-outline" size={22} color="#666" style={styles.dateIcon} />
+                <Text style={styles.dateText}>{format(date, 'MMM d, h:mm a')}</Text>
+              </View>
+              {formatRecurrence(recurrence) && (
+                <View style={styles.recurrenceContainer}>
+                  <Ionicons name="repeat" size={16} color={APP_COLOR} />
+                  <Text style={styles.recurrenceText}>{formatRecurrence(recurrence)}</Text>
+                </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#666" />
           </TouchableOpacity>
           
           <CustomDateTimePicker
@@ -421,7 +472,7 @@ const styles = StyleSheet.create({
   },
   activityTypeSelected: {
     borderWidth: 2,
-    borderColor: '#6E8B3D',
+    borderColor: APP_COLOR,
   },
   activityEmoji: {
     fontSize: 28,
@@ -434,14 +485,38 @@ const styles = StyleSheet.create({
   dateButton: {
     backgroundColor: '#F5F5F5',
     borderRadius: 8,
-    padding: 12,
+    padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  dateTimeContent: {
+    flex: 1,
+  },
+  dateTimeMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    marginRight: 8,
+  },
   dateText: {
     fontSize: 16,
     color: '#333',
+    fontWeight: '500',
+  },
+  recurrenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginLeft: 30,
+  },
+  recurrenceText: {
+    fontSize: 14,
+    color: APP_COLOR,
+    fontWeight: '500',
+    marginLeft: 6,
+    flexShrink: 1,
   },
   itemRow: {
     flexDirection: 'row',
@@ -484,7 +559,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   addButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     borderRadius: 8,
     width: 45,
     height: 45,
@@ -495,7 +570,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButton: {
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
