@@ -1,5 +1,5 @@
 // src/screens/main/HomeScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -24,6 +24,12 @@ import { Appbar, Avatar, Badge } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
+
+// Define APP_COLOR constant
+const APP_COLOR = '#a6c13c';
+
+// Constants for day names
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -146,7 +152,43 @@ const HomeScreen = ({ navigation }) => {
     return allLists;
   };
   
-  // Render a packing list item
+  // Add a formatRecurrence function
+  // Format recurrence text for display
+  const formatRecurrence = (recurrence) => {
+    if (!recurrence || recurrence.type === 'none') {
+      return null;
+    }
+    
+    switch (recurrence.type) {
+      case 'daily':
+        return 'Repeats daily';
+      case 'weekly':
+        if (recurrence.days && recurrence.days.length > 0) {
+          // Sort days to display in order from Sunday to Saturday
+          const selectedDays = recurrence.days
+            .sort((a, b) => a - b)
+            .map(index => WEEKDAYS[index]);
+            
+          // Different formatting based on number of selected days
+          if (selectedDays.length === 1) {
+            return `Every ${selectedDays[0]}`;
+          } else if (selectedDays.length === 7) {
+            return 'Every day';
+          } else if (selectedDays.length <= 3) {
+            return `Every ${selectedDays.join(', ')}`;
+          } else {
+            return `${selectedDays.length} days weekly`;
+          }
+        }
+        return 'Repeats weekly';
+      case 'monthly':
+        return 'Repeats monthly';
+      default:
+        return null;
+    }
+  };
+  
+  // Update the renderPackingListItem function to include recurrence information and notification icon
   const renderPackingListItem = ({ item, index }) => {
     const progress = calculateProgress(item.items);
     
@@ -162,6 +204,8 @@ const HomeScreen = ({ navigation }) => {
     }
     
     const isShared = item.sharedWith && item.sharedWith.includes(user.uid);
+    const hasRecurrence = item.recurrence && item.recurrence.type !== 'none';
+    const hasNotifications = item.recurrence && item.recurrence.type !== 'none';
     
     return (
       <TouchableOpacity
@@ -180,19 +224,39 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.listTitle} numberOfLines={1}>
               {item.title}
             </Text>
-            {isShared && (
-              <Ionicons name="share-social" size={18} color="#6E8B3D" />
-            )}
+            <View style={styles.iconContainer}>
+              {isShared && (
+                <Ionicons name="share-social" size={18} color={APP_COLOR} style={styles.titleIcon} />
+              )}
+              {hasNotifications && (
+                <Ionicons name="notifications" size={18} color={APP_COLOR} style={styles.titleIcon} />
+              )}
+            </View>
           </View>
+          
           <View style={styles.listDetails}>
-            <Text style={styles.listDate}>{formattedDate}</Text>
+            <View style={styles.dateContainer}>
+              <Ionicons name="calendar-outline" size={14} color="#777" style={styles.detailIcon} />
+              <Text style={styles.listDate}>{formattedDate}</Text>
+            </View>
+            
             <View style={styles.itemCount}>
-              <Ionicons name="list-outline" size={14} color="#777" />
+              <Ionicons name="list-outline" size={14} color="#777" style={styles.detailIcon} />
               <Text style={styles.itemCountText}>
                 {item.items ? item.items.length : 0} items
               </Text>
             </View>
           </View>
+          
+          {/* Recurrence info if available */}
+          {hasRecurrence && (
+            <View style={styles.recurrenceContainer}>
+              <Ionicons name="repeat" size={14} color={APP_COLOR} style={styles.detailIcon} />
+              <Text style={styles.recurrenceText}>
+                {formatRecurrence(item.recurrence)}
+              </Text>
+            </View>
+          )}
           
           {/* Progress Bar */}
           <View style={styles.progressBarContainer}>
@@ -322,7 +386,7 @@ const HomeScreen = ({ navigation }) => {
       {/* Loading state */}
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6E8B3D" />
+          <ActivityIndicator size="large" color={APP_COLOR} />
         </View>
       ) : (
         // List of packing lists
@@ -336,8 +400,8 @@ const HomeScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={fetchPackingLists}
-              colors={['#6E8B3D']}
-              tintColor="#6E8B3D"
+              colors={[APP_COLOR]}
+              tintColor={APP_COLOR}
             />
           }
         />
@@ -390,7 +454,7 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#6E8B3D',
+    color: APP_COLOR,
   },
   rightContainer: {
     flexDirection: 'row',
@@ -429,7 +493,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#6E8B3D',
+    backgroundColor: APP_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -491,9 +555,9 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    alignItems: 'center',
+    marginBottom: 4,
   },
   listTitle: {
     fontSize: 18,
@@ -502,10 +566,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  iconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleIcon: {
+    marginLeft: 8,
+  },
   listDetails: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailIcon: {
+    marginRight: 4,
   },
   listDate: {
     fontSize: 14,
@@ -624,7 +702,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  recurrenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  recurrenceText: {
+    fontSize: 12,
+    color: APP_COLOR,
+    fontWeight: '500',
+  },
 });
 
 export default HomeScreen;

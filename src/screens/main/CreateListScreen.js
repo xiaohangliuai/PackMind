@@ -204,7 +204,7 @@ const CreateListScreen = ({ navigation }) => {
     setIsLoading(true);
     // Validate the form fields
     if (!title.trim() || !selectedActivity || !date) {
-      Alert.alert('Error', 'Please fill in all required fields: title, activity, and date.');
+      Alert.alert('', 'Please fill in all required fields: title, activity, and date.');
       setIsLoading(false);
       return;
     }
@@ -229,11 +229,11 @@ const CreateListScreen = ({ navigation }) => {
       // Save to Firestore
       await firebase.firestore().collection('packingLists').add(newPackingList);
       
-      Alert.alert('Success', 'Your packing list has been created!');
+      // No success alert
       navigation.goBack();
     } catch (error) {
       console.error('Error creating packing list:', error);
-      Alert.alert('Error', 'There was a problem creating your packing list. Please try again.');
+      Alert.alert('', 'There was a problem creating your packing list. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -311,7 +311,7 @@ const CreateListScreen = ({ navigation }) => {
           <Text style={styles.label}>Description</Text>
           <TextInput
             style={styles.input}
-            placeholder="Where am I going..."
+            placeholder="Describe your packing list..."
             value={title}
             onChangeText={setTitle}
             placeholderTextColor="#A0A0A0"
@@ -342,7 +342,7 @@ const CreateListScreen = ({ navigation }) => {
           </ScrollView>
           
           {/* Destination */}
-          <Text style={styles.label}>Destination</Text>
+          <Text style={styles.label}>Destination (Optional)</Text>
           <TextInput
             style={styles.input}
             placeholder="Where are you going?"
