@@ -355,13 +355,13 @@ const HomeScreen = ({ navigation }) => {
   // Get activity color
   const getActivityColor = (activity) => {
     const colors = {
-      travel: COLORS.LIGHT_PURPLE,
-      camping: COLORS.MEDIUM_PURPLE,
-      hiking: COLORS.MEDIUM_PURPLE,
-      beach: COLORS.LIGHT_PURPLE,
-      skiing: COLORS.MEDIUM_PURPLE,
-      business: COLORS.DARK_PURPLE,
-      gym: COLORS.LIGHT_PURPLE,
+      travel: COLORS.LAVENDER,
+      camping: COLORS.INDIGO,
+      hiking: COLORS.INDIGO,
+      beach: COLORS.LAVENDER,
+      skiing: COLORS.INDIGO,
+      business: COLORS.ROYAL,
+      gym: COLORS.LAVENDER,
       default: COLORS.LIGHT_GRAY,
     };
     
@@ -616,11 +616,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 15,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...THEME.SHADOWS.SMALL,
+    borderLeftWidth: 4,
+    borderLeftColor: THEME.PRIMARY,
   },
   activityIcon: {
     width: 50,
@@ -656,6 +654,7 @@ const styles = StyleSheet.create({
   },
   titleIcon: {
     marginLeft: 8,
+    color: THEME.PRIMARY,
   },
   listDetails: {
     flexDirection: 'row',
@@ -711,7 +710,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: COLORS.MEDIUM_PURPLE_15,
+    backgroundColor: COLORS.INDIGO_15,
   },
   addButtonInner: {
     width: 60,
@@ -720,11 +719,7 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    ...THEME.SHADOWS.MEDIUM,
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.35)',
     overflow: 'hidden',
@@ -744,7 +739,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -2,
   },
   addButtonLabel: {
-    color: COLORS.MEDIUM_PURPLE,
+    color: COLORS.INDIGO,
     fontWeight: 'bold',
     marginTop: 6,
     fontSize: 13,
@@ -781,6 +776,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 30,
+    ...THEME.SHADOWS.SMALL,
   },
   createButtonText: {
     color: 'white',
@@ -806,6 +802,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderTopRightRadius: 15,
     borderBottomRightRadius: 15,
+    ...THEME.SHADOWS.SMALL,
   },
   deleteButton: {
     width: 80,

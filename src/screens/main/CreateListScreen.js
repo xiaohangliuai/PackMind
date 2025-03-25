@@ -12,9 +12,11 @@ import {
   ActivityIndicator,
   SafeAreaView,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
 import { createPackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
@@ -22,7 +24,7 @@ import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
-import { COLORS, THEME } from '../../constants/theme';
+import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
 
 // Activity types with emojis
 const activityTypes = [
@@ -319,25 +321,46 @@ const CreateListScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.WHITE} />
+      
+      {/* Background patterns */}
+      <View style={styles.backgroundPatterns}>
+        <View style={styles.circlePattern1} />
+        <View style={styles.circlePattern2} />
+        <View style={styles.circlePattern3} />
+      </View>
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={THEME.TEXT.PRIMARY} />
+          </TouchableOpacity>
+          <Text style={styles.screenTitle}>Create Packing List</Text>
+          <View style={{width: 40}} />
+        </View>
+        
         <ScrollView 
           style={styles.container}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
         >
-          <Text style={styles.screenTitle}>Create Packing List</Text>
-          
           {/* List Title */}
           <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Describe your packing list..."
-            value={title}
-            onChangeText={setTitle}
-            placeholderTextColor="#A0A0A0"
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Describe your packing list..."
+              value={title}
+              onChangeText={setTitle}
+              placeholderTextColor={THEME.TEXT.TERTIARY}
+            />
+          </View>
           
           {/* Activity Type */}
           <Text style={styles.label}>Activity Type</Text>
@@ -357,7 +380,10 @@ const CreateListScreen = ({ navigation }) => {
                   onPress={() => setSelectedActivity(activity)}
                 >
                   <Text style={styles.activityEmoji}>{activity.emoji}</Text>
-                  <Text style={styles.activityLabel}>{activity.label}</Text>
+                  <Text style={[
+                    styles.activityLabel,
+                    selectedActivity?.id === activity.id && styles.activityLabelSelected
+                  ]}>{activity.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -365,30 +391,35 @@ const CreateListScreen = ({ navigation }) => {
           
           {/* Destination */}
           <Text style={styles.label}>Destination (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Where are you going?"
-            value={destination}
-            onChangeText={setDestination}
-            placeholderTextColor="#A0A0A0"
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Where are you going?"
+              value={destination}
+              onChangeText={setDestination}
+              placeholderTextColor={THEME.TEXT.TERTIARY}
+            />
+          </View>
           
           {/* Date & Time */}
           <Text style={styles.label}>Date & Time</Text>
-          <TouchableOpacity style={styles.dateButton} onPress={showDateTimePicker}>
+          <TouchableOpacity 
+            style={styles.dateButton} 
+            onPress={showDateTimePicker}
+          >
             <View style={styles.dateTimeContent}>
               <View style={styles.dateTimeMain}>
-                <Ionicons name="calendar-outline" size={22} color="#666" style={styles.dateIcon} />
+                <Ionicons name="calendar-outline" size={22} color={COLORS.INDIGO} style={styles.dateIcon} />
                 <Text style={styles.dateText}>{format(date, 'MMM d, h:mm a')}</Text>
               </View>
               {formatRecurrence(recurrence) && (
                 <View style={styles.recurrenceContainer}>
-                  <Ionicons name="repeat" size={16} color={THEME.PRIMARY} />
+                  <Ionicons name="repeat" size={16} color={COLORS.INDIGO} />
                   <Text style={styles.recurrenceText}>{formatRecurrence(recurrence)}</Text>
                 </View>
               )}
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#666" />
+            <Ionicons name="chevron-forward" size={22} color={COLORS.INDIGO} />
           </TouchableOpacity>
           
           <CustomDateTimePicker
@@ -407,19 +438,28 @@ const CreateListScreen = ({ navigation }) => {
           
           {/* Add new item */}
           <View style={styles.addItemContainer}>
-            <TextInput
-              style={styles.addItemInput}
-              placeholder="Add an item..."
-              value={newItemName}
-              onChangeText={setNewItemName}
-              placeholderTextColor="#A0A0A0"
-              onSubmitEditing={handleAddItem}
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.addItemInput}
+                placeholder="Add an item..."
+                value={newItemName}
+                onChangeText={setNewItemName}
+                placeholderTextColor={THEME.TEXT.TERTIARY}
+                onSubmitEditing={handleAddItem}
+              />
+            </View>
             <TouchableOpacity 
               style={styles.addButton}
               onPress={handleAddItem}
             >
-              <Ionicons name="add" size={22} color="white" />
+              <LinearGradient
+                colors={GRADIENTS.PRIMARY}
+                style={styles.addButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="add" size={22} color={COLORS.WHITE} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
           
@@ -430,15 +470,22 @@ const CreateListScreen = ({ navigation }) => {
           
           {/* Save Button */}
           <TouchableOpacity 
-            style={styles.saveButton}
+            style={styles.saveButtonContainer}
             onPress={handleSaveList}
             disabled={isLoading}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.saveButtonText}>Create Packing List</Text>
-            )}
+            <LinearGradient
+              colors={GRADIENTS.PRIMARY}
+              style={styles.saveButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={COLORS.WHITE} />
+              ) : (
+                <Text style={styles.saveButtonText}>Create Packing List</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -449,31 +496,91 @@ const CreateListScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.WHITE,
+  },
+  backgroundPatterns: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+    opacity: 0.5,
+  },
+  circlePattern1: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.LAVENDER,
+    opacity: 0.3,
+  },
+  circlePattern2: {
+    position: 'absolute',
+    bottom: -50,
+    left: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: COLORS.INDIGO,
+    opacity: 0.2,
+  },
+  circlePattern3: {
+    position: 'absolute',
+    top: '40%',
+    left: '20%',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.ROYAL,
+    opacity: 0.1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: THEME.RADIUS.ROUND,
+    backgroundColor: COLORS.LIGHT_GRAY,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...THEME.SHADOWS.SMALL,
   },
   container: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   screenTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+    ...TYPOGRAPHY.HEADING_2,
+    color: THEME.TEXT.PRIMARY,
   },
   label: {
-    fontSize: 16,
+    ...TYPOGRAPHY.BODY_1,
     fontWeight: '600',
-    color: '#333',
+    color: THEME.TEXT.PRIMARY,
     marginTop: 20,
     marginBottom: 8,
   },
+  inputContainer: {
+    backgroundColor: 'rgba(245, 245, 245, 0.7)',
+    borderRadius: THEME.RADIUS.MEDIUM,
+    ...THEME.SHADOWS.SMALL,
+  },
   input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333',
+    color: THEME.TEXT.PRIMARY,
   },
   activityScroll: {
     marginBottom: 10,
@@ -488,13 +595,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 15,
     width: 80,
-    height: 80,
-    borderRadius: 15,
-    backgroundColor: '#F5F5F5',
+    height: 90,
+    borderRadius: THEME.RADIUS.LARGE,
+    backgroundColor: 'rgba(245, 245, 245, 0.7)',
+    ...THEME.SHADOWS.SMALL,
   },
   activityTypeSelected: {
+    backgroundColor: COLORS.LAVENDER_15,
     borderWidth: 2,
-    borderColor: THEME.PRIMARY,
+    borderColor: COLORS.INDIGO,
   },
   activityEmoji: {
     fontSize: 28,
@@ -502,15 +611,20 @@ const styles = StyleSheet.create({
   },
   activityLabel: {
     fontSize: 12,
-    color: '#4a4a4a',
+    color: THEME.TEXT.SECONDARY,
+  },
+  activityLabelSelected: {
+    color: COLORS.INDIGO,
+    fontWeight: '600',
   },
   dateButton: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(245, 245, 245, 0.7)',
+    borderRadius: THEME.RADIUS.MEDIUM,
     padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    ...THEME.SHADOWS.SMALL,
   },
   dateTimeContent: {
     flex: 1,
@@ -524,7 +638,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    color: '#333',
+    color: THEME.TEXT.PRIMARY,
     fontWeight: '500',
   },
   recurrenceContainer: {
@@ -535,7 +649,7 @@ const styles = StyleSheet.create({
   },
   recurrenceText: {
     fontSize: 14,
-    color: THEME.PRIMARY,
+    color: COLORS.INDIGO,
     fontWeight: '500',
     marginLeft: 6,
     flexShrink: 1,
@@ -546,7 +660,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: THEME.UI.DIVIDER,
   },
   itemInfo: {
     flexDirection: 'row',
@@ -558,54 +672,56 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    backgroundColor: COLORS.LAVENDER_15,
+    borderRadius: THEME.RADIUS.MEDIUM,
     marginRight: 10,
   },
   itemText: {
     fontSize: 16,
-    color: '#333',
+    color: THEME.TEXT.PRIMARY,
     flex: 1,
   },
   addItemContainer: {
     flexDirection: 'row',
     marginTop: 10,
+    alignItems: 'center',
   },
   addItemInput: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
     padding: 12,
-    marginRight: 10,
     fontSize: 16,
-    color: '#333',
+    color: THEME.TEXT.PRIMARY,
   },
   addButton: {
-    backgroundColor: THEME.PRIMARY,
-    borderRadius: 8,
+    marginLeft: 10,
+    ...THEME.SHADOWS.SMALL,
+  },
+  addButtonGradient: {
     width: 45,
     height: 45,
+    borderRadius: THEME.RADIUS.MEDIUM,
     justifyContent: 'center',
     alignItems: 'center',
   },
   itemsList: {
     marginTop: 10,
   },
+  saveButtonContainer: {
+    marginTop: 30,
+    marginBottom: 20,
+    ...THEME.SHADOWS.MEDIUM,
+  },
   saveButton: {
-    backgroundColor: THEME.PRIMARY,
-    borderRadius: 10,
+    borderRadius: THEME.RADIUS.MEDIUM,
     padding: 16,
     alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 40,
   },
   saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.WHITE,
+    ...TYPOGRAPHY.BUTTON,
   },
   suggestionText: {
-    color: '#888',
+    color: THEME.TEXT.TERTIARY,
     fontSize: 14,
     marginBottom: 10,
   },

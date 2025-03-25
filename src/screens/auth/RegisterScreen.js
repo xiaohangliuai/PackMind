@@ -19,7 +19,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { createUserProfile } from '../../models/firestoreModels';
-import { COLORS, THEME } from '../../constants/theme';
+import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const RegisterScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
@@ -101,6 +102,14 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
+      
+      {/* Abstract background patterns */}
+      <View style={styles.backgroundPatterns}>
+        <View style={styles.circlePattern1} />
+        <View style={styles.circlePattern2} />
+        <View style={styles.circlePattern3} />
+      </View>
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
@@ -113,7 +122,7 @@ const RegisterScreen = ({ navigation }) => {
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
               >
-                <Ionicons name="arrow-back" size={24} color="#333" />
+                <Ionicons name="arrow-back" size={24} color={THEME.TEXT.PRIMARY} />
               </TouchableOpacity>
               
               {/* Header */}
@@ -192,17 +201,24 @@ const RegisterScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Register Button */}
+                {/* Register Button with Gradient */}
                 <TouchableOpacity 
                   style={styles.registerButton}
                   onPress={handleRegister}
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={styles.registerButtonText}>Create Account</Text>
-                  )}
+                  <LinearGradient
+                    colors={GRADIENTS.PRIMARY}
+                    style={styles.gradientButton}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={styles.registerButtonText}>Create Account</Text>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
               
@@ -224,7 +240,46 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.WHITE,
+  },
+  backgroundPatterns: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+    opacity: 0.5,
+  },
+  circlePattern1: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.LAVENDER,
+    opacity: 0.3,
+  },
+  circlePattern2: {
+    position: 'absolute',
+    bottom: -50,
+    left: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: COLORS.INDIGO,
+    opacity: 0.2,
+  },
+  circlePattern3: {
+    position: 'absolute',
+    top: '40%',
+    left: '20%',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.ROYAL,
+    opacity: 0.1,
   },
   keyboardAvoid: {
     flex: 1,
@@ -242,19 +297,25 @@ const styles = StyleSheet.create({
     top: 20,
     left: 20,
     zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    ...THEME.SHADOWS.SMALL,
   },
   header: {
     marginBottom: 40,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    ...TYPOGRAPHY.HEADING_1,
+    color: THEME.TEXT.PRIMARY,
+    marginBottom: THEME.SPACING.SMALL,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#777',
+    ...TYPOGRAPHY.BODY_1,
+    color: THEME.TEXT.SECONDARY,
   },
   form: {
     marginBottom: 30,
@@ -263,11 +324,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 55,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: THEME.RADIUS.MEDIUM,
+    marginBottom: THEME.SPACING.MEDIUM,
+    paddingHorizontal: 16,
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    ...THEME.SHADOWS.SMALL,
   },
   inputIcon: {
     marginRight: 10,
@@ -281,21 +344,19 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   registerButton: {
-    backgroundColor: THEME.PRIMARY,
-    borderRadius: 12,
-    height: 55,
+    borderRadius: THEME.RADIUS.MEDIUM,
+    overflow: 'hidden',
+    ...THEME.SHADOWS.MEDIUM,
+    marginTop: THEME.SPACING.MEDIUM,
+  },
+  gradientButton: {
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   registerButtonText: {
-    color: 'white',
-    fontSize: 16,
+    ...TYPOGRAPHY.BUTTON,
+    color: COLORS.WHITE,
     fontWeight: 'bold',
   },
   footer: {
@@ -304,12 +365,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: '#777',
-    fontSize: 14,
+    ...TYPOGRAPHY.BODY_2,
+    color: THEME.TEXT.SECONDARY,
   },
   loginText: {
+    ...TYPOGRAPHY.BODY_2,
     color: THEME.PRIMARY,
-    fontSize: 14,
     fontWeight: 'bold',
   },
 });

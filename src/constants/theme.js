@@ -1,42 +1,52 @@
 // src/constants/theme.js
-// Color palette from Paolumu theme
+// Modern, minimalist UI design system for PackM!nd+
 
 // Primary colors from the palette
 export const COLORS = {
-  // Light gray
+  // Soft silvery-gray
   LIGHT_GRAY: '#CFCBD2',
   
-  // Light purple
-  LIGHT_PURPLE: '#CB98ED',
+  // Lavender purple
+  LAVENDER: '#CB98ED',
   
-  // Medium purple
-  MEDIUM_PURPLE: '#8B63DA',
+  // Rich indigo
+  INDIGO: '#8B63DA',
   
-  // Dark purple
-  DARK_PURPLE: '#3C21B7',
+  // Deep royal purple
+  ROYAL: '#3C21B7',
   
   // Common UI colors
   WHITE: '#FFFFFF',
-  BLACK: '#000000',
+  BLACK: '#333333',
   ERROR: '#FF5252',
   SUCCESS: '#4CAF50',
   WARNING: '#FFC107',
   
-  // Transparent versions for overlays and backgrounds
-  LIGHT_PURPLE_15: 'rgba(203, 152, 237, 0.15)',
-  MEDIUM_PURPLE_15: 'rgba(139, 99, 218, 0.15)',
+  // Transparent versions for overlays, shadows and glass-morphic effects
+  LAVENDER_15: 'rgba(203, 152, 237, 0.15)',
+  INDIGO_15: 'rgba(139, 99, 218, 0.15)',
+  ROYAL_08: 'rgba(60, 33, 183, 0.08)',
+  ROYAL_15: 'rgba(60, 33, 183, 0.15)',
+};
+
+// Gradients
+export const GRADIENTS = {
+  PRIMARY: ['#8B63DA', '#3C21B7'],
+  SECONDARY: ['#CB98ED', '#8B63DA'],
+  ACCENT: ['#3C21B7', '#261578'],
+  CARD: ['#FFFFFF', '#F8F8F8'],
 };
 
 // Theme configuration for consistent styling
 export const THEME = {
   // Primary brand color (used for buttons, accents, etc.)
-  PRIMARY: COLORS.MEDIUM_PURPLE,
+  PRIMARY: COLORS.INDIGO,
   
   // Secondary color for highlights and accents
-  SECONDARY: COLORS.LIGHT_PURPLE,
+  SECONDARY: COLORS.LAVENDER,
   
   // Accent color for special UI elements
-  ACCENT: COLORS.DARK_PURPLE,
+  ACCENT: COLORS.ROYAL,
   
   // Background colors
   BACKGROUND: {
@@ -47,11 +57,11 @@ export const THEME = {
   
   // Text colors
   TEXT: {
-    PRIMARY: '#333333',
-    SECONDARY: '#777777',
+    PRIMARY: COLORS.BLACK,
+    SECONDARY: '#666666',
     TERTIARY: '#999999',
     LIGHT: COLORS.WHITE,
-    ACCENT: COLORS.MEDIUM_PURPLE,
+    ACCENT: COLORS.INDIGO,
   },
   
   // UI element colors
@@ -60,9 +70,89 @@ export const THEME = {
     DIVIDER: '#EEEEEE',
     DISABLED: '#CCCCCC',
   },
+  
+  // Shadows for depth
+  SHADOWS: {
+    SMALL: {
+      shadowColor: COLORS.BLACK,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    MEDIUM: {
+      shadowColor: COLORS.BLACK,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    LARGE: {
+      shadowColor: COLORS.BLACK,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 8,
+    },
+  },
+  
+  // Spacing for consistent layout
+  SPACING: {
+    SMALL: 8,
+    MEDIUM: 16,
+    LARGE: 24,
+    XLARGE: 32,
+  },
+  
+  // Border radius
+  RADIUS: {
+    SMALL: 8,
+    MEDIUM: 12,
+    LARGE: 16,
+    XLARGE: 24,
+    ROUND: 50,
+  },
+};
+
+// Typography
+export const TYPOGRAPHY = {
+  HEADING_1: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 40,
+  },
+  HEADING_2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    lineHeight: 32,
+  },
+  HEADING_3: {
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 28,
+  },
+  BODY_1: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  BODY_2: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  CAPTION: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  BUTTON: {
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
 };
 
 export default {
   COLORS,
+  GRADIENTS,
   THEME,
+  TYPOGRAPHY,
 }; 
