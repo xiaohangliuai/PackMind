@@ -1,6 +1,10 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import firebase from '../firebase/firebaseConfig';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import appleAuth from '../utils/appleAuth';
+import { signInAnonymously } from '../firebase/firebaseConfig';
+import { updateUserActivity, registerGuestUser } from '../utils/userActivityTracker';
 
 // Create the context
 export const AuthContext = createContext();
@@ -36,6 +40,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Sign in with Apple
+  const signInWithApple = async () => {
+    try {
+      const userCredential = await appleAuth.signInWithApple();
+      return userCredential.user;
+    } catch (error) {
+      console.error('Apple sign in error:', error);
+      throw error;
+    }
+  };
+
+  // Sign in as guest (anonymous)
+  const guestLogin = async () => {
+    try {
+      const userCredential = await signInAnonymously();
+      
+      // Set a display name for the anonymous user
+      const guestNumber = Math.floor(Math.random() * 10000);
+      const displayName = `Guest ${guestNumber}`;
+      
+      await userCredential.updateProfile({
+        displayName: displayName
+      });
+      
+      // Register guest user for activity tracking
+      await registerGuestUser(userCredential.uid);
+      
+      return userCredential;
+    } catch (error) {
+      console.error('Guest login error:', error);
+      throw error;
+    }
+  };
+
   // Sign out the current user
   const logout = async () => {
     try {
@@ -43,6 +81,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
+    }
+  };
+
+  // Update user activity (used throughout the app)
+  const trackUserActivity = async () => {
+    if (user && user.isAnonymous) {
+      await updateUserActivity(user.uid);
     }
   };
 
@@ -55,6 +100,11 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         console.log("User authenticated:", currentUser.uid);
         setUser(currentUser);
+        
+        // Update activity timestamp on login for guest users
+        if (currentUser.isAnonymous) {
+          updateUserActivity(currentUser.uid);
+        }
       } else {
         console.log("No user authenticated");
         setUser(null);
@@ -72,7 +122,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
-    logout
+    logout,
+    signInWithApple,
+    guestLogin,
+    trackUserActivity
   };
 
   // Provider return

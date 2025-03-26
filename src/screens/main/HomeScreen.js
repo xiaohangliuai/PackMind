@@ -25,7 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { cancelPackingReminders } from '../../services/NotificationService';
 import { COLORS, THEME } from '../../constants/theme';
-import { useFonts, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
+import { useActivityTracker } from '../../hooks/useActivityTracker';
 
 const { width } = Dimensions.get('window');
 
@@ -35,11 +35,9 @@ const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const HomeScreen = ({ navigation }) => {
   // Auth context
   const { user, logout } = useAuth();
-  
-  // Font loading
-  const [fontsLoaded] = useFonts({
-    Pacifico_400Regular,
-  });
+
+  // Track user activity
+  useActivityTracker();
 
   // State declarations
   const [packingLists, setPackingLists] = useState([]);
@@ -119,15 +117,6 @@ const HomeScreen = ({ navigation }) => {
       };
     }, [fetchPackingLists])
   );
-
-  // Loading screen while font is loading
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={THEME.PRIMARY} />
-      </View>
-    );
-  }
   
   console.log("HomeScreen rendered, user:", user ? user.uid : "no user");
   
@@ -545,8 +534,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   appTitle: {
-    fontFamily: 'Pacifico_400Regular',
-    fontSize: 32,
+    fontSize: 24,
+    fontWeight: 'bold',
     color: THEME.PRIMARY,
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },

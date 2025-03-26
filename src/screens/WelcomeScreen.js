@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, Image, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, THEME } from '../constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -16,106 +17,146 @@ const WelcomeScreen = ({ navigation }) => {
   const backgroundAnimation = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   
-  // Start animation on component mount
+  // First check for guest upgrade info, then start animation
   useEffect(() => {
-    // Start background animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(backgroundAnimation, {
-          toValue: 1,
-          duration: 15000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(backgroundAnimation, {
-          toValue: 0,
-          duration: 15000,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
+    const checkGuestUpgradeInfo = async () => {
+      try {
+        // Check if we have guest upgrade info in AsyncStorage
+        const guestInfoString = await AsyncStorage.getItem('guestUpgradeInfo');
+        
+        if (guestInfoString) {
+          // Found guest info - parse it
+          const guestInfo = JSON.parse(guestInfoString);
+          console.log('Found guest upgrade info in WelcomeScreen:', guestInfo);
+          
+          // Clear it from storage
+          await AsyncStorage.removeItem('guestUpgradeInfo');
+          
+          // Navigate directly to Register with the guest info
+          setTimeout(() => {
+            navigation.replace('Register', guestInfo);
+          }, 100);
+          
+          return true; // We found and handled guest info
+        }
+        
+        return false; // No guest info found
+      } catch (error) {
+        console.error('Error checking for guest upgrade info:', error);
+        return false;
+      }
+    };
     
-    // Animate elements in
-    const fadeInAnimation = Animated.parallel([
-      // Logo animations
-      Animated.timing(logoScale, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.elastic(1),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoRotate, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.elastic(1),
-        useNativeDriver: true,
-      }),
-      // Title animations
-      Animated.sequence([
-        Animated.delay(300),
-        Animated.parallel([
-          Animated.timing(titleOpacity, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(titleScale, {
+    // Main setup function
+    const setup = async () => {
+      // First check for guest upgrade info
+      const hasGuestInfo = await checkGuestUpgradeInfo();
+      
+      // If no guest info, proceed with normal welcome animation
+      if (!hasGuestInfo) {
+        // Start background animation
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(backgroundAnimation, {
+              toValue: 1,
+              duration: 15000,
+              useNativeDriver: false,
+            }),
+            Animated.timing(backgroundAnimation, {
+              toValue: 0,
+              duration: 15000,
+              useNativeDriver: false,
+            }),
+          ])
+        ).start();
+        
+        // Animate elements in
+        const fadeInAnimation = Animated.parallel([
+          // Logo animations
+          Animated.timing(logoScale, {
             toValue: 1,
             duration: 800,
             easing: Easing.elastic(1),
             useNativeDriver: true,
           }),
-        ]),
-      ]),
-    ]);
+          Animated.timing(logoOpacity, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(logoRotate, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.elastic(1),
+            useNativeDriver: true,
+          }),
+          // Title animations
+          Animated.sequence([
+            Animated.delay(300),
+            Animated.parallel([
+              Animated.timing(titleOpacity, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+              }),
+              Animated.timing(titleScale, {
+                toValue: 1,
+                duration: 800,
+                easing: Easing.elastic(1),
+                useNativeDriver: true,
+              }),
+            ]),
+          ]),
+        ]);
 
-    // Start fade in animation
-    fadeInAnimation.start();
+        // Start fade in animation
+        fadeInAnimation.start();
 
-    // After 2 seconds, fade out and navigate
-    const timer = setTimeout(() => {
-      // Pre-warm the next screen
-      navigation.navigate('Login');
-      
-      // Quick fade out
-      Animated.parallel([
-        // Logo fade out
-        Animated.timing(logoOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoScale, {
-          toValue: 0.8,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        // Title fade out
-        Animated.timing(titleOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleScale, {
-          toValue: 0.9,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        // Screen fade out
-        Animated.timing(screenOpacity, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
+        // After 2 seconds, fade out and navigate
+        const timer = setTimeout(() => {
+          // Pre-warm the next screen
+          navigation.navigate('Login');
+          
+          // Quick fade out
+          Animated.parallel([
+            // Logo fade out
+            Animated.timing(logoOpacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(logoScale, {
+              toValue: 0.8,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            // Title fade out
+            Animated.timing(titleOpacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(titleScale, {
+              toValue: 0.9,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            // Screen fade out
+            Animated.timing(screenOpacity, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    };
+    
+    // Run the setup
+    setup();
+  }, [navigation]);
   
   // Interpolate background position
   const backgroundPosition = backgroundAnimation.interpolate({

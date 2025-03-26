@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yutoliu.packmind"
+      "bundleIdentifier": "com.yutoliu.packmind",
+      "config": {
+        "usesAppleSignIn": true
+      }
     },
     "android": {
       "package": "com.yutoliu.packmind",
@@ -26,6 +29,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "scheme": "com.yutoliu.packmind"
   }
 }

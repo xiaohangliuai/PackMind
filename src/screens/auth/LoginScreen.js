@@ -22,14 +22,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
   
-  const { login } = useAuth();
+  const { login, signInWithApple, guestLogin } = useAuth();
+  
+  // Check if Apple Authentication is available
+  React.useEffect(() => {
+    (async () => {
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      setAppleAuthAvailable(isAvailable);
+    })();
+  }, []);
   
   // Handle login
   const handleLogin = async () => {
@@ -60,9 +70,55 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
+  // Handle Apple login
+  const handleAppleLogin = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithApple();
+      console.log('Apple login successful');
+    } catch (error) {
+      console.log('Apple login error:', error);
+      // Don't show an error for user cancellations
+      if (error.code !== 'ERR_CANCELED') {
+        // Handle audience mismatch specifically
+        if (error.code === 'auth/invalid-credential' && error.message?.includes('audience')) {
+          Alert.alert(
+            'Authentication Error', 
+            'There was a configuration issue with Apple Sign In. Please try again later or use email login.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Error', 'Apple sign in failed. Please try again.');
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle guest login
+  const handleGuestLogin = async () => {
+    try {
+      setIsLoading(true);
+      await guestLogin();
+      console.log('Guest login successful');
+    } catch (error) {
+      console.log('Guest login error:', error);
+      Alert.alert('Error', 'Guest sign in failed. Please try again or use another login method.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle social logins
   const handleSocialLogin = (provider) => {
-    Alert.alert('Coming Soon', `${provider} login will be available soon!`);
+    if (provider === 'Apple' && appleAuthAvailable) {
+      handleAppleLogin();
+    } else if (provider === 'Guest') {
+      handleGuestLogin();
+    } else {
+      Alert.alert('Coming Soon', `${provider} login will be available soon!`);
+    }
   };
   
   return (
@@ -164,21 +220,31 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.socialLoginContainer}>
               <Text style={styles.socialLoginText}>- Or sign in with -</Text>
               <View style={styles.socialButtons}>
-                <TouchableOpacity 
-                  style={styles.socialButton}
-                  onPress={() => handleSocialLogin('Apple')}
-                >
-                  <Ionicons name="logo-apple" size={24} color={THEME.TEXT.PRIMARY} />
-                </TouchableOpacity>
+                {appleAuthAvailable ? (
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={() => handleSocialLogin('Apple')}
+                    disabled={isLoading}
+                  >
+                    <Ionicons name="logo-apple" size={24} color={THEME.TEXT.PRIMARY} />
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity 
                   style={styles.socialButton}
                   onPress={() => handleSocialLogin('Google')}
+                  disabled={isLoading}
                 >
                   <Ionicons name="logo-google" size={24} color={THEME.TEXT.PRIMARY} />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.socialButton}
                   onPress={() => handleSocialLogin('Guest')}
+                  disabled={isLoading}
+                  onLongPress={() => Alert.alert(
+                    'Guest Login',
+                    'Sign in without an account. Your data will only be stored on this device and will be lost if you log out.',
+                    [{ text: 'Got it' }]
+                  )}
                 >
                   <Ionicons name="person-outline" size={24} color={THEME.TEXT.PRIMARY} />
                 </TouchableOpacity>

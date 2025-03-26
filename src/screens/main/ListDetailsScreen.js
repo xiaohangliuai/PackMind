@@ -26,12 +26,16 @@ import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
 import { COLORS, THEME } from '../../constants/theme';
+import { useActivityTracker } from '../../hooks/useActivityTracker';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const ListDetailsScreen = ({ route, navigation }) => {
   const { listId } = route.params;
   const { user } = useAuth();
+  
+  // Track user activity for guest users
+  useActivityTracker();
   
   // State
   const [packingList, setPackingList] = useState(null);

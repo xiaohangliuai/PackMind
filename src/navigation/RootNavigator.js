@@ -34,6 +34,7 @@ const MainStackNavigator = () => (
     <Stack.Screen name="ActivityTemplates" component={ActivityTemplatesScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="CollaborativeList" component={CollaborativeListScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>
 );
 

@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../../models/firestoreModels';
 import { COLORS, THEME } from '../../constants/theme';
+import { useActivityTracker } from '../../hooks/useActivityTracker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -31,18 +33,36 @@ const SettingsScreen = ({ navigation }) => {
   const [weatherEnabled, setWeatherEnabled] = useState(true);
   const [checkedItemsAtBottom, setCheckedItemsAtBottom] = useState(true);
   
+  // Check if user is anonymous (guest)
+  const isGuestUser = user && user.isAnonymous;
+  
+  // Track user activity for guest users
+  useActivityTracker();
+  
   // Fetch user profile
   const fetchUserProfile = async () => {
     setIsLoading(true);
     try {
-      const profile = await getUserProfile(user.uid);
-      setUserProfile(profile);
-      
-      // Set initial settings from profile
-      if (profile) {
-        setNotificationsEnabled(profile.settings?.notifications ?? true);
-        setWeatherEnabled(profile.settings?.weather ?? true);
-        setCheckedItemsAtBottom(profile.settings?.checkedItemsAtBottom ?? true);
+      if (isGuestUser) {
+        // For guest users, use default settings
+        setUserProfile({
+          settings: {
+            notifications: true,
+            weather: true,
+            checkedItemsAtBottom: true
+          }
+        });
+      } else {
+        // For registered users, fetch from Firestore
+        const profile = await getUserProfile(user.uid);
+        setUserProfile(profile);
+        
+        // Set initial settings from profile
+        if (profile) {
+          setNotificationsEnabled(profile.settings?.notifications ?? true);
+          setWeatherEnabled(profile.settings?.weather ?? true);
+          setCheckedItemsAtBottom(profile.settings?.checkedItemsAtBottom ?? true);
+        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -76,6 +96,12 @@ const SettingsScreen = ({ navigation }) => {
   const updateSettings = async (settingUpdate) => {
     if (!user) return;
     
+    // For guest users, just update local state
+    if (isGuestUser) {
+      console.log('Settings updated in local state for guest user');
+      return;
+    }
+    
     try {
       // Get current settings, merge with update, and save to Firestore
       const currentSettings = userProfile?.settings || {};
@@ -90,6 +116,47 @@ const SettingsScreen = ({ navigation }) => {
       console.error('Error updating settings:', error);
       Alert.alert('Error', 'Failed to update settings. Please try again.');
     }
+  };
+  
+  // Handle upgrade guest account
+  const handleUpgradeAccount = () => {
+    Alert.alert(
+      'Create Account',
+      'Would you like to upgrade to a full account? This will preserve your data and prevent it from being deleted after 3 days of inactivity.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Create Account',
+          onPress: async () => {
+            try {
+              // First, store the guest data in AsyncStorage so we can retrieve it after logout
+              const guestInfo = { 
+                fromGuest: true, 
+                guestUserId: user.uid, 
+                guestDisplayName: user.displayName || 'Guest User' 
+              };
+              
+              console.log('Storing guest info before logout:', guestInfo);
+              
+              // Store in AsyncStorage for retrieval after auth state change
+              await AsyncStorage.setItem('guestUpgradeInfo', JSON.stringify(guestInfo));
+              
+              // Then logout - this will trigger navigation to auth stack automatically
+              console.log('Logging out guest user to continue with upgrade');
+              await logout();
+              
+              // Navigation to Register will happen in WelcomeScreen
+            } catch (error) {
+              console.error('Error during account upgrade process:', error);
+              Alert.alert('Error', 'Could not prepare account upgrade. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
   
   // Share the app
@@ -121,9 +188,13 @@ const SettingsScreen = ({ navigation }) => {
   
   // Handle logout
   const handleLogout = () => {
+    const message = isGuestUser ? 
+      'Are you sure you want to log out? All your data will be lost as you are using a guest account. Remember that guest data is automatically deleted after 3 days of inactivity.' :
+      'Are you sure you want to log out?';
+
     Alert.alert(
       'Log Out',
-      'Are you sure you want to log out?',
+      message,
       [
         {
           text: 'Cancel',
@@ -196,10 +267,32 @@ const SettingsScreen = ({ navigation }) => {
                 {user?.displayName || 'Anonymous User'}
               </Text>
               <Text style={styles.accountEmail}>
-                {user?.email || 'Guest Account'}
+                {isGuestUser ? 'Guest Account' : (user?.email || 'No email')}
               </Text>
+              
+              {isGuestUser && (
+                <View style={styles.guestBadge}>
+                  <Text style={styles.guestBadgeText}>Guest</Text>
+                </View>
+              )}
             </View>
           </View>
+          
+          {/* Guest Account Banner */}
+          {isGuestUser && (
+            <View style={styles.guestBanner}>
+              <Ionicons name="information-circle-outline" size={24} color={THEME.PRIMARY} style={styles.guestBannerIcon} />
+              <Text style={styles.guestBannerText}>
+                You're using a guest account. Your data is only stored on this device and will be automatically deleted after 3 days of inactivity.
+              </Text>
+              <TouchableOpacity 
+                style={styles.guestUpgradeButton}
+                onPress={handleUpgradeAccount}
+              >
+                <Text style={styles.guestUpgradeText}>Create Full Account</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         {/* Notifications Section */}
@@ -251,19 +344,21 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         </View>
         
-        {/* Premium Section */}
-        <View style={styles.premiumSection}>
-          <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-          <Text style={styles.premiumDescription}>
-            Get unlimited lists, priority support, and exclusive features.
-          </Text>
-          <TouchableOpacity 
-            style={styles.premiumButton}
-            onPress={() => Alert.alert('Premium', 'Coming soon!')}
-          >
-            <Text style={styles.premiumButtonText}>View Premium Features</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Premium Section - Only show for full accounts */}
+        {!isGuestUser && (
+          <View style={styles.premiumSection}>
+            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
+            <Text style={styles.premiumDescription}>
+              Get unlimited lists, priority support, and exclusive features.
+            </Text>
+            <TouchableOpacity 
+              style={styles.premiumButton}
+              onPress={() => Alert.alert('Premium', 'Coming soon!')}
+            >
+              <Text style={styles.premiumButtonText}>View Premium Features</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         
         {/* Support Section */}
         <View style={styles.section}>
@@ -287,7 +382,7 @@ const SettingsScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.optionButton}
-            onPress={() => Linking.openURL('mailto:support@packmindplus.app')}
+            onPress={() => Linking.openURL('mailto:xiaohangliu2023@gmail.com')}
           >
             <Ionicons name="mail-outline" size={24} color="#777" style={styles.optionIcon} />
             <Text style={styles.optionText}>Contact Support</Text>
@@ -297,6 +392,16 @@ const SettingsScreen = ({ navigation }) => {
         {/* Account Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Actions</Text>
+          
+          {isGuestUser && (
+            <TouchableOpacity 
+              style={styles.optionButton}
+              onPress={handleUpgradeAccount}
+            >
+              <Ionicons name="person-add-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
+              <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Create Full Account</Text>
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity 
             style={styles.optionButton}
@@ -310,7 +415,7 @@ const SettingsScreen = ({ navigation }) => {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2023 PackM!nd+</Text>
+          <Text style={styles.appCopyright}>© 2025 PackM!nd+</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -392,6 +497,44 @@ const styles = StyleSheet.create({
   accountEmail: {
     fontSize: 14,
     color: '#777',
+  },
+  guestBadge: {
+    backgroundColor: COLORS.LIGHT_GRAY,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+  },
+  guestBadgeText: {
+    fontSize: 12,
+    color: '#777',
+  },
+  guestBanner: {
+    backgroundColor: COLORS.LAVENDER,
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 10,
+  },
+  guestBannerIcon: {
+    marginBottom: 5,
+  },
+  guestBannerText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 10,
+  },
+  guestUpgradeButton: {
+    backgroundColor: THEME.PRIMARY,
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    alignSelf: 'flex-start',
+  },
+  guestUpgradeText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   option: {
     flexDirection: 'row',

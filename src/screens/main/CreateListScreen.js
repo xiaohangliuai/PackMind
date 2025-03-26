@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
 import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
+import { useActivityTracker } from '../../hooks/useActivityTracker';
 
 // Activity types with emojis
 const activityTypes = [
@@ -96,8 +97,11 @@ const activityTemplates = {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const CreateListScreen = ({ navigation }) => {
+const CreateListScreen = ({ navigation, route }) => {
   const { user } = useAuth();
+  
+  // Track user activity for guest users
+  useActivityTracker();
   
   // Form state
   const [title, setTitle] = useState('');
