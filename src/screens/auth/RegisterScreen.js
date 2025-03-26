@@ -7,13 +7,11 @@ import {
   TextInput, 
   TouchableOpacity, 
   SafeAreaView,
-  KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
   ActivityIndicator,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -110,129 +108,138 @@ const RegisterScreen = ({ navigation }) => {
         <View style={styles.circlePattern3} />
       </View>
       
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.inner}>
-              {/* Back button */}
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Ionicons name="arrow-back" size={24} color={THEME.TEXT.PRIMARY} />
-              </TouchableOpacity>
-              
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={styles.title}>Create Account</Text>
-                <Text style={styles.subtitle}>Sign up to get started</Text>
-              </View>
-              
-              {/* Form */}
-              <View style={styles.form}>
-                {/* Full Name Field */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="person-outline" size={20} color="#777" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full Name"
-                    value={fullName}
-                    onChangeText={setFullName}
-                  />
-                </View>
-                
-                {/* Email Field */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={20} color="#777" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-                
-                {/* Password Field */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#777" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <TouchableOpacity 
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeIcon}
-                  >
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color="#777" 
-                    />
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Confirm Password Field */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#777" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showConfirmPassword}
-                  />
-                  <TouchableOpacity 
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={styles.eyeIcon}
-                  >
-                    <Ionicons 
-                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color="#777" 
-                    />
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Register Button with Gradient */}
-                <TouchableOpacity 
-                  style={styles.registerButton}
-                  onPress={handleRegister}
-                  disabled={isLoading}
-                >
-                  <LinearGradient
-                    colors={GRADIENTS.PRIMARY}
-                    style={styles.gradientButton}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.registerButtonText}>Create Account</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-              
-              {/* Login Link */}
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                  <Text style={styles.loginText}>Sign In</Text>
-                </TouchableOpacity>
-              </View>
+        <View style={styles.inner}>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('../../../assets/app-name-purple.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Back button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={THEME.TEXT.PRIMARY} />
+          </TouchableOpacity>
+          
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Create your Account</Text>
+          </View>
+          
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Full Name Field */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color={THEME.TEXT.SECONDARY} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                value={fullName}
+                onChangeText={setFullName}
+                placeholderTextColor={THEME.TEXT.TERTIARY}
+              />
             </View>
-          </TouchableWithoutFeedback>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            
+            {/* Email Field */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color={THEME.TEXT.SECONDARY} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={THEME.TEXT.TERTIARY}
+              />
+            </View>
+            
+            {/* Password Field */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={THEME.TEXT.SECONDARY} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholderTextColor={THEME.TEXT.TERTIARY}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={THEME.TEXT.SECONDARY}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Confirm Password Field */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={THEME.TEXT.SECONDARY} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                placeholderTextColor={THEME.TEXT.TERTIARY}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={THEME.TEXT.SECONDARY}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Register Button */}
+            <TouchableOpacity 
+              style={styles.registerButton}
+              onPress={handleRegister}
+              disabled={isLoading}
+            >
+              <LinearGradient
+                colors={GRADIENTS.PRIMARY}
+                style={styles.gradientButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.registerButtonText}>Sign up</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Login Link */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -241,6 +248,112 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.WHITE,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    minHeight: '100%',
+  },
+  inner: {
+    padding: THEME.SPACING.LARGE,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
+  logoContainer: {
+    width: '100%',
+    height: 60,
+    marginBottom: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -10,
+  },
+  logoImage: {
+    width: '60%',
+    height: '100%',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...THEME.SHADOWS.SMALL,
+    marginBottom: THEME.SPACING.SMALL,
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 20 : 10,
+    left: THEME.SPACING.LARGE,
+  },
+  header: {
+    marginBottom: THEME.SPACING.XLARGE,
+  },
+  title: {
+    ...TYPOGRAPHY.BODY_2,
+    color: THEME.TEXT.SECONDARY,
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  form: {
+    marginBottom: THEME.SPACING.XLARGE,
+    marginTop: -4,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: THEME.RADIUS.LARGE,
+    marginBottom: THEME.SPACING.MEDIUM,
+    paddingHorizontal: 16,
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    ...THEME.SHADOWS.SMALL,
+  },
+  inputIcon: {
+    marginRight: THEME.SPACING.MEDIUM,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    ...TYPOGRAPHY.BODY_1,
+    color: THEME.TEXT.PRIMARY,
+  },
+  eyeIcon: {
+    padding: THEME.SPACING.SMALL,
+  },
+  registerButton: {
+    borderRadius: THEME.RADIUS.LARGE,
+    overflow: 'hidden',
+    ...THEME.SHADOWS.MEDIUM,
+    marginTop: THEME.SPACING.XLARGE,
+  },
+  gradientButton: {
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    ...TYPOGRAPHY.BUTTON,
+    color: COLORS.WHITE,
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 'auto',
+    marginTop: THEME.SPACING.XLARGE * 0.7,
+    paddingVertical: THEME.SPACING.XLARGE,
+  },
+  footerText: {
+    ...TYPOGRAPHY.BODY_2,
+    color: THEME.TEXT.SECONDARY,
+    fontSize: 15,
+  },
+  loginText: {
+    ...TYPOGRAPHY.BODY_2,
+    color: THEME.PRIMARY,
+    fontWeight: 'bold',
+    fontSize: 15,
   },
   backgroundPatterns: {
     position: 'absolute',
@@ -253,8 +366,8 @@ const styles = StyleSheet.create({
   },
   circlePattern1: {
     position: 'absolute',
-    top: -100,
-    right: -100,
+    top: -50,
+    right: -50,
     width: 200,
     height: 200,
     borderRadius: 100,
@@ -273,105 +386,13 @@ const styles = StyleSheet.create({
   },
   circlePattern3: {
     position: 'absolute',
-    top: '40%',
+    top: '50%',
     left: '20%',
     width: 100,
     height: 100,
     borderRadius: 50,
     backgroundColor: COLORS.ROYAL,
     opacity: 0.1,
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  inner: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    ...THEME.SHADOWS.SMALL,
-  },
-  header: {
-    marginBottom: 40,
-  },
-  title: {
-    ...TYPOGRAPHY.HEADING_1,
-    color: THEME.TEXT.PRIMARY,
-    marginBottom: THEME.SPACING.SMALL,
-  },
-  subtitle: {
-    ...TYPOGRAPHY.BODY_1,
-    color: THEME.TEXT.SECONDARY,
-  },
-  form: {
-    marginBottom: 30,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: THEME.RADIUS.MEDIUM,
-    marginBottom: THEME.SPACING.MEDIUM,
-    paddingHorizontal: 16,
-    height: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    ...THEME.SHADOWS.SMALL,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-  },
-  eyeIcon: {
-    padding: 5,
-  },
-  registerButton: {
-    borderRadius: THEME.RADIUS.MEDIUM,
-    overflow: 'hidden',
-    ...THEME.SHADOWS.MEDIUM,
-    marginTop: THEME.SPACING.MEDIUM,
-  },
-  gradientButton: {
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    ...TYPOGRAPHY.BUTTON,
-    color: COLORS.WHITE,
-    fontWeight: 'bold',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
-    ...TYPOGRAPHY.BODY_2,
-    color: THEME.TEXT.SECONDARY,
-  },
-  loginText: {
-    ...TYPOGRAPHY.BODY_2,
-    color: THEME.PRIMARY,
-    fontWeight: 'bold',
   },
 });
 
