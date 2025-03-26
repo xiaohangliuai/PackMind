@@ -1,12 +1,8 @@
 // src/screens/WelcomeScreen.js
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert, ImageBackground, Image } from 'react-native';
+import { View, StyleSheet, Dimensions, Animated, Image, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { signInAnonymously } from '../firebase/firebaseConfig';
-import { useAuth } from '../context/AuthContext';
-import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { COLORS, THEME } from '../constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,19 +10,11 @@ const WelcomeScreen = ({ navigation }) => {
   // Animation values
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.3)).current;
+  const logoRotate = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const titleScale = useRef(new Animated.Value(0.8)).current;
   const backgroundAnimation = useRef(new Animated.Value(0)).current;
-  
-  // Anonymous login for testing
-  const handleAnonymousLogin = async () => {
-    try {
-      await signInAnonymously();
-      // The auth state change will handle navigation
-    } catch (error) {
-      Alert.alert('Login Error', error.message);
-    }
-  };
+  const screenOpacity = useRef(new Animated.Value(1)).current;
   
   // Start animation on component mount
   useEffect(() => {
@@ -46,35 +34,87 @@ const WelcomeScreen = ({ navigation }) => {
       ])
     ).start();
     
-    // Animate elements
-    Animated.parallel([
+    // Animate elements in
+    const fadeInAnimation = Animated.parallel([
+      // Logo animations
       Animated.timing(logoScale, {
         toValue: 1,
         duration: 800,
+        easing: Easing.elastic(1),
         useNativeDriver: true,
       }),
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 800,
+        duration: 600,
         useNativeDriver: true,
       }),
+      Animated.timing(logoRotate, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.elastic(1),
+        useNativeDriver: true,
+      }),
+      // Title animations
       Animated.sequence([
         Animated.delay(300),
+        Animated.parallel([
+          Animated.timing(titleOpacity, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(titleScale, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.elastic(1),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]);
+
+    // Start fade in animation
+    fadeInAnimation.start();
+
+    // After 2 seconds, fade out and navigate
+    const timer = setTimeout(() => {
+      // Pre-warm the next screen
+      navigation.navigate('Login');
+      
+      // Quick fade out
+      Animated.parallel([
+        // Logo fade out
+        Animated.timing(logoOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoScale, {
+          toValue: 0.8,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        // Title fade out
         Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 700,
+          toValue: 0,
+          duration: 300,
           useNativeDriver: true,
         }),
-      ]),
-      Animated.sequence([
-        Animated.delay(600),
-        Animated.timing(buttonOpacity, {
-          toValue: 1,
-          duration: 700,
+        Animated.timing(titleScale, {
+          toValue: 0.9,
+          duration: 300,
           useNativeDriver: true,
         }),
-      ]),
-    ]).start();
+        // Screen fade out
+        Animated.timing(screenOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
   
   // Interpolate background position
@@ -82,9 +122,15 @@ const WelcomeScreen = ({ navigation }) => {
     inputRange: [0, 1],
     outputRange: ['0%', '50%']
   });
+
+  // Interpolate logo rotation
+  const spin = logoRotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-30deg', '0deg']
+  });
   
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
       <StatusBar style="light" />
       
       {/* Animated Background */}
@@ -95,7 +141,19 @@ const WelcomeScreen = ({ navigation }) => {
         <Animated.View 
           style={[
             styles.logoContainer,
-            { opacity: logoOpacity, transform: [{ scale: logoScale }] }
+            { 
+              opacity: logoOpacity, 
+              transform: [
+                { scale: logoScale },
+                { rotate: spin },
+                {
+                  translateY: logoOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0]
+                  })
+                }
+              ] 
+            }
           ]}
         >
           <Image 
@@ -107,7 +165,21 @@ const WelcomeScreen = ({ navigation }) => {
         
         {/* Title */}
         <Animated.View 
-          style={[styles.titleContainer, { opacity: titleOpacity }]}
+          style={[
+            styles.titleContainer, 
+            { 
+              opacity: titleOpacity,
+              transform: [
+                { scale: titleScale },
+                {
+                  translateY: titleOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0]
+                  })
+                }
+              ]
+            }
+          ]}
         >
           <Image
             source={require('../../assets/name-design.png')}
@@ -115,44 +187,8 @@ const WelcomeScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </Animated.View>
-        
-        {/* Buttons */}
-        <Animated.View 
-          style={[styles.buttonContainer, { opacity: buttonOpacity }]}
-        >
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <LinearGradient
-              colors={GRADIENTS.PRIMARY}
-              style={styles.gradientButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.buttonText}>Sign In</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate('Register')}
-          >
-            <Text style={styles.secondaryButtonText}>Create Account</Text>
-          </TouchableOpacity>
-          
-          {/* Glass morphic guest button */}
-          <TouchableOpacity
-            style={styles.glassButton}
-            onPress={handleAnonymousLogin}
-          >
-            <BlurView intensity={20} style={styles.blur}>
-              <Text style={styles.glassButtonText}>Continue as Guest</Text>
-            </BlurView>
-          </TouchableOpacity>
-        </Animated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -202,63 +238,12 @@ const styles = StyleSheet.create({
   titleContainer: {
     width: width * 0.8,
     height: 70,
-    marginBottom: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   titleImage: {
     width: '100%',
     height: '100%',
-  },
-  buttonContainer: {
-    width: '100%',
-    marginTop: 20,
-  },
-  button: {
-    borderRadius: THEME.RADIUS.LARGE,
-    marginBottom: 15,
-    ...THEME.SHADOWS.MEDIUM,
-    overflow: 'hidden',
-  },
-  gradientButton: {
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderRadius: THEME.RADIUS.LARGE,
-  },
-  buttonText: {
-    ...TYPOGRAPHY.BUTTON,
-    color: COLORS.WHITE,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    borderWidth: 1.5,
-    borderColor: COLORS.WHITE,
-    paddingVertical: 15,
-    borderRadius: THEME.RADIUS.LARGE,
-    alignItems: 'center',
-    ...THEME.SHADOWS.SMALL,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  secondaryButtonText: {
-    ...TYPOGRAPHY.BUTTON,
-    color: COLORS.WHITE,
-    fontWeight: 'bold',
-  },
-  glassButton: {
-    marginTop: 30,
-    borderRadius: THEME.RADIUS.LARGE,
-    overflow: 'hidden',
-    ...THEME.SHADOWS.SMALL,
-  },
-  blur: {
-    padding: 15,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  glassButtonText: {
-    ...TYPOGRAPHY.BUTTON,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
 
