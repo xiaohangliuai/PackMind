@@ -429,19 +429,11 @@ const RegisterScreen = ({ navigation, route }) => {
                   onPress={handleAppleSignIn}
                   disabled={isLoading}
                 >
-                  <Ionicons name="logo-apple" size={20} color={COLORS.BLACK} style={styles.socialIcon} />
-                  <Text style={styles.socialButtonText}>Sign up with Apple</Text>
+                  <Ionicons name="logo-apple" size={24} color={COLORS.BLACK} style={styles.socialIcon} />
+                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
                 </TouchableOpacity>
               </View>
             )}
-          </View>
-          
-          {/* Login Link */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginText}>Login</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -528,7 +520,8 @@ const styles = StyleSheet.create({
     borderRadius: THEME.RADIUS.LARGE,
     overflow: 'hidden',
     ...THEME.SHADOWS.MEDIUM,
-    marginTop: THEME.SPACING.XLARGE,
+    marginTop: THEME.SPACING.LARGE,
+    marginHorizontal: THEME.SPACING.MEDIUM,
   },
   gradientButton: {
     height: 60,
@@ -542,61 +535,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   socialSection: {
-    marginTop: THEME.SPACING.LARGE,
+    marginTop: THEME.SPACING.MEDIUM,
+    marginBottom: THEME.SPACING.LARGE,
+    paddingTop: THEME.SPACING.SMALL,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: THEME.SPACING.MEDIUM,
+    paddingHorizontal: THEME.SPACING.MEDIUM,
   },
   divider: {
     flex: 1,
-    height: 1,
+    height: 1.5,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   dividerText: {
     ...TYPOGRAPHY.BODY_2,
     color: THEME.TEXT.SECONDARY,
     paddingHorizontal: THEME.SPACING.MEDIUM,
+    fontWeight: '500',
+    fontSize: 15,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: THEME.RADIUS.LARGE,
     padding: THEME.SPACING.MEDIUM,
     marginTop: THEME.SPACING.SMALL,
-    ...THEME.SHADOWS.SMALL,
-    height: 50,
+    marginHorizontal: THEME.SPACING.LARGE,
+    ...THEME.SHADOWS.MEDIUM,
+    height: 58,
   },
   socialIcon: {
-    marginRight: THEME.SPACING.SMALL,
+    marginRight: THEME.SPACING.MEDIUM,
   },
   socialButtonText: {
     ...TYPOGRAPHY.BODY_1,
     color: THEME.TEXT.PRIMARY,
-    fontWeight: '500',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: THEME.SPACING.XLARGE * 2.3,
-    paddingVertical: THEME.SPACING.XLARGE,
-  },
-  footerText: {
-    ...TYPOGRAPHY.BODY_2,
-    color: THEME.TEXT.SECONDARY,
-    fontSize: 15,
-  },
-  loginText: {
-    ...TYPOGRAPHY.BODY_2,
-    color: THEME.PRIMARY,
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontWeight: '600',
+    fontSize: 16,
   },
   backgroundPatterns: {
     position: 'absolute',
