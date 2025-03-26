@@ -84,7 +84,7 @@ const LoginScreen = ({ navigation }) => {
             {/* Logo */}
             <View style={styles.logoContainer}>
               <Image 
-                source={require('../../../assets/name_white.png')}
+                source={require('../../../assets/app-name-purple.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -254,13 +254,13 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     width: '100%',
-    height: 80,
+    height: 60,
     marginBottom: THEME.SPACING.XLARGE,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoImage: {
-    width: '80%',
+    width: '60%',
     height: '100%',
   },
   header: {
