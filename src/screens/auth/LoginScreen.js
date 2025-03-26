@@ -13,6 +13,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
+  Image,
   ImageBackground
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -41,8 +42,6 @@ const LoginScreen = ({ navigation }) => {
     try {
       const user = await login(email, password);
       console.log('Login successful:', user?.email);
-      // No need for alert here as HomeScreen will show a welcome alert
-      // Navigation will be handled automatically by the auth state change
     } catch (error) {
       let errorMessage = 'Failed to login. Please try again.';
       
@@ -58,6 +57,11 @@ const LoginScreen = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle social logins
+  const handleSocialLogin = (provider) => {
+    Alert.alert('Coming Soon', `${provider} login will be available soon!`);
   };
   
   return (
@@ -77,13 +81,14 @@ const LoginScreen = ({ navigation }) => {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.inner}>
-            {/* Back button */}
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={THEME.TEXT.PRIMARY} />
-            </TouchableOpacity>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../../../assets/name_white.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
             
             {/* Header */}
             <View style={styles.header}>
@@ -154,6 +159,31 @@ const LoginScreen = ({ navigation }) => {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
+
+              {/* Social Login Options */}
+              <View style={styles.socialLoginContainer}>
+                <Text style={styles.socialLoginText}>Or continue with</Text>
+                <View style={styles.socialButtons}>
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={() => handleSocialLogin('Apple')}
+                  >
+                    <Ionicons name="logo-apple" size={24} color={THEME.TEXT.PRIMARY} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={() => handleSocialLogin('Google')}
+                  >
+                    <Ionicons name="logo-google" size={24} color={THEME.TEXT.PRIMARY} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={() => handleSocialLogin('Guest')}
+                  >
+                    <Ionicons name="person-outline" size={24} color={THEME.TEXT.PRIMARY} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
             
             {/* Register Link */}
@@ -222,18 +252,16 @@ const styles = StyleSheet.create({
     padding: THEME.SPACING.LARGE,
     justifyContent: 'center',
   },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  logoContainer: {
+    width: '100%',
+    height: 80,
+    marginBottom: THEME.SPACING.XLARGE,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    ...THEME.SHADOWS.SMALL,
+  },
+  logoImage: {
+    width: '80%',
+    height: '100%',
   },
   header: {
     marginBottom: THEME.SPACING.XLARGE,
@@ -287,6 +315,7 @@ const styles = StyleSheet.create({
     borderRadius: THEME.RADIUS.MEDIUM,
     overflow: 'hidden',
     ...THEME.SHADOWS.MEDIUM,
+    marginBottom: THEME.SPACING.LARGE,
   },
   gradientButton: {
     height: 56,
@@ -297,6 +326,30 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.BUTTON,
     color: COLORS.WHITE,
     fontWeight: 'bold',
+  },
+  socialLoginContainer: {
+    alignItems: 'center',
+    marginBottom: THEME.SPACING.LARGE,
+  },
+  socialLoginText: {
+    ...TYPOGRAPHY.BODY_2,
+    color: THEME.TEXT.SECONDARY,
+    marginBottom: THEME.SPACING.MEDIUM,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: THEME.SPACING.MEDIUM,
+  },
+  socialButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...THEME.SHADOWS.SMALL,
+    marginHorizontal: THEME.SPACING.SMALL,
   },
   footer: {
     flexDirection: 'row',
