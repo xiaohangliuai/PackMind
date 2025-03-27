@@ -30,8 +30,6 @@ const SettingsScreen = ({ navigation }) => {
   
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [weatherEnabled, setWeatherEnabled] = useState(true);
-  const [checkedItemsAtBottom, setCheckedItemsAtBottom] = useState(true);
   
   // Check if user is anonymous (guest)
   const isGuestUser = user && user.isAnonymous;
@@ -47,9 +45,7 @@ const SettingsScreen = ({ navigation }) => {
         // For guest users, use default settings
         setUserProfile({
           settings: {
-            notifications: true,
-            weather: true,
-            checkedItemsAtBottom: true
+            notifications: true
           }
         });
       } else {
@@ -60,8 +56,6 @@ const SettingsScreen = ({ navigation }) => {
         // Set initial settings from profile
         if (profile) {
           setNotificationsEnabled(profile.settings?.notifications ?? true);
-          setWeatherEnabled(profile.settings?.weather ?? true);
-          setCheckedItemsAtBottom(profile.settings?.checkedItemsAtBottom ?? true);
         }
       }
     } catch (error) {
@@ -80,16 +74,6 @@ const SettingsScreen = ({ navigation }) => {
   const handleToggleNotifications = (value) => {
     setNotificationsEnabled(value);
     updateSettings({ notifications: value });
-  };
-  
-  const handleToggleWeather = (value) => {
-    setWeatherEnabled(value);
-    updateSettings({ weather: value });
-  };
-  
-  const handleToggleCheckedItems = (value) => {
-    setCheckedItemsAtBottom(value);
-    updateSettings({ checkedItemsAtBottom: value });
   };
   
   // Update settings in Firestore
@@ -307,37 +291,6 @@ const SettingsScreen = ({ navigation }) => {
             <Switch
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
-              thumbColor="white"
-            />
-          </View>
-        </View>
-        
-        {/* Preferences Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          
-          <View style={styles.option}>
-            <View style={styles.optionInfo}>
-              <Ionicons name="partly-sunny-outline" size={24} color="#777" style={styles.optionIcon} />
-              <Text style={styles.optionText}>Weather Recommendations</Text>
-            </View>
-            <Switch
-              value={weatherEnabled}
-              onValueChange={handleToggleWeather}
-              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
-              thumbColor="white"
-            />
-          </View>
-          
-          <View style={styles.option}>
-            <View style={styles.optionInfo}>
-              <Ionicons name="checkbox-outline" size={24} color="#777" style={styles.optionIcon} />
-              <Text style={styles.optionText}>Move Checked Items to Bottom</Text>
-            </View>
-            <Switch
-              value={checkedItemsAtBottom}
-              onValueChange={handleToggleCheckedItems}
               trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
               thumbColor="white"
             />
