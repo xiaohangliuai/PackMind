@@ -13,6 +13,7 @@ import {
   ScrollView,
   FlatList,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -117,14 +118,20 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const handleToggleChecked = async (itemId) => {
     if (!packingList) return;
     
+    // First, update the checked status
     const updatedItems = packingList.items.map(item => 
       item.id === itemId ? { ...item, checked: !item.checked } : item
     );
+
+    // Then, sort items to move checked items to bottom
+    const uncheckedItems = updatedItems.filter(item => !item.checked);
+    const checkedItems = updatedItems.filter(item => item.checked);
+    const reorderedItems = [...uncheckedItems, ...checkedItems];
     
     try {
       // Include updatedAt timestamp to ensure the list moves to the top on home screen
       const updates = { 
-        items: updatedItems,
+        items: reorderedItems,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
@@ -132,7 +139,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       
       setPackingList(prevList => ({
         ...prevList,
-        items: updatedItems,
+        items: reorderedItems,
         updatedAt: new Date() // Use local date as a temporary value until Firestore updates
       }));
     } catch (error) {
@@ -455,17 +462,6 @@ const ListDetailsScreen = ({ route, navigation }) => {
     const checkedItems = packingList.items.filter(item => item.checked);
     return (checkedItems.length / packingList.items.length) * 100;
   };
-  
-  // Calculate sorted items with unchecked items at the top
-  const sortedItems = useMemo(() => {
-    if (!packingList?.items) return [];
-    
-    return [...packingList.items].sort((a, b) => {
-      if (a.checked && !b.checked) return 1;
-      if (!a.checked && b.checked) return -1;
-      return 0;
-    });
-  }, [packingList?.items]);
   
   // Loading state
   if (isLoading) {
@@ -813,71 +809,80 @@ const ListDetailsScreen = ({ route, navigation }) => {
     );
   };
   
+  // Add renderItem function before the return statement
+  const renderItem = ({ item, drag, isActive }) => (
+    <DraggableItem
+      item={item}
+      onToggleChecked={handleToggleChecked}
+      onDeleteItem={handleDeleteItem}
+      drag={drag}
+      isActive={isActive}
+    />
+  );
+  
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              if (isEditMode) {
-                setIsEditMode(false);
-                resetEditStates(); // Reset all edit fields to original values
-              } else {
-                navigation.goBack();
-              }
-            }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          
-          <Text style={styles.headerTitle}>
-            {isEditMode ? 'Edit Packing List' : 'Your Packing List'}
-          </Text>
-          
-          <View style={styles.headerButtons}>
-            {isOwner && (
-              <>
-                {isEditMode ? (
-                  <TouchableOpacity 
-                    style={styles.headerButton}
-                    onPress={handleSaveEdits}
-                  >
-                    <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
-                  </TouchableOpacity>
-                ) : (
-                  <>
-                    <TouchableOpacity 
-                      style={styles.headerButton}
-                      onPress={() => setIsEditMode(true)}
-                    >
-                      <Ionicons name="create-outline" size={22} color="#333" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.headerButton}
-                      onPress={handleDeleteList}
-                    >
-                      <Ionicons name="trash-outline" size={22} color="#FF5252" />
-                    </TouchableOpacity>
-                  </>
-                )}
-              </>
-            )}
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={handleShareList}
+    <SafeAreaView style={styles.container}>
+      <GestureHandlerRootView style={styles.gestureContainer}>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                if (isEditMode) {
+                  setIsEditMode(false);
+                  resetEditStates();
+                } else {
+                  navigation.goBack();
+                }
+              }}
             >
-              <Ionicons name="share-outline" size={22} color="#333" />
+              <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
+            
+            <Text style={styles.headerTitle}>
+              {isEditMode ? 'Edit Packing List' : 'Your Packing List'}
+            </Text>
+            
+            <View style={styles.headerButtons}>
+              {isOwner && (
+                <>
+                  {isEditMode ? (
+                    <TouchableOpacity 
+                      style={styles.headerButton}
+                      onPress={handleSaveEdits}
+                    >
+                      <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
+                    </TouchableOpacity>
+                  ) : (
+                    <>
+                      <TouchableOpacity 
+                        style={styles.headerButton}
+                        onPress={() => setIsEditMode(true)}
+                      >
+                        <Ionicons name="create-outline" size={22} color="#333" />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.headerButton}
+                        onPress={handleDeleteList}
+                      >
+                        <Ionicons name="trash-outline" size={22} color="#FF5252" />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              )}
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={handleShareList}
+              >
+                <Ionicons name="share-outline" size={22} color="#333" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-        
-        <ScrollView style={{ flex: 1 }}>
-          {/* List Info or Edit Section */}
-          {isEditMode ? (
-            renderEditMode()
-          ) : (
+          
+          {/* List Info Section */}
+          {!isEditMode && (
             <View style={styles.infoSection}>
               {/* Title and Activity */}
               <View style={styles.titleRow}>
@@ -938,73 +943,83 @@ const ListDetailsScreen = ({ route, navigation }) => {
               </View>
             </View>
           )}
-          
-          {/* Items List Section */}
-          <View style={styles.itemsSection}>
-            <Text style={styles.sectionTitle}>Items</Text>
-            
-            {isLoading ? (
-              <ActivityIndicator size="large" color={THEME.PRIMARY} />
-            ) : packingList?.items?.length > 0 ? (
-              <DraggableFlatList
-                data={sortedItems}
-                keyExtractor={(item) => item.id}
-                onDragEnd={handleReorderItems}
-                scrollEnabled={false}
-                renderItem={({ item, drag, isActive }) => (
-                  <DraggableItem
-                    item={item}
-                    onToggleChecked={handleToggleChecked}
-                    onDeleteItem={handleDeleteItem}
-                    drag={drag}
-                    isActive={isActive}
-                  />
-                )}
-                contentContainerStyle={styles.listContent}
+
+          {/* Edit Mode or Items List */}
+          {isEditMode ? (
+            <ScrollView style={styles.editScrollView}>
+              {renderEditMode()}
+            </ScrollView>
+          ) : (
+            <View style={styles.itemsSection}>
+              <Text style={styles.sectionTitle}>Items</Text>
+              {isLoading ? (
+                <ActivityIndicator size="large" color={THEME.PRIMARY} style={styles.loader} />
+              ) : packingList?.items?.length > 0 ? (
+                <DraggableFlatList
+                  data={packingList.items}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.id}
+                  onDragEnd={handleReorderItems}
+                  activationDistance={20}
+                  dragHitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                  contentContainerStyle={styles.listContainer}
+                  scrollEnabled={true}
+                  autoscrollThreshold={50}
+                  showsVerticalScrollIndicator={true}
+                  onScrollOffsetChange={() => Keyboard.dismiss()}
+                />
+              ) : (
+                <View style={styles.emptyList}>
+                  <Text style={styles.emptyText}>No items in this list</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Add Item Input */}
+          {isOwner && (
+            <View style={styles.addItemContainer}>
+              <TextInput
+                style={styles.addItemInput}
+                placeholder="Add a new item..."
+                value={newItemText}
+                onChangeText={setNewItemText}
+                onSubmitEditing={handleAddItem}
               />
-            ) : (
-              <View style={styles.emptyList}>
-                <Text style={styles.emptyText}>No items in this list</Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-        
-        {/* Add Item Input (Only visible to owner) */}
-        {isOwner && (
-          <View style={styles.addItemContainer}>
-            <TextInput
-              style={styles.addItemInput}
-              placeholder="Add a new item..."
-              value={newItemText}
-              onChangeText={setNewItemText}
-              onSubmitEditing={handleAddItem}
-            />
-            <TouchableOpacity
-              style={[
-                styles.addItemButton,
-                !newItemText.trim() && styles.addItemButtonDisabled
-              ]}
-              onPress={handleAddItem}
-              disabled={!newItemText.trim()}
-            >
-              <Ionicons
-                name="add"
-                size={24}
-                color={newItemText.trim() ? THEME.PRIMARY : THEME.UI.DISABLED}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-      </SafeAreaView>
-    </GestureHandlerRootView>
+              <TouchableOpacity
+                style={[
+                  styles.addItemButton,
+                  !newItemText.trim() && styles.addItemButtonDisabled
+                ]}
+                onPress={handleAddItem}
+                disabled={!newItemText.trim()}
+              >
+                <Ionicons
+                  name="add"
+                  size={24}
+                  color={newItemText.trim() ? THEME.PRIMARY : THEME.UI.DISABLED}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </GestureHandlerRootView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
+  },
+  gestureContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  content: {
+    flex: 1,
+    width: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -1098,12 +1113,14 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.PRIMARY,
   },
   itemsSection: {
-    padding: 15,
+    flex: 1,
+    paddingTop: 15,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 15,
+    paddingLeft: 15,
   },
   emptyList: {
     justifyContent: 'center',
@@ -1117,18 +1134,18 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    marginBottom: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    marginVertical: 4,
+    borderRadius: 10,
+    ...THEME.SHADOWS.SMALL,
   },
-  itemActiveContainer: {
-    backgroundColor: '#F8F8F8',
+  itemContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
   },
   checkboxContainer: {
     marginRight: 10,
@@ -1136,9 +1153,10 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderWidth: 2,
-    borderColor: '#DDDDDD',
     borderRadius: 4,
+    borderWidth: 2,
+    borderColor: THEME.PRIMARY,
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1182,7 +1200,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   dragHandle: {
-    padding: 5,
+    padding: 8,
+    marginLeft: 8,
   },
   addItemContainer: {
     flexDirection: 'row',
@@ -1213,8 +1232,9 @@ const styles = StyleSheet.create({
   addItemButtonDisabled: {
     opacity: 0.5,
   },
-  listContent: {
-    paddingBottom: 10,
+  listContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 100,
   },
   editSection: {
     padding: 15,
@@ -1298,6 +1318,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
     flexShrink: 1,
+  },
+  loader: {
+    marginTop: 20,
+  },
+  editScrollView: {
+    flex: 1,
   },
 });
 
