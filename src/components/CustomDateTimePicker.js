@@ -100,31 +100,22 @@ const CustomDateTimePicker = ({
     if (selectedTime) {
       setTime(selectedTime);
     }
-    
-    // Auto-close after delay when user stops scrolling
-    if (Platform.OS === 'ios') {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      timeoutRef.current = setTimeout(() => {
-        setTimePickerVisible(false);
-        setView('main');
-      }, 1000);
-    }
   };
 
-  // Handle time selection for Android
-  const handleAndroidTimeConfirm = () => {
-    const newTime = new Date();
-    newTime.setHours(selectedHour);
-    newTime.setMinutes(selectedMinute);
-    setTime(newTime);
+  // Handle time confirmation for both platforms
+  const handleTimeConfirm = () => {
+    if (Platform.OS === 'android') {
+      const newTime = new Date();
+      newTime.setHours(selectedHour);
+      newTime.setMinutes(selectedMinute);
+      setTime(newTime);
+    }
+    // For iOS, the time is already updated through handleTimeChange
     setTimePickerVisible(false);
     setView('main');
   };
   
-  // Handle Android time value changes with debounce
+  // Handle Android time value changes
   const handleAndroidTimeChange = (value, isHour) => {
     if (isHour) {
       setSelectedHour(parseInt(value));
@@ -132,23 +123,11 @@ const CustomDateTimePicker = ({
       setSelectedMinute(parseInt(value));
     }
     
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    // Set a new timeout to update the time value, but don't auto-confirm
-    timeoutRef.current = setTimeout(() => {
-      // Just update the local state without closing the picker
-      const newTime = new Date();
-      newTime.setHours(isHour ? parseInt(value) : selectedHour);
-      newTime.setMinutes(!isHour ? parseInt(value) : selectedMinute);
-      setTime(newTime);
-      
-      // Auto-close after updating the time
-      setTimePickerVisible(false);
-      setView('main');
-    }, 1000);
+    // Update the time state without closing the picker
+    const newTime = new Date();
+    newTime.setHours(isHour ? parseInt(value) : selectedHour);
+    newTime.setMinutes(!isHour ? parseInt(value) : selectedMinute);
+    setTime(newTime);
   };
 
   // Handle frequency selection
@@ -298,7 +277,7 @@ const CustomDateTimePicker = ({
         >
           <View style={styles.iconLabelContainer}>
             <Ionicons name="notifications-outline" size={24} color="#333" />
-            <Text style={styles.optionLabel}>Push notification</Text>
+            <Text style={styles.optionLabel}>Notifications</Text>
           </View>
           <View style={[
             styles.notificationSwitch, 
@@ -392,88 +371,71 @@ const CustomDateTimePicker = ({
 
   // Render the time picker view
   const renderTimeView = () => {
-    // Different implementations for iOS and Android
     if (Platform.OS === 'ios') {
       return (
-        <View style={styles.timePickerContainer}>
-          <View style={styles.timePickerHeader}>
-            <Text style={styles.timePickerTitle}>Select Time</Text>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <View style={{ width: 40 }} />
+            <Text style={styles.headerTitle}>Select Time</Text>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleTimeConfirm}
+            >
+              <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
+            </TouchableOpacity>
           </View>
           <DateTimePicker
             value={time}
             mode="time"
             display="spinner"
             onChange={handleTimeChange}
-            textColor="#333"
-            style={styles.iosTimePicker}
-            accentColor={THEME.PRIMARY}
+            style={styles.timePicker}
           />
         </View>
       );
-    } else {
-      // Android wheel picker
-      return (
-        <View style={styles.timePickerContainer}>
-          <View style={styles.timePickerHeader}>
-            <Text style={styles.timePickerTitle}>Select Time</Text>
-          </View>
-
-          <View style={styles.androidTimePickerContainer}>
-            <ScrollPicker
-              dataSource={HOURS}
-              selectedIndex={selectedHour}
-              renderItem={(data, index) => {
-                return (
-                  <View style={styles.androidTimePickerItem}>
-                    <Text style={[
-                      styles.androidTimePickerText,
-                      selectedHour === parseInt(data) && styles.androidTimePickerTextSelected
-                    ]}>{data}</Text>
-                  </View>
-                );
-              }}
-              onValueChange={(data, selectedIndex) => {
-                handleAndroidTimeChange(data, true);
-              }}
-              wrapperHeight={180}
-              wrapperBackground="white"
-              itemHeight={60}
-              highlightColor="#f7f7f7"
-              highlightBorderWidth={1}
-              activeItemColor={THEME.PRIMARY}
-              itemColor="#333"
-            />
-            
-            <Text style={styles.androidTimePickerColon}>:</Text>
-            
-            <ScrollPicker
-              dataSource={MINUTES}
-              selectedIndex={selectedMinute}
-              renderItem={(data, index) => {
-                return (
-                  <View style={styles.androidTimePickerItem}>
-                    <Text style={[
-                      styles.androidTimePickerText,
-                      selectedMinute === parseInt(data) && styles.androidTimePickerTextSelected
-                    ]}>{data}</Text>
-                  </View>
-                );
-              }}
-              onValueChange={(data, selectedIndex) => {
-                handleAndroidTimeChange(data, false);
-              }}
-              wrapperHeight={180}
-              wrapperBackground="white"
-              itemHeight={60}
-              highlightColor="#f7f7f7"
-              highlightBorderWidth={1}
-              activeItemColor={THEME.PRIMARY}
-              itemColor="#333"
-            />
-          </View>
-        </View>
-      );
     }
+    
+    return (
+      <View style={styles.modalContent}>
+        <View style={styles.header}>
+          <View style={{ width: 40 }} />
+          <Text style={styles.headerTitle}>Select Time</Text>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleTimeConfirm}
+          >
+            <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.androidTimePickerContainer}>
+          <ScrollPicker
+            dataSource={HOURS}
+            selectedIndex={selectedHour}
+            renderItem={(data) => (
+              <Text style={styles.pickerItemText}>{data}</Text>
+            )}
+            onValueChange={(value) => handleAndroidTimeChange(value, true)}
+            wrapperHeight={160}
+            wrapperWidth={width * 0.2}
+            itemHeight={40}
+            highlightColor={COLORS.INDIGO_15}
+          />
+          <Text style={styles.timeSeparator}>:</Text>
+          <ScrollPicker
+            dataSource={MINUTES}
+            selectedIndex={selectedMinute}
+            renderItem={(data) => (
+              <Text style={styles.pickerItemText}>{data}</Text>
+            )}
+            onValueChange={(value) => handleAndroidTimeChange(value, false)}
+            wrapperHeight={160}
+            wrapperWidth={width * 0.2}
+            itemHeight={40}
+            highlightColor={COLORS.INDIGO_15}
+          />
+        </View>
+      </View>
+    );
   };
 
   // Render the frequency selection view
@@ -818,6 +780,47 @@ const styles = StyleSheet.create({
   weekdayTextSelected: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    paddingBottom: 30,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timePicker: {
+    backgroundColor: 'white',
+    height: 200,
+  },
+  pickerItemText: {
+    color: '#333',
+    fontSize: 22,
+  },
+  timeSeparator: {
+    color: '#333',
+    fontSize: 24,
+    marginHorizontal: 5,
   },
 });
 
