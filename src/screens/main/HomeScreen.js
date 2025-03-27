@@ -423,7 +423,11 @@ const HomeScreen = ({ navigation }) => {
       
       {/* App Header Bar */}
       <View style={styles.headerContainer}>
-        <Text style={styles.appTitle}>PackM!nd+</Text>
+        <Image
+          source={require('../../../assets/app-name-purple.png')}
+          style={styles.appLogo}
+          resizeMode="contain"
+        />
         <View style={styles.rightContainer}>
           <View style={styles.notificationContainer}>
             <TouchableOpacity 
@@ -533,13 +537,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: THEME.PRIMARY,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  appLogo: {
+    height: 30,
+    width: 120,
+    marginLeft: 12,
   },
   rightContainer: {
     flexDirection: 'row',
