@@ -132,48 +132,28 @@ const HomeScreen = ({ navigation }) => {
   };
   
   // Handle delete packing list
-  const handleDeleteList = (list) => {
-    Alert.alert(
-      "Delete Packing List",
-      `Are you sure you want to delete "${list.title}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // Delete the list document from Firestore
-              await firebase.firestore()
-                .collection('packingLists')
-                .doc(list.id)
-                .delete();
-              
-              console.log('Successfully deleted list:', list.id);
-              
-              // Update local state
-              setPackingLists(prevLists => 
-                prevLists.filter(item => item.id !== list.id)
-              );
-              
-              // Cancel any associated notifications
-              try {
-                await cancelPackingReminders(list.id);
-              } catch (notificationError) {
-                console.error('Error cancelling notifications:', notificationError);
-                // Continue execution even if notification cancellation fails
-              }
-            } catch (error) {
-              console.error('Error deleting list:', error);
-              Alert.alert('Error', 'Failed to delete the packing list. Please try again.');
-            }
-          }
-        }
-      ]
-    );
+  const handleDeleteList = async (listId) => {
+    try {
+      // Delete the list document from Firestore
+      await firebase.firestore()
+        .collection('packingLists')
+        .doc(listId)
+        .delete();
+      
+      // Update local state
+      setPackingLists(prevLists => prevLists.filter(list => list.id !== listId));
+      
+      // Cancel any associated notifications
+      try {
+        await cancelPackingReminders(listId);
+      } catch (notificationError) {
+        console.error('Error cancelling notifications:', notificationError);
+        // Continue execution even if notification cancellation fails
+      }
+    } catch (error) {
+      console.error('Error deleting list:', error);
+      Alert.alert('Error', 'Failed to delete list');
+    }
   };
   
   // Calculate progress for a list
@@ -267,7 +247,7 @@ const HomeScreen = ({ navigation }) => {
             ]}
           >
             <TouchableOpacity
-              onPress={() => handleDeleteList(item)}
+              onPress={() => handleDeleteList(item.id)}
               style={styles.deleteButtonInner}
             >
               <Ionicons name="trash-outline" size={24} color="white" />
@@ -354,13 +334,13 @@ const HomeScreen = ({ navigation }) => {
   const getActivityColor = (activity) => {
     const colors = {
       travel: COLORS.LAVENDER,
-      camping: COLORS.INDIGO,
-      hiking: COLORS.INDIGO,
+      camping: COLORS.LAVENDER,
+      hiking: COLORS.LAVENDER,
       beach: COLORS.LAVENDER,
-      skiing: COLORS.INDIGO,
-      business: COLORS.ROYAL,
+      skiing: COLORS.LAVENDER,
+      business: COLORS.LAVENDER,
       gym: COLORS.LAVENDER,
-      default: COLORS.LIGHT_GRAY,
+      default: COLORS.INDIGO,
     };
     
     return colors[activity] || colors.default;
