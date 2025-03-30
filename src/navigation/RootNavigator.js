@@ -11,6 +11,7 @@ import HomeScreen from '../screens/main/HomeScreen';
 import CreateListScreen from '../screens/main/CreateListScreen';
 import ListDetailsScreen from '../screens/main/ListDetailsScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
+import PremiumScreen from '../screens/main/PremiumScreen';
 import ActivityTemplatesScreen from '../screens/main/ActivityTemplatesScreen';
 import CollaborativeListScreen from '../screens/main/CollaborativeListScreen';
 
@@ -33,6 +34,7 @@ const MainStackNavigator = () => (
     <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
     <Stack.Screen name="ActivityTemplates" component={ActivityTemplatesScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Premium" component={PremiumScreen} />
     <Stack.Screen name="CollaborativeList" component={CollaborativeListScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>

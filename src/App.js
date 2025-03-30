@@ -4,6 +4,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './context/AuthContext';
+import { PremiumProvider } from './context/PremiumContext';
 import RootNavigator from './navigation/RootNavigator';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -145,19 +146,21 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={{
-        colors: {
-          primary: THEME.PRIMARY,
-          accent: THEME.ACCENT,
-        }
-      }}>
-        <AuthProvider>
-          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-          <NavigationContainer ref={navigationRef} theme={theme}>
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
-      </PaperProvider>
+      <AuthProvider>
+        <PremiumProvider>
+          <PaperProvider theme={{
+            colors: {
+              primary: THEME.PRIMARY,
+              accent: THEME.ACCENT,
+            }
+          }}>
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+            <NavigationContainer ref={navigationRef} theme={theme}>
+              <RootNavigator />
+            </NavigationContainer>
+          </PaperProvider>
+        </PremiumProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 } 

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { usePremium } from '../../context/PremiumContext';
 import { getUserProfile, updateUserProfile } from '../../models/firestoreModels';
 import { COLORS, THEME } from '../../constants/theme';
 import { useActivityTracker } from '../../hooks/useActivityTracker';
@@ -24,6 +25,17 @@ import firebase from '../../firebase/firebaseConfig';
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  
+  // Try to get premium context - use try/catch to prevent errors during initialization
+  let isPremium = false;
+  let subscriptionType = null;
+  try {
+    const premiumContext = usePremium();
+    isPremium = premiumContext.isPremium;
+    subscriptionType = premiumContext.subscriptionType;
+  } catch (error) {
+    console.log('Premium context not yet available, using defaults');
+  }
   
   // State
   const [userProfile, setUserProfile] = useState(null);
@@ -267,15 +279,27 @@ const SettingsScreen = ({ navigation }) => {
         {/* Premium Section - Only show for full accounts */}
         {!isGuestUser && (
           <View style={styles.premiumSection}>
-            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
+            <Text style={styles.premiumTitle}>
+              {isPremium ? 'Premium Active' : 'Upgrade to Premium'}
+            </Text>
             <Text style={styles.premiumDescription}>
-              Get unlimited lists, priority support, and exclusive features.
+              {isPremium 
+                ? `You're currently on the ${subscriptionType === 'trial' 
+                    ? 'Free Trial' 
+                    : subscriptionType === 'monthly' 
+                      ? 'Monthly Plan' 
+                      : subscriptionType === 'annual' 
+                        ? 'Annual Plan' 
+                        : 'Lifetime Plan'}`
+                : 'Get unlimited lists, advanced notifications, and more.'}
             </Text>
             <TouchableOpacity 
-              style={styles.premiumButton}
-              onPress={() => Alert.alert('Premium', 'Coming soon!')}
+              style={[styles.premiumButton, isPremium && styles.premiumActiveButton]}
+              onPress={() => navigation.navigate('Premium')}
             >
-              <Text style={styles.premiumButtonText}>View Premium Features</Text>
+              <Text style={styles.premiumButtonText}>
+                {isPremium ? 'Manage Subscription' : 'View Premium Features'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -500,6 +524,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  premiumActiveButton: {
+    backgroundColor: COLORS.SUCCESS,
   },
   premiumButtonText: {
     color: 'white',

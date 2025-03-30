@@ -287,6 +287,9 @@ const CustomDateTimePicker = ({
           <View style={styles.iconLabelContainer}>
             <Ionicons name="notifications-outline" size={24} color="#333" />
             <Text style={styles.optionLabel}>Notifications</Text>
+            <View style={styles.premiumBadge}>
+              <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+            </View>
           </View>
           <View style={[
             styles.notificationSwitch, 
@@ -843,6 +846,18 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 24,
     marginHorizontal: 5,
+  },
+  premiumBadge: {
+    backgroundColor: THEME.PRIMARY,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    marginLeft: 5,
+  },
+  premiumBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
 

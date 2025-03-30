@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
+import { usePremium } from '../../context/PremiumContext';
 import { getPackingList, updatePackingList, deletePackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -34,6 +35,15 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ListDetailsScreen = ({ route, navigation }) => {
   const { listId } = route.params;
   const { user } = useAuth();
+  
+  // Try to get premium context - use try/catch to prevent errors during initialization
+  let isPremium = false;
+  try {
+    const premiumContext = usePremium();
+    isPremium = premiumContext.isPremium;
+  } catch (error) {
+    console.log('Premium context not yet available, using defaults');
+  }
   
   // Track user activity for guest users
   useActivityTracker();
@@ -282,7 +292,28 @@ const ListDetailsScreen = ({ route, navigation }) => {
   
   // Date picker handlers
   const showDateTimePicker = () => {
-    setDateTimePickerVisible(true);
+    try {
+      if (!isPremium) {
+        Alert.alert(
+          'Premium Feature',
+          'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'View Premium', 
+              onPress: () => navigation.navigate('Premium')
+            }
+          ]
+        );
+        return;
+      }
+      
+      setDateTimePickerVisible(true);
+    } catch (error) {
+      console.log('Error in showDateTimePicker:', error);
+      // Default to showing picker if premium context fails
+      setDateTimePickerVisible(true);
+    }
   };
   
   const hideDateTimePicker = () => {

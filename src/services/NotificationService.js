@@ -19,6 +19,33 @@ Notifications.setNotificationHandler({
 const PUSH_TOKEN_STORAGE_KEY = 'packmind_push_token';
 
 /**
+ * Helper function to check if user has premium access to notifications
+ * @returns {Promise<boolean>} True if the user is premium, false otherwise
+ */
+export const checkPremiumNotificationAccess = async () => {
+  try {
+    // Get premium status from storage first for a quick check
+    const isPremiumStr = await AsyncStorage.getItem('user_is_premium');
+    const isPremium = isPremiumStr === 'true';
+    
+    if (!isPremium) {
+      console.log('User is not premium, notifications restricted');
+      Alert.alert(
+        'Premium Feature',
+        'Push notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable this feature.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
+};
+
+/**
  * Test notification - use this to quickly test if notifications are working
  */
 export const sendTestNotification = async () => {
@@ -355,6 +382,13 @@ const scheduleDailyOccurrences = async (listId, title, body, baseDate, daysToSch
  */
 export const schedulePackingReminder = async (listId, title, body, date, recurrence) => {
   try {
+    // Check if user has premium access to notifications
+    const hasPremiumAccess = await checkPremiumNotificationAccess();
+    if (!hasPremiumAccess) {
+      console.log('Premium access check failed, cannot schedule notification');
+      return null;
+    }
+
     // First check if notifications are permitted
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {

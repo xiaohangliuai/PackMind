@@ -22,6 +22,17 @@ export const COLORS = {
   SUCCESS: '#4CAF50',
   WARNING: '#FFC107',
   
+  // Premium colors
+  GOLD: '#FFD700',
+  GOLD_DARK: '#B8860B',
+  GOLD_LIGHT: 'rgba(255, 215, 0, 0.15)',
+  
+  // Success variants
+  SUCCESS_LIGHT: 'rgba(76, 175, 80, 0.15)',
+  
+  // Lavender variants
+  LAVENDER_LIGHT: 'rgba(203, 152, 237, 0.15)',
+  
   // Transparent versions for overlays, shadows and glass-morphic effects
   LAVENDER_15: 'rgba(203, 152, 237, 0.15)',
   INDIGO_15: 'rgba(139, 99, 218, 0.15)',

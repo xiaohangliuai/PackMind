@@ -19,6 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
+import { usePremium } from '../../context/PremiumContext';
 import firebase from '../../firebase/firebaseConfig';
 import { Appbar, Avatar, Badge } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
@@ -35,10 +36,7 @@ const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const HomeScreen = ({ navigation }) => {
   // Auth context
   const { user, logout } = useAuth();
-
-  // Track user activity
-  useActivityTracker();
-
+  
   // State declarations
   const [packingLists, setPackingLists] = useState([]);
   const [sharedLists, setSharedLists] = useState([]);
@@ -47,6 +45,23 @@ const HomeScreen = ({ navigation }) => {
   const [hasNotifications, setHasNotifications] = useState(true);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [completedAnim] = useState(new Animated.Value(1));
+  
+  // Try to get premium context - use try/catch to prevent errors during initialization
+  let isPremium = false;
+  let limits = { MAX_LISTS: 3 };
+  let canCreateMoreLists = async () => true;
+  
+  try {
+    const premiumContext = usePremium();
+    isPremium = premiumContext.isPremium;
+    limits = premiumContext.limits;
+    canCreateMoreLists = premiumContext.canCreateMoreLists;
+  } catch (error) {
+    console.log('Premium context not yet available, using defaults');
+  }
+
+  // Track user activity
+  useActivityTracker();
 
   // Fetch packing lists function
   const fetchPackingLists = useCallback(async () => {
@@ -136,6 +151,49 @@ const HomeScreen = ({ navigation }) => {
   );
   
   console.log("HomeScreen rendered, user:", user ? user.uid : "no user");
+  
+  // Check if user can create more lists - with error handling
+  const checkListLimitAndCreate = async () => {
+    try {
+      // Check if user has reached the list limit, regardless of account type
+      let canCreate = true;
+      try {
+        // For both guest and regular users, enforce the list limit
+        canCreate = isPremium || packingLists.length < limits.MAX_LISTS;
+      } catch (error) {
+        console.log('Error checking list limit, assuming limit reached for safety:', error);
+        canCreate = false;
+      }
+      
+      if (canCreate) {
+        handleCreateList();
+      } else {
+        // Show upgrade prompt
+        Alert.alert(
+          'List Limit Reached',
+          `You've reached the maximum of ${limits?.MAX_LISTS || 3} lists on the free plan. ${
+            user?.isAnonymous 
+              ? 'Create an account and upgrade to Premium for unlimited lists.' 
+              : 'Upgrade to Premium for unlimited lists.'
+          }`,
+          [
+            { 
+              text: 'Not Now', 
+              style: 'cancel' 
+            },
+            { 
+              text: 'View Premium', 
+              onPress: () => navigation.navigate('Premium')
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.log('Error in checkListLimitAndCreate:', error);
+      // Don't automatically allow creation in case of error
+      Alert.alert('Error', 'There was a problem checking your list limit. Please try again.');
+    }
+  };
   
   // Navigation handlers with added debugging
   const handleCreateList = () => {
@@ -433,6 +491,29 @@ const HomeScreen = ({ navigation }) => {
     return name.split(' ').map(part => part[0]).join('').toUpperCase();
   };
   
+  // Render premium banner with error handling
+  const renderPremiumBanner = () => {
+    try {
+      if (!isPremium && !user?.isAnonymous && packingLists.length > 0) {
+        return (
+          <TouchableOpacity 
+            style={styles.premiumBanner}
+            onPress={() => navigation.navigate('Premium')}
+          >
+            <Ionicons name="star" size={18} color={COLORS.GOLD} style={styles.premiumBannerIcon} />
+            <Text style={styles.premiumBannerText}>
+              Upgrade to Premium for unlimited lists and more!
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color="#777" />
+          </TouchableOpacity>
+        );
+      }
+    } catch (error) {
+      console.log('Error rendering premium banner:', error);
+    }
+    return null;
+  }
+  
   return (
     <View style={styles.container}>
       <StatusBar 
@@ -517,7 +598,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.addButtonContainer}>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={handleCreateList}
+          onPress={checkListLimitAndCreate}
           activeOpacity={0.8}
         >
           <Animated.View 
@@ -537,6 +618,9 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.addButtonLabel}>New List</Text>
         </TouchableOpacity>
       </View>
+      
+      {/* Premium banner for free users */}
+      {renderPremiumBanner()}
     </View>
   );
 };
@@ -868,6 +952,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
+  },
+  premiumBanner: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.GOLD_LIGHT,
+    borderRadius: 10,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  premiumBannerIcon: {
+    marginRight: 10,
+  },
+  premiumBannerText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.GOLD_DARK,
+    fontWeight: '500',
   },
 });
 

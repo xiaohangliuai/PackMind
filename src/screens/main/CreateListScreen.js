@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
+import { usePremium } from '../../context/PremiumContext';
 import { createPackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
@@ -100,6 +101,19 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const CreateListScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   
+  // Try to get premium context - use try/catch to prevent errors during initialization
+  let isPremium = false;
+  let limits = { MAX_LISTS: 3 };
+  let canCreateMoreLists = async () => true;
+  try {
+    const premiumContext = usePremium();
+    isPremium = premiumContext.isPremium;
+    limits = premiumContext.limits;
+    canCreateMoreLists = premiumContext.canCreateMoreLists;
+  } catch (error) {
+    console.log('Premium context not yet available, using defaults');
+  }
+  
   // Track user activity for guest users
   useActivityTracker();
   
@@ -131,7 +145,28 @@ const CreateListScreen = ({ navigation, route }) => {
   
   // Date time picker handlers
   const showDateTimePicker = () => {
-    setDateTimePickerVisible(true);
+    try {
+      if (!isPremium) {
+        Alert.alert(
+          'Premium Feature',
+          'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'View Premium', 
+              onPress: () => navigation.navigate('Premium')
+            }
+          ]
+        );
+        return;
+      }
+      
+      setDateTimePickerVisible(true);
+    } catch (error) {
+      console.log('Error in showDateTimePicker:', error);
+      // Default to showing picker if premium context fails
+      setDateTimePickerVisible(true);
+    }
   };
   
   const hideDateTimePicker = () => {
@@ -204,107 +239,272 @@ const CreateListScreen = ({ navigation, route }) => {
     return true;
   };
   
-  // Save packing list
+  // Save packing list with premium check
   const handleSaveList = async () => {
-    setIsLoading(true);
-    // Validate the form fields
-    if (!title.trim() || !selectedActivity || !date) {
-      Alert.alert('', 'Please fill in all required fields: title, activity, and date.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const user = firebase.auth().currentUser;
-      
-      // Create the new packing list
-      const newPackingList = {
-        title: title.trim(),
-        activity: selectedActivity.id,
-        destination: destination.trim(),
-        date: date,
-        recurrence: recurrence,
-        items: items.map(item => ({ ...item, id: item.id || uuidv4() })),
-        completed: false,
-        userId: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      
-      // Save to Firestore
-      const docRef = await firebase.firestore().collection('packingLists').add(newPackingList);
-      
-      // Schedule notifications if recurrence is set and notifications are enabled
-      const shouldScheduleNotification = recurrence && 
-                                        (recurrence.notificationsEnabled === true) && 
-                                        (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
-
-      console.log('Should schedule notification:', shouldScheduleNotification);
-      console.log('Recurrence details:', recurrence);
-      console.log('Notification type:', recurrence?.notificationType);
-
-      if (shouldScheduleNotification) {
-        try {
-          console.log('Attempting to schedule notification for:', title.trim());
-          const notificationId = await NotificationService.schedulePackingReminder(
-            docRef.id,
-            title.trim(),
-            destination ? `Don't forget to pack for ${destination}!` : null,
-            date,
-            recurrence
-          );
-          
-          // Update the document with the notification ID
-          await docRef.update({
-            notificationId: notificationId
-          });
-          
-          console.log('Notification scheduled with ID:', notificationId);
-          
-          // Verify the notification is scheduled correctly
-          await NotificationService.verifyNotification(notificationId);
-          
-          // List all scheduled notifications for debugging
-          await NotificationService.listAllScheduledNotifications();
-          
-          // Show explanation for recurring notifications
-          if (recurrence.type !== 'none' && recurrence.notificationType === 'recurring') {
-            let message = '';
-            const timeStr = format(date, 'h:mm a');
-            
-            switch (recurrence.type) {
-              case 'daily':
-                message = `Daily reminder set for ${timeStr}.\n\nWe've scheduled the next 14 daily occurrences for you.`;
-                break;
-              case 'weekly':
-                const days = recurrence.days.map(day => WEEKDAYS[day]).join(', ');
-                message = `Weekly reminder set for ${days} at ${timeStr}.\n\nWe've scheduled the next 4 weeks of occurrences for you.`;
-                break;
-              case 'monthly':
-                message = `Monthly reminder set for day ${date.getDate()} at ${timeStr}.\n\nWe've scheduled the next 3 monthly occurrences for you.`;
-                break;
-            }
-            
-            Alert.alert(
-              'Recurring Reminder Set',
-              `${message}`,
-              [{ text: 'OK' }]
-            );
-          }
-        } catch (notifError) {
-          console.error('Error scheduling notification:', notifError);
-          // Continue without notification if there's an error
-        }
-      } else {
-        console.log('No notifications scheduled: recurrence type is none or notifications are disabled');
+      setIsLoading(true);
+      // Validate the form fields
+      if (!title.trim() || !selectedActivity || !date) {
+        Alert.alert('', 'Please fill in all required fields: title, activity, and date.');
+        setIsLoading(false);
+        return;
       }
-      
-      // No success alert
-      navigation.goBack();
+
+      try {
+        const user = firebase.auth().currentUser;
+        
+        // Check list limit for all users
+        if (!isPremium) {
+          // Get current count of user's packing lists
+          const snapshot = await firebase.firestore()
+            .collection('packingLists')
+            .where('userId', '==', user.uid)
+            .get();
+            
+          const currentListCount = snapshot.docs.length;
+          
+          // If reached limit, show premium upgrade prompt
+          if (currentListCount >= limits.MAX_LISTS) {
+            Alert.alert(
+              'List Limit Reached',
+              `You've reached the maximum of ${limits.MAX_LISTS} lists on the free plan. ${
+                user.isAnonymous 
+                  ? 'Create an account and upgrade to Premium for unlimited lists.' 
+                  : 'Upgrade to Premium for unlimited lists.'
+              }`,
+              [
+                { text: 'Not Now', style: 'cancel' },
+                { 
+                  text: 'View Premium', 
+                  onPress: () => {
+                    setIsLoading(false);
+                    navigation.navigate('Premium');
+                  }
+                }
+              ]
+            );
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Check premium status for notification settings
+        const hasNotificationAccess = isPremium;
+        
+        // If user is trying to use notifications but isn't premium
+        if (!hasNotificationAccess && 
+            recurrence && 
+            recurrence.notificationsEnabled) {
+          
+          // Show premium upgrade prompt
+          Alert.alert(
+            'Premium Feature',
+            'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+            [
+              { text: 'Not Now', style: 'cancel' },
+              { 
+                text: 'View Premium', 
+                onPress: () => {
+                  setIsLoading(false);
+                  navigation.navigate('Premium');
+                  return;
+                }
+              }
+            ]
+          );
+          setIsLoading(false);
+          return;
+        }
+        
+        // If user is not premium, disable notifications entirely
+        const finalRecurrence = hasNotificationAccess ? recurrence : {
+          ...recurrence,
+          notificationsEnabled: false,
+          notificationType: 'none'
+        };
+        
+        // Create the new packing list
+        const newPackingList = {
+          title: title.trim(),
+          activity: selectedActivity.id,
+          destination: destination.trim(),
+          date: date,
+          recurrence: finalRecurrence,
+          items: items.map(item => ({ ...item, id: item.id || uuidv4() })),
+          completed: false,
+          userId: user.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        // Save to Firestore
+        const docRef = await firebase.firestore().collection('packingLists').add(newPackingList);
+        
+        // Schedule notifications if recurrence is set and notifications are enabled
+        const shouldScheduleNotification = recurrence && 
+                                          (recurrence.notificationsEnabled === true) && 
+                                          (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
+
+        console.log('Should schedule notification:', shouldScheduleNotification);
+        console.log('Recurrence details:', recurrence);
+        console.log('Notification type:', recurrence?.notificationType);
+
+        if (shouldScheduleNotification) {
+          try {
+            console.log('Attempting to schedule notification for:', title.trim());
+            const notificationId = await NotificationService.schedulePackingReminder(
+              docRef.id,
+              title.trim(),
+              destination ? `Don't forget to pack for ${destination}!` : null,
+              date,
+              recurrence
+            );
+            
+            // Update the document with the notification ID
+            await docRef.update({
+              notificationId: notificationId
+            });
+            
+            console.log('Notification scheduled with ID:', notificationId);
+            
+            // Verify the notification is scheduled correctly
+            await NotificationService.verifyNotification(notificationId);
+            
+            // List all scheduled notifications for debugging
+            await NotificationService.listAllScheduledNotifications();
+            
+            // Show explanation for recurring notifications
+            if (recurrence.type !== 'none' && recurrence.notificationType === 'recurring') {
+              let message = '';
+              const timeStr = format(date, 'h:mm a');
+              
+              switch (recurrence.type) {
+                case 'daily':
+                  message = `Daily reminder set for ${timeStr}.\n\nWe've scheduled the next 14 daily occurrences for you.`;
+                  break;
+                case 'weekly':
+                  const days = recurrence.days.map(day => WEEKDAYS[day]).join(', ');
+                  message = `Weekly reminder set for ${days} at ${timeStr}.\n\nWe've scheduled the next 4 weeks of occurrences for you.`;
+                  break;
+                case 'monthly':
+                  message = `Monthly reminder set for day ${date.getDate()} at ${timeStr}.\n\nWe've scheduled the next 3 monthly occurrences for you.`;
+                  break;
+              }
+              
+              Alert.alert(
+                'Recurring Reminder Set',
+                `${message}`,
+                [{ text: 'OK' }]
+              );
+            }
+          } catch (notifError) {
+            console.error('Error scheduling notification:', notifError);
+            // Continue without notification if there's an error
+          }
+        } else {
+          console.log('No notifications scheduled: recurrence type is none or notifications are disabled');
+        }
+        
+        // No success alert
+        navigation.goBack();
+      } catch (error) {
+        console.error('Error in premium check:', error);
+        
+        // Fallback to non-premium behavior if there's an error
+        const finalRecurrence = {
+          ...recurrence,
+          notificationsEnabled: false,
+          notificationType: 'none'
+        };
+        
+        // Create the new packing list
+        const newPackingList = {
+          title: title.trim(),
+          activity: selectedActivity.id,
+          destination: destination.trim(),
+          date: date,
+          recurrence: finalRecurrence,
+          items: items.map(item => ({ ...item, id: item.id || uuidv4() })),
+          completed: false,
+          userId: user.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        // Save to Firestore
+        const docRef = await firebase.firestore().collection('packingLists').add(newPackingList);
+        
+        // Schedule notifications if recurrence is set and notifications are enabled
+        const shouldScheduleNotification = recurrence && 
+                                          (recurrence.notificationsEnabled === true) && 
+                                          (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
+
+        console.log('Should schedule notification:', shouldScheduleNotification);
+        console.log('Recurrence details:', recurrence);
+        console.log('Notification type:', recurrence?.notificationType);
+
+        if (shouldScheduleNotification) {
+          try {
+            console.log('Attempting to schedule notification for:', title.trim());
+            const notificationId = await NotificationService.schedulePackingReminder(
+              docRef.id,
+              title.trim(),
+              destination ? `Don't forget to pack for ${destination}!` : null,
+              date,
+              recurrence
+            );
+            
+            // Update the document with the notification ID
+            await docRef.update({
+              notificationId: notificationId
+            });
+            
+            console.log('Notification scheduled with ID:', notificationId);
+            
+            // Verify the notification is scheduled correctly
+            await NotificationService.verifyNotification(notificationId);
+            
+            // List all scheduled notifications for debugging
+            await NotificationService.listAllScheduledNotifications();
+            
+            // Show explanation for recurring notifications
+            if (recurrence.type !== 'none' && recurrence.notificationType === 'recurring') {
+              let message = '';
+              const timeStr = format(date, 'h:mm a');
+              
+              switch (recurrence.type) {
+                case 'daily':
+                  message = `Daily reminder set for ${timeStr}.\n\nWe've scheduled the next 14 daily occurrences for you.`;
+                  break;
+                case 'weekly':
+                  const days = recurrence.days.map(day => WEEKDAYS[day]).join(', ');
+                  message = `Weekly reminder set for ${days} at ${timeStr}.\n\nWe've scheduled the next 4 weeks of occurrences for you.`;
+                  break;
+                case 'monthly':
+                  message = `Monthly reminder set for day ${date.getDate()} at ${timeStr}.\n\nWe've scheduled the next 3 monthly occurrences for you.`;
+                  break;
+              }
+              
+              Alert.alert(
+                'Recurring Reminder Set',
+                `${message}`,
+                [{ text: 'OK' }]
+              );
+            }
+          } catch (notifError) {
+            console.error('Error scheduling notification:', notifError);
+            // Continue without notification if there's an error
+          }
+        } else {
+          console.log('No notifications scheduled: recurrence type is none or notifications are disabled');
+        }
+        
+        // No success alert
+        navigation.goBack();
+      }
     } catch (error) {
-      console.error('Error creating packing list:', error);
+      console.error('Error in handleSaveList:', error);
       Alert.alert('', 'There was a problem creating your packing list. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
