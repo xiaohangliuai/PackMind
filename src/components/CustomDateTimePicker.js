@@ -79,7 +79,16 @@ const CustomDateTimePicker = ({
     combinedDate.setHours(time.getHours());
     combinedDate.setMinutes(time.getMinutes());
     
-    onSave(combinedDate, recurrence);
+    // Create final recurrence object
+    const finalRecurrence = {
+      ...recurrence,
+      notificationsEnabled: notificationsEnabled,
+      // Add a notificationType field to distinguish between one-time and recurring notifications
+      notificationType: notificationsEnabled ? (recurrence.type === 'none' ? 'one-time' : 'recurring') : 'none'
+    };
+    
+    console.log('Saving date/time with recurrence:', finalRecurrence);
+    onSave(combinedDate, finalRecurrence);
     onClose();
   };
 

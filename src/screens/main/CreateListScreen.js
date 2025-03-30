@@ -234,9 +234,18 @@ const CreateListScreen = ({ navigation, route }) => {
       // Save to Firestore
       const docRef = await firebase.firestore().collection('packingLists').add(newPackingList);
       
-      // Schedule notifications if recurrence is set
-      if (recurrence && recurrence.type !== 'none') {
+      // Schedule notifications if recurrence is set and notifications are enabled
+      const shouldScheduleNotification = recurrence && 
+                                        (recurrence.notificationsEnabled === true) && 
+                                        (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
+
+      console.log('Should schedule notification:', shouldScheduleNotification);
+      console.log('Recurrence details:', recurrence);
+      console.log('Notification type:', recurrence?.notificationType);
+
+      if (shouldScheduleNotification) {
         try {
+          console.log('Attempting to schedule notification for:', title.trim());
           const notificationId = await NotificationService.schedulePackingReminder(
             docRef.id,
             title.trim(),
@@ -251,10 +260,43 @@ const CreateListScreen = ({ navigation, route }) => {
           });
           
           console.log('Notification scheduled with ID:', notificationId);
+          
+          // Verify the notification is scheduled correctly
+          await NotificationService.verifyNotification(notificationId);
+          
+          // List all scheduled notifications for debugging
+          await NotificationService.listAllScheduledNotifications();
+          
+          // Show explanation for recurring notifications
+          if (recurrence.type !== 'none' && recurrence.notificationType === 'recurring') {
+            let message = '';
+            const timeStr = format(date, 'h:mm a');
+            
+            switch (recurrence.type) {
+              case 'daily':
+                message = `Daily reminder set for ${timeStr}.\n\nWe've scheduled the next 14 daily occurrences for you.`;
+                break;
+              case 'weekly':
+                const days = recurrence.days.map(day => WEEKDAYS[day]).join(', ');
+                message = `Weekly reminder set for ${days} at ${timeStr}.\n\nWe've scheduled the next 4 weeks of occurrences for you.`;
+                break;
+              case 'monthly':
+                message = `Monthly reminder set for day ${date.getDate()} at ${timeStr}.\n\nWe've scheduled the next 3 monthly occurrences for you.`;
+                break;
+            }
+            
+            Alert.alert(
+              'Recurring Reminder Set',
+              `${message}`,
+              [{ text: 'OK' }]
+            );
+          }
         } catch (notifError) {
           console.error('Error scheduling notification:', notifError);
           // Continue without notification if there's an error
         }
+      } else {
+        console.log('No notifications scheduled: recurrence type is none or notifications are disabled');
       }
       
       // No success alert

@@ -365,8 +365,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
       });
       
       // Update notification if recurrence or date changed
-      if (recurrence && recurrence.type !== 'none') {
+      const shouldScheduleNotification = recurrence && 
+                                       (recurrence.notificationsEnabled === true) && 
+                                       (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
+
+      console.log('Should update notification:', shouldScheduleNotification);
+      console.log('Recurrence details:', recurrence);
+      console.log('Notification type:', recurrence?.notificationType);
+
+      if (shouldScheduleNotification) {
         try {
+          console.log('Attempting to update notification for list:', listId);
           const notificationId = await NotificationService.updatePackingReminders(
             listId,
             title.trim(),
@@ -378,13 +387,46 @@ const ListDetailsScreen = ({ route, navigation }) => {
           await listRef.update({
             notificationId: notificationId
           });
+          console.log('Notification updated with ID:', notificationId);
+
+          // Verify the notification is scheduled correctly
+          await NotificationService.verifyNotification(notificationId);
+          
+          // List all scheduled notifications for debugging
+          await NotificationService.listAllScheduledNotifications();
+          
+          // Show explanation for recurring notifications
+          if (recurrence.type !== 'none' && recurrence.notificationType === 'recurring') {
+            let message = '';
+            const timeStr = format(date, 'h:mm a');
+            
+            switch (recurrence.type) {
+              case 'daily':
+                message = `Daily reminder updated to ${timeStr}.\n\nWe've scheduled the next 14 daily occurrences for you.`;
+                break;
+              case 'weekly':
+                const days = recurrence.days.map(day => WEEKDAYS[day]).join(', ');
+                message = `Weekly reminder updated for ${days} at ${timeStr}.\n\nWe've scheduled the next 4 weeks of occurrences for you.`;
+                break;
+              case 'monthly':
+                message = `Monthly reminder updated for day ${date.getDate()} at ${timeStr}.\n\nWe've scheduled the next 3 monthly occurrences for you.`;
+                break;
+            }
+            
+            Alert.alert(
+              'Recurring Reminder Updated',
+              `${message}`,
+              [{ text: 'OK' }]
+            );
+          }
         } catch (notifError) {
           console.error('Error updating notification:', notifError);
           // Continue even if notification update fails
         }
       } else {
-        // Cancel any existing notifications if recurrence is none
+        // Cancel any existing notifications if recurrence is none or notifications disabled
         try {
+          console.log('Cancelling notifications for list:', listId);
           await NotificationService.cancelPackingReminders(listId);
         } catch (cancelError) {
           console.error('Error cancelling notifications:', cancelError);
