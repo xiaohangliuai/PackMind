@@ -21,9 +21,6 @@ import { COLORS, THEME } from '../../constants/theme';
 import { useActivityTracker } from '../../hooks/useActivityTracker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firebase from '../../firebase/firebaseConfig';
-import { sendTestNotification, sendTestNotificationSequence, listAllScheduledNotifications, testDailyNotification } from '../../services/NotificationService';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -31,9 +28,6 @@ const SettingsScreen = ({ navigation }) => {
   // State
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Settings state
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Check if user is anonymous (guest)
   const isGuestUser = user && user.isAnonymous;
@@ -48,19 +42,12 @@ const SettingsScreen = ({ navigation }) => {
       if (isGuestUser) {
         // For guest users, use default settings
         setUserProfile({
-          settings: {
-            notifications: true
-          }
+          settings: {}
         });
       } else {
         // For registered users, fetch from Firestore
         const profile = await getUserProfile(user.uid);
         setUserProfile(profile);
-        
-        // Set initial settings from profile
-        if (profile) {
-          setNotificationsEnabled(profile.settings?.notifications ?? true);
-        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -73,12 +60,6 @@ const SettingsScreen = ({ navigation }) => {
   useEffect(() => {
     fetchUserProfile();
   }, []);
-  
-  // Update settings when toggled
-  const handleToggleNotifications = (value) => {
-    setNotificationsEnabled(value);
-    updateSettings({ notifications: value });
-  };
   
   // Update settings in Firestore
   const updateSettings = async (settingUpdate) => {
@@ -216,170 +197,6 @@ const SettingsScreen = ({ navigation }) => {
     return name.split(' ').map(part => part[0]).join('').toUpperCase();
   };
   
-  // Add this function to handle test notification
-  const handleTestNotification = async () => {
-    try {
-      const permissionStatus = await Notifications.getPermissionsAsync();
-      if (permissionStatus.status !== 'granted') {
-        Alert.alert(
-          'Notification Permission Required',
-          'Please enable notifications in your device settings to receive packing reminders.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      // Schedule a test notification
-      const notificationId = await sendTestNotification();
-      
-      Alert.alert(
-        'Test Notification Sent',
-        'You should receive a notification within a few seconds. If not, check your device notification settings.',
-        [{ text: 'OK' }]
-      );
-      
-      console.log('Test notification scheduled with ID:', notificationId);
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      
-      Alert.alert(
-        'Notification Error',
-        `There was a problem sending the test notification: ${error.message}`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
-  
-  // Add this function to handle test notification sequence
-  const handleTestNotificationSequence = async () => {
-    try {
-      const permissionStatus = await Notifications.getPermissionsAsync();
-      if (permissionStatus.status !== 'granted') {
-        Alert.alert(
-          'Notification Permission Required',
-          'Please enable notifications in your device settings to receive packing reminders.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      // Schedule the notification sequence
-      Alert.alert(
-        'Testing Notifications',
-        'This will send two test notifications: one immediately and another 15 seconds later.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Send Test Notifications', 
-            onPress: async () => {
-              try {
-                const result = await sendTestNotificationSequence();
-                console.log('Test notification sequence scheduled:', result);
-              } catch (err) {
-                console.error('Test notification sequence failed:', err);
-                Alert.alert('Error', `Failed to send test notifications: ${err.message}`);
-              }
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Error setting up test notification sequence:', error);
-      
-      Alert.alert(
-        'Notification Error',
-        `There was a problem with the test notification sequence: ${error.message}`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
-  
-  // Add this function to handle checking all notifications
-  const handleCheckAllNotifications = async () => {
-    try {
-      // Get permissions first
-      const permissionStatus = await Notifications.getPermissionsAsync();
-      if (permissionStatus.status !== 'granted') {
-        Alert.alert(
-          'Notification Permission Required',
-          'Please enable notifications in your device settings to view scheduled notifications.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      // List all scheduled notifications
-      const notifications = await listAllScheduledNotifications();
-      
-      // Show notification count
-      Alert.alert(
-        'Scheduled Notifications',
-        `Found ${notifications.length} scheduled notifications.\n\nCheck the console logs for detailed information about each notification.`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error checking notifications:', error);
-      Alert.alert('Error', `Failed to check notifications: ${error.message}`);
-    }
-  };
-  
-  // Add handler for testing daily notifications
-  const handleTestDailyNotification = async () => {
-    try {
-      // First check permissions
-      const permissionStatus = await Notifications.getPermissionsAsync();
-      if (permissionStatus.status !== 'granted') {
-        Alert.alert(
-          'Notification Permission Required',
-          'Please enable notifications in your device settings to test daily notifications.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      // Confirm the test
-      Alert.alert(
-        'Test Daily Notifications',
-        'This will schedule multiple daily notifications that will trigger once per day at the same time, starting in about 2 minutes.\n\nThis test uses a more reliable approach that schedules individual notifications for the next 5 days.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Schedule Test', 
-            onPress: async () => {
-              try {
-                // Show loading indicator
-                Alert.alert('Scheduling...', 'Please wait while we set up your test notifications.');
-                
-                // Schedule the test notification
-                const result = await testDailyNotification();
-                
-                if (result.success) {
-                  Alert.alert(
-                    'Daily Notifications Scheduled',
-                    `Successfully scheduled ${result.scheduledCount} daily notifications.\n\nThe first will appear at ${result.nextOccurrence}.\n\nCheck the logs for more details.`,
-                    [{ text: 'OK' }]
-                  );
-                } else {
-                  Alert.alert(
-                    'Failed to Schedule',
-                    `There was a problem scheduling the daily notifications: ${result.error}`,
-                    [{ text: 'OK' }]
-                  );
-                }
-              } catch (err) {
-                console.error('Error in daily notification test:', err);
-                Alert.alert('Error', `Failed to test daily notifications: ${err.message}`);
-              }
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Error preparing daily notification test:', error);
-      Alert.alert('Error', `Could not set up notification test: ${error.message}`);
-    }
-  };
-  
   // If loading, show spinner
   if (isLoading) {
     return (
@@ -447,64 +264,6 @@ const SettingsScreen = ({ navigation }) => {
           )}
         </View>
         
-        {/* Notifications Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          
-          <View style={styles.option}>
-            <View style={styles.optionInfo}>
-              <Ionicons name="notifications-outline" size={24} color="#777" style={styles.optionIcon} />
-              <Text style={styles.optionText}>Enable Notifications</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#CCCCCC', true: THEME.PRIMARY }}
-              thumbColor="white"
-            />
-          </View>
-          
-          {/* Add the test notification button */}
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleTestNotification}
-          >
-            <Ionicons name="notifications-circle-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Send Test Notification</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleTestNotificationSequence}
-          >
-            <Ionicons name="flash-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Test Notification Sequence</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleCheckAllNotifications}
-          >
-            <Ionicons name="list-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Check Scheduled Notifications</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleTestDailyNotification}
-          >
-            <Ionicons name="calendar-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Test Daily Notifications</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.notificationInfo}>
-            <Text style={styles.notificationInfoText}>
-              If you're not receiving notifications, try sending a test notification. 
-              Make sure notifications are enabled in your device settings.
-            </Text>
-          </View>
-        </View>
-        
         {/* Premium Section - Only show for full accounts */}
         {!isGuestUser && (
           <View style={styles.premiumSection}>
@@ -523,30 +282,30 @@ const SettingsScreen = ({ navigation }) => {
         
         {/* Support Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support & Feedback</Text>
+          <Text style={styles.sectionTitle}>Support</Text>
           
           <TouchableOpacity 
             style={styles.optionButton}
             onPress={handleShareApp}
           >
-            <Ionicons name="share-outline" size={24} color="#777" style={styles.optionIcon} />
-            <Text style={styles.optionText}>Share App</Text>
+            <Ionicons name="share-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
+            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Share App</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.optionButton}
             onPress={handleRateApp}
           >
-            <Ionicons name="star-outline" size={24} color="#777" style={styles.optionIcon} />
-            <Text style={styles.optionText}>Rate App</Text>
+            <Ionicons name="star-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
+            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Rate App</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.optionButton}
-            onPress={() => Linking.openURL('mailto:xiaohangliu2023@gmail.com')}
+            onPress={() => Linking.openURL('mailto:support@packmind.app')}
           >
-            <Ionicons name="mail-outline" size={24} color="#777" style={styles.optionIcon} />
-            <Text style={styles.optionText}>Contact Support</Text>
+            <Ionicons name="mail-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
+            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Contact Support</Text>
           </TouchableOpacity>
         </View>
         
@@ -697,14 +456,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
   optionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,17 +518,6 @@ const styles = StyleSheet.create({
   appCopyright: {
     fontSize: 12,
     color: '#999',
-  },
-  notificationInfo: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 15,
-  },
-  notificationInfoText: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 18,
   },
 });
 

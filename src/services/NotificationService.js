@@ -35,8 +35,8 @@ export const sendTestNotification = async () => {
     // Try to schedule for 2 seconds in the future
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Test Notification",
-        body: "If you see this, notifications are working!",
+        title: "PackM!nd+:",
+        body: "Don't forget to pack for \"Test Notification\"!",
         data: { test: true },
       },
       trigger: { seconds: 2 }, // Show after 2 seconds
@@ -72,8 +72,8 @@ export const sendTestNotificationSequence = async () => {
     // Immediate notification
     const immNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Immediate Test Notification",
-        body: "This notification should appear immediately",
+        title: "PackM!nd+:",
+        body: "Don't forget to pack for \"Immediate Test\"!",
         data: { test: true },
       },
       trigger: null, // null trigger means immediate delivery
@@ -84,8 +84,8 @@ export const sendTestNotificationSequence = async () => {
     // Notification for 15 seconds later
     const delayedNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Delayed Test Notification",
-        body: "This notification should appear 15 seconds after the first one",
+        title: "PackM!nd+:",
+        body: "Don't forget to pack for \"Delayed Test\"!",
         data: { test: true, delayed: true },
       },
       trigger: { seconds: 15 },
@@ -279,8 +279,8 @@ const scheduleDailyOccurrences = async (listId, title, body, baseDate, daysToSch
         try {
           const id = await Notifications.scheduleNotificationAsync({
             content: {
-              title: `Packing Reminder: ${title}`,
-              body,
+              title: `PackM!nd+:`,
+              body: `Don't forget to pack for "${title}"!`,
               data: { 
                 listId, 
                 isRecurringWorkaround: true,
@@ -319,7 +319,7 @@ const scheduleDailyOccurrences = async (listId, title, body, baseDate, daysToSch
     
     const refreshId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Updating Your Reminders",
+        title: "PackM!nd+: Updating Reminders",
         body: "We're refreshing your daily packing reminders",
         data: { 
           isRefreshTrigger: true,
@@ -407,8 +407,8 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         // Schedule the one-time notification
         const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: `Packing Reminder: ${title}`,
-            body: formattedBody,
+            title: `PackM!nd+:`,
+            body: `Don't forget to pack for "${title}"!`,
             data: { listId },
             sound: true,
           },
@@ -495,8 +495,8 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `Packing Reminder: ${title}`,
-                  body: formattedBody,
+                  title: `PackM!nd+:`,
+                  body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
                     isWeeklyWorkaround: true,
@@ -523,7 +523,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         
         const refreshId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: "Updating Your Reminders",
+            title: "PackM!nd+: Updating Reminders",
             body: "We're refreshing your weekly packing reminders",
             data: { 
               isWeeklyRefreshTrigger: true,
@@ -585,8 +585,8 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `Packing Reminder: ${title}`,
-                  body: formattedBody,
+                  title: `PackM!nd+:`,
+                  body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
                     isMonthlyWorkaround: true,
@@ -613,7 +613,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         
         const refreshId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: "Updating Your Reminders",
+            title: "PackM!nd+: Updating Reminders",
             body: "We're refreshing your monthly packing reminders",
             data: { 
               isMonthlyRefreshTrigger: true,
@@ -803,8 +803,8 @@ export const handleNotificationResponse = async (response, navigation) => {
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `Packing Reminder: ${title}`,
-                  body,
+                  title: `PackM!nd+:`,
+                  body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
                     isWeeklyWorkaround: true,
@@ -832,7 +832,7 @@ export const handleNotificationResponse = async (response, navigation) => {
       
       const refreshId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Updating Your Reminders",
+          title: "PackM!nd+: Updating Reminders",
           body: "We're refreshing your weekly packing reminders",
           data: { 
             isWeeklyRefreshTrigger: true,
@@ -902,8 +902,8 @@ export const handleNotificationResponse = async (response, navigation) => {
           try {
             const notificationId = await Notifications.scheduleNotificationAsync({
               content: {
-                title: `Packing Reminder: ${title}`,
-                body,
+                title: `PackM!nd+:`,
+                body: `Don't forget to pack for "${title}"!`,
                 data: { 
                   listId, 
                   isMonthlyWorkaround: true,
@@ -930,7 +930,7 @@ export const handleNotificationResponse = async (response, navigation) => {
       
       const refreshId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Updating Your Reminders",
+          title: "PackM!nd+: Updating Reminders",
           body: "We're refreshing your monthly packing reminders",
           data: { 
             isMonthlyRefreshTrigger: true,
@@ -967,8 +967,8 @@ export const handleNotificationResponse = async (response, navigation) => {
       // Schedule the final notification
       Notifications.scheduleNotificationAsync({
         content: {
-          title: `Packing Reminder: ${title}`,
-          body,
+          title: `PackM!nd+:`,
+          body: `Don't forget to pack for "${title}"!`,
           data: { listId },
           categoryIdentifier: 'PACKING_REMINDER',
         },
@@ -1236,8 +1236,8 @@ export const testDailyNotification = async () => {
       try {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: `Daily Test (Day ${i+1})`,
-            body: `This is occurrence ${i+1} of ${daysToSchedule} for your daily test`,
+            title: `PackM!nd+:`,
+            body: `Don't forget to pack for "Daily Test (Day ${i+1})"!`,
             data: { 
               isTestDailyOccurrence: true,
               occurrenceIndex: i 
