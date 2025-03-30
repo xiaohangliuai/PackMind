@@ -46,6 +46,7 @@ const HomeScreen = ({ navigation }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNotifications, setHasNotifications] = useState(true);
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [completedAnim] = useState(new Animated.Value(1));
 
   // Fetch packing lists function
   const fetchPackingLists = useCallback(async () => {
@@ -106,7 +107,23 @@ const HomeScreen = ({ navigation }) => {
         }),
       ])
     ).start();
-  }, [pulseAnim]);
+
+    // Pulsing animation for completed indicator
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(completedAnim, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(completedAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim, completedAnim]);
 
   useFocusEffect(
     useCallback(() => {
@@ -228,7 +245,10 @@ const HomeScreen = ({ navigation }) => {
     
     const isShared = item.sharedWith && item.sharedWith.includes(user.uid);
     const hasRecurrence = item.recurrence && item.recurrence.type !== 'none';
-    const hasNotifications = item.recurrence && item.recurrence.type !== 'none';
+    const hasNotifications = item.recurrence && 
+                            (item.recurrence.notificationsEnabled === true) && 
+                            (item.recurrence.notificationType === 'one-time' || 
+                             item.recurrence.notificationType === 'recurring');
     
     // Render right actions (delete button)
     const renderRightActions = (progress, dragX) => {
@@ -259,7 +279,10 @@ const HomeScreen = ({ navigation }) => {
     
     const ListItem = (
       <TouchableOpacity
-        style={styles.listCard}
+        style={[
+          styles.listCard,
+          progress === 100 && styles.completedListCard
+        ]}
         onPress={() => handleOpenList(item)}
         activeOpacity={0.7}
       >
@@ -310,8 +333,25 @@ const HomeScreen = ({ navigation }) => {
           
           {/* Progress Bar */}
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${progress}%` }]} />
+            <View style={[
+              styles.progressBar, 
+              { width: `${progress}%` },
+              progress === 100 && styles.completedProgressBar
+            ]} />
           </View>
+          
+          {/* Completion indicator */}
+          {progress === 100 && (
+            <Animated.View 
+              style={[
+                styles.completionContainer,
+                {transform: [{scale: completedAnim}]}
+              ]}
+            >
+              <Ionicons name="checkmark-circle" size={14} color="#00C853" style={styles.completionIcon} />
+              <Text style={styles.completionText}>All packed!</Text>
+            </Animated.View>
+          )}
         </View>
         
         {/* Arrow */}
@@ -602,6 +642,21 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: THEME.PRIMARY,
   },
+  completedListCard: {
+    backgroundColor: '#E6F7FF',
+    borderLeftColor: '#00C853',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#00C853',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
   activityIcon: {
     width: 50,
     height: 50,
@@ -673,6 +728,22 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
     backgroundColor: THEME.PRIMARY,
+  },
+  completedProgressBar: {
+    backgroundColor: '#00C853',
+  },
+  completionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  completionIcon: {
+    marginRight: 4,
+  },
+  completionText: {
+    fontSize: 12,
+    color: '#00C853',
+    fontWeight: '600',
   },
   addButtonContainer: {
     position: 'absolute',

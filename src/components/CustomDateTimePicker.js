@@ -382,7 +382,7 @@ const CustomDateTimePicker = ({
   const renderTimeView = () => {
     if (Platform.OS === 'ios') {
       return (
-        <View style={styles.modalContent}>
+        <View style={styles.iosTimePickerWrapper}>
           <View style={styles.header}>
             <View style={{ width: 40 }} />
             <Text style={styles.headerTitle}>Select Time</Text>
@@ -393,13 +393,16 @@ const CustomDateTimePicker = ({
               <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
             </TouchableOpacity>
           </View>
-          <DateTimePicker
-            value={time}
-            mode="time"
-            display="spinner"
-            onChange={handleTimeChange}
-            style={styles.timePicker}
-          />
+          <View style={styles.iosTimePickerContainer}>
+            <DateTimePicker
+              value={time}
+              mode="time"
+              display="spinner"
+              onChange={handleTimeChange}
+              style={styles.timePicker}
+              textColor="#333"
+            />
+          </View>
         </View>
       );
     }
@@ -679,9 +682,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  iosTimePicker: {
+  iosTimePickerWrapper: {
     backgroundColor: 'white',
-    height: 200,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    paddingBottom: Platform.OS === 'ios' ? 30 : 10, // Extra padding for iOS
+  },
+  iosTimePickerContainer: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  timePicker: {
+    backgroundColor: 'white',
+    height: 220,
+    width: '100%',
   },
   androidTimePickerContainer: {
     flexDirection: 'row',
@@ -817,10 +834,6 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  timePicker: {
-    backgroundColor: 'white',
-    height: 200,
   },
   pickerItemText: {
     color: '#333',
