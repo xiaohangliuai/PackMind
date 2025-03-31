@@ -26,10 +26,14 @@ export const checkPremiumNotificationAccess = async () => {
   try {
     // Get premium status from storage first for a quick check
     const isPremiumStr = await AsyncStorage.getItem('user_is_premium');
-    const isPremium = isPremiumStr === 'true';
+    const subscriptionTypeStr = await AsyncStorage.getItem('subscription_type');
     
-    if (!isPremium) {
-      console.log('User is not premium, notifications restricted');
+    const isPremium = isPremiumStr === 'true';
+    const isTrialUser = subscriptionTypeStr === 'trial';
+    
+    // Consider both premium and trial users as having premium access
+    if (!isPremium && !isTrialUser) {
+      console.log('User is not premium or trial, notifications restricted');
       Alert.alert(
         'Premium Feature',
         'Push notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable this feature.',

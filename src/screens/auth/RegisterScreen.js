@@ -28,10 +28,16 @@ const RegisterScreen = ({ navigation, route }) => {
   const guestUserId = route.params?.guestUserId;
   const guestDisplayName = route.params?.guestDisplayName || '';
   
+  // Check if coming from anonymous account in Premium screen
+  const fromAnonymous = route.params?.fromAnonymous || false;
+  const anonymousUid = route.params?.anonymousUid;
+  const returnScreen = route.params?.returnScreen;
+  
   console.log('RegisterScreen: route.params =', route.params);
   console.log('RegisterScreen: fromGuest =', fromGuest);
-  console.log('RegisterScreen: guestUserId =', guestUserId);
-  console.log('RegisterScreen: guestDisplayName =', guestDisplayName);
+  console.log('RegisterScreen: fromAnonymous =', fromAnonymous);
+  console.log('RegisterScreen: anonymousUid =', anonymousUid);
+  console.log('RegisterScreen: returnScreen =', returnScreen);
   
   const [fullName, setFullName] = useState(fromGuest ? guestDisplayName.replace('Guest ', '') : '');
   const [email, setEmail] = useState('');
@@ -73,16 +79,16 @@ const RegisterScreen = ({ navigation, route }) => {
   };
   
   // Transfer guest data to new account
-  const transferGuestData = async (newUserId) => {
+  const transferGuestData = async (newUserId, oldUserId) => {
     try {
-      console.log('Starting data transfer from guest account:', guestUserId, 'to new account:', newUserId);
+      console.log('Starting data transfer from guest account:', oldUserId, 'to new account:', newUserId);
       
       // Copy user data from guest to permanent account
       const db = firebase.firestore();
       
       // Copy packing lists - Get all the user's lists
       const listsSnapshot = await db.collection('packingLists')
-        .where('userId', '==', guestUserId)
+        .where('userId', '==', oldUserId)
         .get();
       
       console.log('Found', listsSnapshot.size, 'packing lists to transfer');
@@ -141,7 +147,7 @@ const RegisterScreen = ({ navigation, route }) => {
         }
         
         // Delete user document from users collection
-        await db.collection('users').doc(guestUserId).delete();
+        await db.collection('users').doc(oldUserId).delete();
         
         console.log('Successfully cleaned up guest data');
       } catch (deleteError) {
@@ -164,8 +170,11 @@ const RegisterScreen = ({ navigation, route }) => {
     
     try {
       // If coming from guest account, we need to handle guest data transfer
-      if (fromGuest && guestUserId) {
-        console.log('Registering new account from guest:', guestUserId);
+      if ((fromGuest && guestUserId) || (fromAnonymous && anonymousUid)) {
+        console.log('Registering new account from anonymous/guest user');
+        
+        // The ID of the anonymous/guest user
+        const oldUserId = fromAnonymous ? anonymousUid : guestUserId;
         
         // Register new user with Firebase Auth
         const user = await register(email, password, fullName);
@@ -179,20 +188,36 @@ const RegisterScreen = ({ navigation, route }) => {
           premium: false
         });
         
-        // Transfer data from guest to new account
-        const transferSuccess = await transferGuestData(user.uid);
+        // Transfer data from guest/anonymous to new account
+        const transferSuccess = await transferGuestData(user.uid, oldUserId);
         
         if (transferSuccess) {
           Alert.alert(
             'Account Created', 
-            'Your account has been created successfully and your guest data has been transferred!',
-            [{ text: 'OK' }]
+            'Your account has been created successfully and your data has been transferred!',
+            [{ 
+              text: 'OK',
+              onPress: () => {
+                // If coming from Premium screen, navigate back there
+                if (fromAnonymous && returnScreen) {
+                  navigation.navigate(returnScreen);
+                }
+              }
+            }]
           );
         } else {
           Alert.alert(
             'Account Created', 
-            'Your account has been created successfully, but we encountered an issue transferring your guest data.',
-            [{ text: 'OK' }]
+            'Your account has been created successfully, but we encountered an issue transferring your data.',
+            [{ 
+              text: 'OK',
+              onPress: () => {
+                // If coming from Premium screen, navigate back there
+                if (fromAnonymous && returnScreen) {
+                  navigation.navigate(returnScreen);
+                }
+              }
+            }]
           );
         }
       } else {

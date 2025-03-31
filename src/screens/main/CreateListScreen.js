@@ -105,11 +105,13 @@ const CreateListScreen = ({ navigation, route }) => {
   let isPremium = false;
   let limits = { MAX_LISTS: 3 };
   let canCreateMoreLists = async () => true;
+  let subscriptionType = 'trial'; // Assuming a default subscription type
   try {
     const premiumContext = usePremium();
     isPremium = premiumContext.isPremium;
     limits = premiumContext.limits;
     canCreateMoreLists = premiumContext.canCreateMoreLists;
+    subscriptionType = premiumContext.subscriptionType;
   } catch (error) {
     console.log('Premium context not yet available, using defaults');
   }
@@ -254,7 +256,8 @@ const CreateListScreen = ({ navigation, route }) => {
         const user = firebase.auth().currentUser;
         
         // Check list limit for all users
-        if (!isPremium) {
+        // Allow both premium users and trial users to have unlimited lists
+        if (!isPremium && subscriptionType !== 'trial') {
           // Get current count of user's packing lists
           const snapshot = await firebase.firestore()
             .collection('packingLists')
@@ -289,9 +292,10 @@ const CreateListScreen = ({ navigation, route }) => {
         }
 
         // Check premium status for notification settings
-        const hasNotificationAccess = isPremium;
+        // Allow both premium and trial users to have notification access
+        const hasNotificationAccess = isPremium || subscriptionType === 'trial';
         
-        // If user is trying to use notifications but isn't premium
+        // If user is trying to use notifications but isn't premium or trial
         if (!hasNotificationAccess && 
             recurrence && 
             recurrence.notificationsEnabled) {

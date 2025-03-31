@@ -2,6 +2,10 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 
+// Import modular version for v9 API
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDBoN1zja2soS5miM40a1sigJ9i9OwfgGc",
@@ -12,25 +16,29 @@ const firebaseConfig = {
   appId: "1:850172508224:ios:d9cb7cb5b1c49318cd47a5",
 };
 
-// Initialize Firebase
+// Initialize Firebase (compat version)
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
   
   // Configure Firestore
-  const db = firebase.firestore();
+  const firestoreCompat = firebase.firestore();
   
   // Set cache size to minimum
-  db.settings({
+  firestoreCompat.settings({
     cacheSizeBytes: 1048576  // 1MB minimum
   });
   
-  console.log("Firebase initialized successfully");
+  console.log("Firebase compat initialized successfully");
   
   // Enable anonymous authentication for testing
   firebase.auth().onAuthStateChanged((user) => {
     console.log("Auth state changed:", user ? "User logged in" : "No user");
   });
 }
+
+// Initialize Firebase (modular v9 version)
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 // Helper for anonymous sign in (for testing)
 export const signInAnonymously = async () => {
@@ -44,4 +52,6 @@ export const signInAnonymously = async () => {
   }
 };
 
+// Export both the compat and modular versions
+export { db };
 export default firebase; 

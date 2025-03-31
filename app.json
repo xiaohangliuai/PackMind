@@ -30,7 +30,8 @@
             "./assets/notification-sound.wav"
           ]
         }
-      ]
+      ],
+      ["react-native-iap"]
     ],
     "ios": {
       "supportsTablet": true,
@@ -57,7 +58,8 @@
         "NOTIFICATIONS",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
-        "SCHEDULE_EXACT_ALARM"
+        "SCHEDULE_EXACT_ALARM",
+        "BILLING"
       ]
     },
     "web": {

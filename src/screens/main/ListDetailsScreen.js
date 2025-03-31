@@ -38,12 +38,17 @@ const ListDetailsScreen = ({ route, navigation }) => {
   
   // Try to get premium context - use try/catch to prevent errors during initialization
   let isPremium = false;
+  let subscriptionType = null;
   try {
     const premiumContext = usePremium();
     isPremium = premiumContext.isPremium;
+    subscriptionType = premiumContext.subscriptionType;
   } catch (error) {
     console.log('Premium context not yet available, using defaults');
   }
+  
+  // Consider trial users the same as premium users
+  const hasPremiumAccess = isPremium || subscriptionType === 'trial';
   
   // Track user activity for guest users
   useActivityTracker();
@@ -293,7 +298,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
   // Date picker handlers
   const showDateTimePicker = () => {
     try {
-      if (!isPremium) {
+      // Check if user has premium access (includes both premium and trial users)
+      if (!hasPremiumAccess) {
         Alert.alert(
           'Premium Feature',
           'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',

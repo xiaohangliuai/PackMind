@@ -1,5 +1,5 @@
 // src/screens/main/PremiumScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { usePremium } from '../../context/PremiumContext';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, THEME } from '../../constants/theme';
+import firebase from '../../firebase/firebaseConfig';
 
 // Default premium values
 const DEFAULT_PREMIUM_STATE = {
@@ -36,18 +37,26 @@ const PremiumScreen = ({ navigation, route }) => {
   // State for processing
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
+  const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
   
   // Safely try to use premium context
   let premiumContext = null;
   let isPremium = false;
   let subscriptionType = null;
+  let subscriptionExpiryDate = null;
   let pricing = DEFAULT_PREMIUM_STATE.pricing;
   let limits = DEFAULT_PREMIUM_STATE.limits;
+  let products = [];
+  let isRestoring = false;
   let startFreeTrial = async () => {
     Alert.alert('Error', 'Premium features are currently unavailable. Please try again later.');
     return false;
   };
   let subscribeToPremium = async () => {
+    Alert.alert('Error', 'Premium features are currently unavailable. Please try again later.');
+    return false;
+  };
+  let restorePurchases = async () => {
     Alert.alert('Error', 'Premium features are currently unavailable. Please try again later.');
     return false;
   };
@@ -58,18 +67,119 @@ const PremiumScreen = ({ navigation, route }) => {
     if (premiumContext) {
       isPremium = premiumContext.isPremium;
       subscriptionType = premiumContext.subscriptionType;
+      subscriptionExpiryDate = premiumContext.subscriptionExpiryDate;
       pricing = premiumContext.pricing || DEFAULT_PREMIUM_STATE.pricing;
       limits = premiumContext.limits || DEFAULT_PREMIUM_STATE.limits;
+      products = premiumContext.products || [];
+      isRestoring = premiumContext.isRestoring || false;
       startFreeTrial = premiumContext.startFreeTrial;
       subscribeToPremium = premiumContext.subscribeToPremium;
+      restorePurchases = premiumContext.restorePurchases;
     }
   } catch (error) {
     console.log('Premium context not available yet:', error);
   }
   
-  // Handle select plan
+  // Find real product prices if available
+  const getProductPrice = (planType) => {
+    // Default prices
+    let price = pricing.MONTHLY;
+    if (planType === 'annual') price = pricing.ANNUAL;
+    if (planType === 'lifetime') price = pricing.LIFETIME;
+    
+    // Try to get real price from store products
+    if (products && products.length > 0) {
+      const productId = planType === 'monthly' ? 'com.packmind.premium.monthly' :
+                         planType === 'annual' ? 'com.packmind.premium.annual' :
+                         'com.packmind.premium.lifetime';
+      
+      const product = products.find(p => p.productId === productId);
+      if (product && product.price) {
+        return product.localizedPrice || `$${product.price}`;
+      }
+    }
+    
+    // Fallback to default pricing if no product info
+    return `$${price.toFixed(2)}`;
+  };
+  
+  // Handle selecting a plan during trial
   const handleSelectPlan = (plan) => {
     setSelectedPlan(plan);
+  };
+
+  // Handle upgrading from one paid plan to another
+  const handleUpgrade = async (newPlan) => {
+    try {
+      // Check if user is trying to downgrade from annual to monthly
+      if (subscriptionType === 'annual' && newPlan === 'monthly') {
+        Alert.alert(
+          'Downgrade Not Available',
+          'You cannot downgrade from an annual to a monthly plan. You can cancel your subscription from the App Store and resubscribe with a monthly plan after your current subscription expires.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Get special upgrade price based on current plan and target plan
+      let upgradePrice = 0;
+      let planName = '';
+      
+      if (subscriptionType === 'monthly' && newPlan === 'annual') {
+        upgradePrice = 15.99;
+        planName = 'Annual';
+      } else if (subscriptionType === 'monthly' && newPlan === 'lifetime') {
+        upgradePrice = 45.99;
+        planName = 'Lifetime';
+      } else if (subscriptionType === 'annual' && newPlan === 'lifetime') {
+        upgradePrice = 26.99;
+        planName = 'Lifetime';
+      }
+
+      // Show confirmation dialog with special price
+      Alert.alert(
+        'Confirm Upgrade',
+        `Are you sure you want to upgrade to the ${planName} plan for $${upgradePrice.toFixed(2)}? Your current subscription will be replaced with the new plan.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Upgrade', 
+            onPress: async () => {
+              setIsProcessing(true);
+              
+              // Call subscribeToPremium from the premium context with special price
+              const success = await subscribeToPremium(newPlan, upgradePrice);
+              
+              setIsProcessing(false);
+              setShowUpgradeOptions(false);
+              
+              if (success) {
+                Alert.alert(
+                  'Upgrade Successful',
+                  `You have successfully upgraded to the ${planName} plan.`,
+                  [{ text: 'OK' }]
+                );
+              }
+            } 
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      setIsProcessing(false);
+      Alert.alert('Error', 'Failed to upgrade plan. Please try again later.');
+    }
+  };
+  
+  // Handle anonymous user upgrade
+  const handleCreateAccount = () => {
+    // Instead of signing out, we'll navigate to the registration screen
+    // with a parameter indicating this is an anonymous user upgrade
+    navigation.navigate('Register', { 
+      fromAnonymous: true,
+      anonymousUid: user.uid,
+      returnScreen: 'Premium' // Screen to return to after registration
+    });
   };
   
   // Handle subscribe
@@ -82,7 +192,7 @@ const PremiumScreen = ({ navigation, route }) => {
           { text: 'Cancel', style: 'cancel' },
           { 
             text: 'Create Account', 
-            onPress: () => navigation.navigate('Register') 
+            onPress: handleCreateAccount
           }
         ]
       );
@@ -119,7 +229,7 @@ const PremiumScreen = ({ navigation, route }) => {
           { text: 'Cancel', style: 'cancel' },
           { 
             text: 'Create Account', 
-            onPress: () => navigation.navigate('Register') 
+            onPress: handleCreateAccount
           }
         ]
       );
@@ -143,6 +253,31 @@ const PremiumScreen = ({ navigation, route }) => {
       Alert.alert('Error', 'Failed to start free trial. Please try again.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+  
+  // Handle restore purchases
+  const handleRestorePurchases = async () => {
+    if (user?.isAnonymous) {
+      Alert.alert(
+        'Account Required',
+        'Please create a full account to restore purchases.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Create Account', 
+            onPress: handleCreateAccount
+          }
+        ]
+      );
+      return;
+    }
+    
+    try {
+      await restorePurchases();
+    } catch (error) {
+      console.error('Error restoring purchases:', error);
+      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
     }
   };
   
@@ -172,6 +307,29 @@ const PremiumScreen = ({ navigation, route }) => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME.PRIMARY} />
           <Text style={styles.loadingText}>Loading premium information...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  // Show loading while restoring purchases
+  if (isRestoring) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Premium</Text>
+          <View style={styles.headerRight} />
+        </View>
+        
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={THEME.PRIMARY} />
+          <Text style={styles.loadingText}>Restoring purchases...</Text>
         </View>
       </SafeAreaView>
     );
@@ -210,24 +368,173 @@ const PremiumScreen = ({ navigation, route }) => {
                             subscriptionType === 'annual' ? 'Annual' : 'Lifetime'}
             </Text>
             
-            <View style={styles.featureContainer}>
-              <Text style={styles.featureTitle}>Your Premium Benefits:</Text>
+            {/* Show subscription options for trial users */}
+            {subscriptionType === 'trial' && (
+              <View style={styles.trialUpgradeContainer}>
+                <View style={styles.trialExpiryBanner}>
+                  <Ionicons name="time-outline" size={20} color={COLORS.WARNING} />
+                  <Text style={styles.trialExpiryText}>
+                    {subscriptionExpiryDate && typeof subscriptionExpiryDate.toLocaleDateString === 'function' ? 
+                      `Your trial expires on ${subscriptionExpiryDate.toLocaleDateString()}` : 
+                      'Your free trial will expire soon'}
+                  </Text>
+                </View>
               
-              <View style={styles.feature}>
-                <Ionicons name="checkbox" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <Text style={styles.featureText}>Unlimited packing lists</Text>
+                <Text style={styles.trialUpgradeText}>
+                  Upgrade now to continue enjoying premium features!
+                </Text>
+                
+                <View style={styles.planOptions}>
+                  {/* Monthly Plan */}
+                  <TouchableOpacity
+                    style={styles.trialPlanCard}
+                    onPress={() => {
+                      setSelectedPlan('monthly');
+                      handleSubscribe();
+                    }}
+                  >
+                    <View>
+                      <Text style={styles.trialPlanTitle}>Monthly</Text>
+                      <Text style={styles.planDescription}>Billed monthly</Text>
+                    </View>
+                    <Text style={styles.trialPlanPrice}>{getProductPrice('monthly')}</Text>
+                    <View style={styles.subscribeButton}>
+                      <Text style={styles.subscribeButtonText}>Subscribe</Text>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  {/* Annual Plan */}
+                  <TouchableOpacity
+                    style={[styles.trialPlanCard, styles.bestValuePlan]}
+                    onPress={() => {
+                      setSelectedPlan('annual');
+                      handleSubscribe();
+                    }}
+                  >
+                    <View style={styles.bestValueTag}>
+                      <Text style={styles.bestValueTagText}>Best Value</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.trialPlanTitle}>Annual</Text>
+                      <Text style={styles.planDescription}>Save 44%</Text>
+                    </View>
+                    <Text style={styles.trialPlanPrice}>{getProductPrice('annual')}</Text>
+                    <View style={[styles.subscribeButton, styles.highlightedButton]}>
+                      <Text style={[styles.subscribeButtonText, styles.highlightedButtonText]}>Subscribe</Text>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  {/* Lifetime Plan */}
+                  <TouchableOpacity
+                    style={styles.trialPlanCard}
+                    onPress={() => {
+                      setSelectedPlan('lifetime');
+                      handleSubscribe();
+                    }}
+                  >
+                    <View>
+                      <Text style={styles.trialPlanTitle}>Lifetime</Text>
+                      <Text style={styles.planDescription}>One-time payment</Text>
+                    </View>
+                    <Text style={styles.trialPlanPrice}>{getProductPrice('lifetime')}</Text>
+                    <View style={styles.subscribeButton}>
+                      <Text style={styles.subscribeButtonText}>Subscribe</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
-              
-              <View style={styles.feature}>
-                <Ionicons name="checkbox" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <Text style={styles.featureText}>Advanced notifications and reminders</Text>
+            )}
+            
+            {/* Show upgrade options for paid users - Monthly and Annual subscribers */}
+            {isPremium && subscriptionType !== 'lifetime' && subscriptionType !== 'trial' && (
+              <View style={styles.upgradeContainer}>
+                <TouchableOpacity 
+                  style={styles.upgradeButton}
+                  onPress={() => setShowUpgradeOptions(!showUpgradeOptions)}
+                >
+                  <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+                  <Ionicons 
+                    name={showUpgradeOptions ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color="white" 
+                    style={{marginLeft: 5}}
+                  />
+                </TouchableOpacity>
+                
+                {showUpgradeOptions && (
+                  <View style={styles.upgradeOptions}>
+                    {subscriptionType === 'monthly' && (
+                      <>
+                        <Text style={styles.upgradeTitle}>Upgrade from Monthly Plan</Text>
+                        
+                        <TouchableOpacity 
+                          style={styles.upgradePlanOption}
+                          onPress={() => handleUpgrade('annual')}
+                        >
+                          <View style={styles.planOptionHeader}>
+                            <Text style={styles.planTitle}>Annual Plan</Text>
+                            <View style={styles.savingBadge}>
+                              <Text style={styles.savingText}>Special Offer</Text>
+                            </View>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.planPrice}>${(15.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(19.99).toFixed(2)}</Text>
+                          </View>
+                          <Text style={styles.planBilled}>billed annually</Text>
+                          <Text style={styles.discountText}>You save $4.00</Text>
+                          <Text style={styles.planDescription}>Get all premium features at a discounted rate</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                          style={[styles.upgradePlanOption, styles.lastOption]}
+                          onPress={() => handleUpgrade('lifetime')}
+                        >
+                          <View style={styles.planOptionHeader}>
+                            <Text style={styles.planTitle}>Lifetime</Text>
+                            <View style={styles.savingBadge}>
+                              <Text style={styles.savingText}>Best Value</Text>
+                            </View>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.planPrice}>${(45.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(49.99).toFixed(2)}</Text>
+                          </View>
+                          <Text style={styles.planBilled}>one-time payment</Text>
+                          <Text style={styles.discountText}>You save $4.00</Text>
+                          <Text style={styles.planDescription}>Pay once and unlock premium features forever</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                    
+                    {subscriptionType === 'annual' && (
+                      <>
+                        <Text style={styles.upgradeTitle}>Upgrade from Annual Plan</Text>
+                        
+                        <TouchableOpacity 
+                          style={[styles.upgradePlanOption, styles.lastOption]}
+                          onPress={() => handleUpgrade('lifetime')}
+                        >
+                          <View style={styles.planOptionHeader}>
+                            <Text style={styles.planTitle}>Lifetime</Text>
+                            <View style={styles.savingBadge}>
+                              <Text style={styles.savingText}>Exclusive Offer</Text>
+                            </View>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.planPrice}>${(26.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(49.99).toFixed(2)}</Text>
+                          </View>
+                          <Text style={styles.planBilled}>one-time payment</Text>
+                          <Text style={styles.discountText}>You save $23.00</Text>
+                          <Text style={styles.planDescription}>Pay once and unlock premium features forever</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
               </View>
-              
-              <View style={styles.feature}>
-                <Ionicons name="checkbox" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <Text style={styles.featureText}>Priority support</Text>
-              </View>
-            </View>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -288,7 +595,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
               )}
             </View>
-            <Text style={styles.planPrice}>${pricing.MONTHLY}/month</Text>
+            <Text style={styles.planPrice}>{getProductPrice('monthly')}</Text>
           </TouchableOpacity>
           
           {/* Annual Plan */}
@@ -308,7 +615,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
               )}
             </View>
-            <Text style={styles.planPrice}>${pricing.ANNUAL}/year</Text>
+            <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
             <Text style={styles.monthlyEquivalent}>
               (${(pricing.ANNUAL / 12).toFixed(2)}/month)
             </Text>
@@ -331,7 +638,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
               )}
             </View>
-            <Text style={styles.planPrice}>${pricing.LIFETIME}</Text>
+            <Text style={styles.planPrice}>{getProductPrice('lifetime')}</Text>
             <Text style={styles.lifetimeNote}>One-time payment</Text>
           </TouchableOpacity>
         </View>
@@ -371,25 +678,33 @@ const PremiumScreen = ({ navigation, route }) => {
           </View>
         </View>
         
-        {/* Subscribe Button */}
+        {/* Subscribe button */}
         <TouchableOpacity
-          style={styles.subscribeButton}
+          style={[styles.subscribeButton, isProcessing && styles.disabledButton]}
           onPress={handleSubscribe}
           disabled={isProcessing}
         >
           {isProcessing ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator color="white" size="small" />
           ) : (
-            <Text style={styles.subscribeButtonText}>
-              Subscribe {selectedPlan === 'monthly' ? 'Monthly' : 
-                        selectedPlan === 'annual' ? 'Annually' : 'Lifetime'}
-            </Text>
+            <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
           )}
         </TouchableOpacity>
         
+        {/* Restore Purchases button */}
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestorePurchases}
+          disabled={isProcessing}
+        >
+          <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+        </TouchableOpacity>
+        
+        {/* Terms and conditions */}
         <Text style={styles.termsText}>
-          By subscribing, you agree to our Terms of Service and Privacy Policy.
-          You can cancel your subscription anytime in Settings.
+          By subscribing, you agree to our Terms of Service and Privacy Policy. 
+          Subscriptions automatically renew unless auto-renew is turned off at 
+          least 24 hours before the end of the current period.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -494,14 +809,15 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   planTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
   planPrice: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: THEME.PRIMARY,
+    marginTop: 5,
   },
   monthlyEquivalent: {
     fontSize: 14,
@@ -572,13 +888,19 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.PRIMARY,
     borderRadius: 25,
     paddingVertical: 15,
+    paddingHorizontal: 20,
     alignItems: 'center',
     marginBottom: 15,
   },
   subscribeButtonText: {
     color: 'white',
-    fontSize: 16,
     fontWeight: 'bold',
+  },
+  highlightedButton: {
+    backgroundColor: THEME.PRIMARY,
+  },
+  highlightedButtonText: {
+    color: 'white',
   },
   termsText: {
     fontSize: 12,
@@ -616,19 +938,6 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 20,
   },
-  featureContainer: {
-    width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 20,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-    alignSelf: 'flex-start',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -638,6 +947,135 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#777',
     marginTop: 10,
+  },
+  restoreButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: THEME.PRIMARY,
+    borderRadius: 25,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  restoreButtonText: {
+    color: THEME.PRIMARY,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  trialUpgradeContainer: {
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 20,
+    marginTop: 20,
+  },
+  trialUpgradeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    alignSelf: 'flex-start',
+  },
+  trialExpiryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 193, 7, 0.15)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 10,
+  },
+  trialExpiryText: {
+    fontSize: 14,
+    color: COLORS.WARNING,
+    fontWeight: '500',
+    marginLeft: 5,
+  },
+  planOptions: {
+    flexDirection: 'column',
+  },
+  upgradeContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  upgradeButton: {
+    backgroundColor: THEME.PRIMARY,
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  upgradeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  upgradeOptions: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 15,
+    width: '100%',
+  },
+  upgradeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  upgradePlanOption: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    width: '100%',
+  },
+  planOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  savingBadge: {
+    backgroundColor: COLORS.SUCCESS_LIGHT,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginRight: 5,
+  },
+  savingText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.SUCCESS,
+  },
+  planBilled: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 2,
+  },
+  planDescription: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 5,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#777',
+    marginLeft: 10,
+    textDecorationLine: 'line-through',
+  },
+  discountText: {
+    fontSize: 13,
+    color: COLORS.SUCCESS,
+    fontWeight: '500',
+    marginBottom: 5,
+  },
+  lastOption: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
 });
 

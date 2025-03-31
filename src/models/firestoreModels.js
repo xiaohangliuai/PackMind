@@ -1,6 +1,8 @@
 // src/models/firestoreModels.js
 import firebase from '../firebase/firebaseConfig';
 import { firestore } from '../config/firebase';
+import { db } from '../firebase/firebaseConfig';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 
 // PackingList model
 const packingListsCollection = 'packingLists';
@@ -198,11 +200,29 @@ export const createUserProfile = async (userId, data) => {
 
 export const getUserProfile = async (userId) => {
   try {
+    // Try using the modular API first
+    try {
+      console.log('Getting user profile using modular API for:', userId);
+      const userDocRef = doc(db, 'users', userId);
+      const docSnap = await getDoc(userDocRef);
+      
+      if (docSnap.exists()) {
+        console.log('Found user profile (modular API)');
+        return { userId, ...docSnap.data() };
+      }
+    } catch (modularError) {
+      console.warn('Modular API failed, falling back to compat:', modularError);
+    }
+    
+    // Fall back to compat API
+    console.log('Getting user profile using compat API for:', userId);
     const docRef = await firebase.firestore().collection('userProfiles').doc(userId).get();
     
     if (docRef.exists) {
+      console.log('Found user profile (compat API)');
       return { userId, ...docRef.data() };
     } else {
+      console.log('No user profile found (compat API)');
       return null;
     }
   } catch (error) {
@@ -213,6 +233,37 @@ export const getUserProfile = async (userId) => {
 
 export const updateUserProfile = async (userId, data) => {
   try {
+    // Try using the modular API first
+    try {
+      console.log('Updating user profile using modular API for:', userId);
+      const updateData = {
+        ...data,
+        updatedAt: new Date()
+      };
+      
+      const userDocRef = doc(db, 'users', userId);
+      
+      // Check if document exists first
+      const docSnap = await getDoc(userDocRef);
+      
+      if (docSnap.exists()) {
+        // Update the document
+        await updateDoc(userDocRef, updateData);
+      } else {
+        // Create the document
+        await setDoc(userDocRef, {
+          ...updateData,
+          createdAt: new Date()
+        });
+      }
+      
+      return { userId, ...updateData };
+    } catch (modularError) {
+      console.warn('Modular API failed, falling back to compat:', modularError);
+    }
+    
+    // Fall back to compat API
+    console.log('Updating user profile using compat API for:', userId);
     const updateData = {
       ...data,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()

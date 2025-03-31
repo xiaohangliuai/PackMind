@@ -46,19 +46,22 @@ const HomeScreen = ({ navigation }) => {
   const [pulseAnim] = useState(new Animated.Value(1));
   const [completedAnim] = useState(new Animated.Value(1));
   
-  // Try to get premium context - use try/catch to prevent errors during initialization
+  // Get the premium status
   let isPremium = false;
+  let subscriptionType = null;
   let limits = { MAX_LISTS: 3 };
-  let canCreateMoreLists = async () => true;
   
   try {
     const premiumContext = usePremium();
     isPremium = premiumContext.isPremium;
+    subscriptionType = premiumContext.subscriptionType;
     limits = premiumContext.limits;
-    canCreateMoreLists = premiumContext.canCreateMoreLists;
   } catch (error) {
     console.log('Premium context not yet available, using defaults');
   }
+  
+  // Consider trial users the same as premium users
+  const hasPremiumAccess = isPremium || subscriptionType === 'trial';
 
   // Track user activity
   useActivityTracker();
@@ -159,7 +162,7 @@ const HomeScreen = ({ navigation }) => {
       let canCreate = true;
       try {
         // For both guest and regular users, enforce the list limit
-        canCreate = isPremium || packingLists.length < limits.MAX_LISTS;
+        canCreate = hasPremiumAccess || packingLists.length < limits.MAX_LISTS;
       } catch (error) {
         console.log('Error checking list limit, assuming limit reached for safety:', error);
         canCreate = false;
@@ -493,23 +496,26 @@ const HomeScreen = ({ navigation }) => {
   
   // Render premium banner with error handling
   const renderPremiumBanner = () => {
-    try {
-      if (!isPremium && !user?.isAnonymous && packingLists.length > 0) {
-        return (
-          <TouchableOpacity 
-            style={styles.premiumBanner}
-            onPress={() => navigation.navigate('Premium')}
-          >
-            <Ionicons name="star" size={18} color={COLORS.GOLD} style={styles.premiumBannerIcon} />
-            <Text style={styles.premiumBannerText}>
-              Upgrade to Premium for unlimited lists and more!
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color="#777" />
-          </TouchableOpacity>
-        );
-      }
-    } catch (error) {
-      console.log('Error rendering premium banner:', error);
+    if (!isPremium && subscriptionType !== 'trial' && !user?.isAnonymous && packingLists.length > 0) {
+      return (
+        <TouchableOpacity 
+          style={styles.premiumBanner}
+          onPress={() => navigation.navigate('Premium')}
+        >
+          <View style={styles.premiumBannerContent}>
+            <Ionicons name="star" size={24} color="#FFD700" style={styles.premiumIcon} />
+            <View style={styles.premiumTextContainer}>
+              <Text style={styles.premiumBannerTitle}>Unlock Premium Features</Text>
+              <Text style={styles.premiumBannerText}>
+                {packingLists.length >= limits.MAX_LISTS ? 
+                  'Create unlimited lists, set reminders & more!' : 
+                  'Set reminders, create unlimited lists & more!'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#777" />
+          </View>
+        </TouchableOpacity>
+      );
     }
     return null;
   }
@@ -969,14 +975,25 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  premiumBannerIcon: {
+  premiumBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  premiumIcon: {
     marginRight: 10,
   },
-  premiumBannerText: {
+  premiumTextContainer: {
     flex: 1,
+  },
+  premiumBannerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  premiumBannerText: {
     fontSize: 14,
-    color: COLORS.GOLD_DARK,
-    fontWeight: '500',
+    color: '#777',
   },
 });
 
