@@ -216,7 +216,7 @@ const RegisterScreen = ({ navigation, route }) => {
         if (transferSuccess) {
           Alert.alert(
             'Account Created', 
-            'Your account has been created successfully and your data has been transferred!',
+            'Your account has been created successfully and your data has been transferred! Please refresh the screen to see your data.',
             [{ 
               text: 'OK',
               onPress: () => {

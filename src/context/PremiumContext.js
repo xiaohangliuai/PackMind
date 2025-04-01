@@ -206,7 +206,11 @@ export const PremiumProvider = ({ children }) => {
       setSubscriptionType('trial');
       setSubscriptionExpiryDate(trialExpiryDate);
       
-      console.log('Free trial started successfully');
+      // Important: Update AsyncStorage immediately so push notifications work without requiring logout/login
+      await AsyncStorage.setItem('user_is_premium', 'true');
+      await AsyncStorage.setItem('subscription_type', 'trial');
+      
+      console.log('Free trial started successfully, AsyncStorage updated with premium and trial status');
       return true;
     } catch (error) {
       console.error('Error starting free trial:', error);
