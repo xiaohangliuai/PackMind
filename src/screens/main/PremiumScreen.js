@@ -16,6 +16,7 @@ import { usePremium } from '../../context/PremiumContext';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, THEME } from '../../constants/theme';
 import firebase from '../../firebase/firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Default premium values
 const DEFAULT_PREMIUM_STATE = {
@@ -32,7 +33,7 @@ const DEFAULT_PREMIUM_STATE = {
 };
 
 const PremiumScreen = ({ navigation, route }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   // State for processing
   const [isProcessing, setIsProcessing] = useState(false);
@@ -172,14 +173,30 @@ const PremiumScreen = ({ navigation, route }) => {
   };
   
   // Handle anonymous user upgrade
-  const handleCreateAccount = () => {
-    // Instead of signing out, we'll navigate to the registration screen
-    // with a parameter indicating this is an anonymous user upgrade
-    navigation.navigate('Register', { 
-      fromAnonymous: true,
-      anonymousUid: user.uid,
-      returnScreen: 'Premium' // Screen to return to after registration
-    });
+  const handleCreateAccount = async () => {
+    try {
+      // First, store the guest data in AsyncStorage so we can retrieve it after logout
+      const guestInfo = { 
+        fromGuest: true, 
+        guestUserId: user.uid, 
+        guestDisplayName: user.displayName || 'Guest User',
+        returnScreen: 'Premium' // Indicate which screen to return to after registration
+      };
+      
+      console.log('Storing guest info before logout:', guestInfo);
+      
+      // Store in AsyncStorage for retrieval after auth state change
+      await AsyncStorage.setItem('guestUpgradeInfo', JSON.stringify(guestInfo));
+      
+      // Then logout - this will trigger navigation to auth stack automatically
+      console.log('Logging out guest user to continue with upgrade');
+      await logout();
+      
+      // Navigation to Register will happen in WelcomeScreen
+    } catch (error) {
+      console.error('Error during account upgrade process:', error);
+      Alert.alert('Error', 'Could not prepare account upgrade. Please try again.');
+    }
   };
   
   // Handle subscribe
@@ -222,9 +239,10 @@ const PremiumScreen = ({ navigation, route }) => {
   // Handle start free trial
   const handleStartFreeTrial = async () => {
     if (user?.isAnonymous) {
+      // Show an alert before proceeding with account creation
       Alert.alert(
         'Account Required',
-        'Please create a full account to start a free trial.',
+        'You need to create an account to start your free trial. Your data will be preserved.',
         [
           { text: 'Cancel', style: 'cancel' },
           { 
@@ -552,126 +570,130 @@ const PremiumScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
         
-        {/* Pricing Plans */}
-        <View style={styles.pricingSection}>
-          <Text style={styles.pricingSectionTitle}>Choose Your Plan</Text>
-          
-          {/* Monthly Plan */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'monthly' && styles.selectedPlan
-            ]}
-            onPress={() => handleSelectPlan('monthly')}
-          >
-            <View style={styles.planHeader}>
-              <Text style={styles.planTitle}>Monthly</Text>
-              {selectedPlan === 'monthly' && (
-                <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
-              )}
+        {!user?.isAnonymous && (
+          <>
+            {/* Pricing Plans */}
+            <View style={styles.pricingSection}>
+              <Text style={styles.pricingSectionTitle}>Choose Your Plan</Text>
+              
+              {/* Monthly Plan */}
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  selectedPlan === 'monthly' && styles.selectedPlan
+                ]}
+                onPress={() => handleSelectPlan('monthly')}
+              >
+                <View style={styles.planHeader}>
+                  <Text style={styles.planTitle}>Monthly</Text>
+                  {selectedPlan === 'monthly' && (
+                    <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
+                  )}
+                </View>
+                <Text style={styles.planPrice}>{getProductPrice('monthly')}</Text>
+              </TouchableOpacity>
+              
+              {/* Annual Plan */}
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  selectedPlan === 'annual' && styles.selectedPlan
+                ]}
+                onPress={() => handleSelectPlan('annual')}
+              >
+                <View style={styles.planHeader}>
+                  <Text style={styles.planTitle}>Annual</Text>
+                  <View style={styles.saveBadge}>
+                    <Text style={styles.saveText}>Save 44%</Text>
+                  </View>
+                  {selectedPlan === 'annual' && (
+                    <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
+                  )}
+                </View>
+                <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
+                <Text style={styles.monthlyEquivalent}>
+                  (${(pricing.ANNUAL / 12).toFixed(2)}/month)
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Lifetime Plan */}
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  selectedPlan === 'lifetime' && styles.selectedPlan
+                ]}
+                onPress={() => handleSelectPlan('lifetime')}
+              >
+                <View style={styles.planHeader}>
+                  <Text style={styles.planTitle}>Lifetime</Text>
+                  <View style={styles.bestValueBadge}>
+                    <Text style={styles.bestValueText}>Best Value</Text>
+                  </View>
+                  {selectedPlan === 'lifetime' && (
+                    <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
+                  )}
+                </View>
+                <Text style={styles.planPrice}>{getProductPrice('lifetime')}</Text>
+                <Text style={styles.lifetimeNote}>One-time payment</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.planPrice}>{getProductPrice('monthly')}</Text>
-          </TouchableOpacity>
-          
-          {/* Annual Plan */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'annual' && styles.selectedPlan
-            ]}
-            onPress={() => handleSelectPlan('annual')}
-          >
-            <View style={styles.planHeader}>
-              <Text style={styles.planTitle}>Annual</Text>
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveText}>Save 44%</Text>
+            
+            {/* Premium Features */}
+            <View style={styles.featuresSection}>
+              <Text style={styles.featuresSectionTitle}>Premium Features</Text>
+              
+              <View style={styles.feature}>
+                <Ionicons name="infinite" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Unlimited Lists</Text>
+                  <Text style={styles.featureDescription}>
+                    Create as many packing lists as you need (Free: {limits.MAX_LISTS} lists)
+                  </Text>
+                </View>
               </View>
-              {selectedPlan === 'annual' && (
-                <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
-              )}
+              
+              <View style={styles.feature}>
+                <Ionicons name="notifications" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Advanced Notifications</Text>
+                  <Text style={styles.featureDescription}>
+                    Custom reminders, recurring notifications, and more
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.feature}>
+                <Ionicons name="headset" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Priority Support</Text>
+                  <Text style={styles.featureDescription}>
+                    Get help faster when you need it
+                  </Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
-            <Text style={styles.monthlyEquivalent}>
-              (${(pricing.ANNUAL / 12).toFixed(2)}/month)
+            
+            {/* Subscribe button */}
+            <TouchableOpacity
+              style={[styles.subscribeButton, isProcessing && styles.disabledButton]}
+              onPress={handleSubscribe}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+              )}
+            </TouchableOpacity>
+            
+            {/* Terms and conditions */}
+            <Text style={styles.termsText}>
+              By subscribing, you agree to our Terms of Service and Privacy Policy. 
+              Subscriptions automatically renew unless auto-renew is turned off at 
+              least 24 hours before the end of the current period.
             </Text>
-          </TouchableOpacity>
-          
-          {/* Lifetime Plan */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'lifetime' && styles.selectedPlan
-            ]}
-            onPress={() => handleSelectPlan('lifetime')}
-          >
-            <View style={styles.planHeader}>
-              <Text style={styles.planTitle}>Lifetime</Text>
-              <View style={styles.bestValueBadge}>
-                <Text style={styles.bestValueText}>Best Value</Text>
-              </View>
-              {selectedPlan === 'lifetime' && (
-                <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
-              )}
-            </View>
-            <Text style={styles.planPrice}>{getProductPrice('lifetime')}</Text>
-            <Text style={styles.lifetimeNote}>One-time payment</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Premium Features */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.featuresSectionTitle}>Premium Features</Text>
-          
-          <View style={styles.feature}>
-            <Ionicons name="infinite" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-            <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Unlimited Lists</Text>
-              <Text style={styles.featureDescription}>
-                Create as many packing lists as you need (Free: {limits.MAX_LISTS} lists)
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.feature}>
-            <Ionicons name="notifications" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-            <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Advanced Notifications</Text>
-              <Text style={styles.featureDescription}>
-                Custom reminders, recurring notifications, and more
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.feature}>
-            <Ionicons name="headset" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-            <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Priority Support</Text>
-              <Text style={styles.featureDescription}>
-                Get help faster when you need it
-              </Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Subscribe button */}
-        <TouchableOpacity
-          style={[styles.subscribeButton, isProcessing && styles.disabledButton]}
-          onPress={handleSubscribe}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
-          )}
-        </TouchableOpacity>
-        
-        {/* Terms and conditions */}
-        <Text style={styles.termsText}>
-          By subscribing, you agree to our Terms of Service and Privacy Policy. 
-          Subscriptions automatically renew unless auto-renew is turned off at 
-          least 24 hours before the end of the current period.
-        </Text>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
