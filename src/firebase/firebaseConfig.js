@@ -23,9 +23,10 @@ if (!firebase.apps.length) {
   // Configure Firestore
   const firestoreCompat = firebase.firestore();
   
-  // Set cache size to minimum
+  // Set cache size to minimum with merge option
   firestoreCompat.settings({
-    cacheSizeBytes: 1048576  // 1MB minimum
+    cacheSizeBytes: 1048576,  // 1MB minimum
+    merge: true
   });
   
   console.log("Firebase compat initialized successfully");

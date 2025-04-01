@@ -44,7 +44,7 @@ const LoginScreen = ({ navigation }) => {
   // Handle login
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Missing Information', 'Please enter both email and password.');
       return;
     }
     
@@ -54,17 +54,58 @@ const LoginScreen = ({ navigation }) => {
       const user = await login(email, password);
       console.log('Login successful:', user?.email);
     } catch (error) {
-      let errorMessage = 'Failed to login. Please try again.';
+      console.error('Login error:', error.code, error.message);
       
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email format';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.';
+      // Provide specific error messages based on Firebase auth error codes
+      switch(error.code) {
+        case 'auth/invalid-email':
+          Alert.alert(
+            'Invalid Email', 
+            'Please check your email format and try again.'
+          );
+          break;
+        
+        case 'auth/user-not-found':
+          Alert.alert(
+            'Account Not Found', 
+            'No account exists with this email. Please check your email or create a new account.'
+          );
+          break;
+        
+        case 'auth/wrong-password':
+          Alert.alert(
+            'Incorrect Password', 
+            'The password you entered is incorrect. Please try again or use "Forgot Password".'
+          );
+          break;
+        
+        case 'auth/too-many-requests':
+          Alert.alert(
+            'Too Many Attempts', 
+            'Too many failed login attempts. Please try again later or reset your password.'
+          );
+          break;
+        
+        case 'auth/user-disabled':
+          Alert.alert(
+            'Account Disabled', 
+            'This account has been disabled. Please contact support for assistance.'
+          );
+          break;
+          
+        case 'auth/network-request-failed':
+          Alert.alert(
+            'Network Error', 
+            'Unable to connect to authentication servers. Please check your internet connection and try again.'
+          );
+          break;
+          
+        default:
+          Alert.alert(
+            'Login Failed',
+            'There was a problem logging into your account. Please try again later.'
+          );
       }
-      
-      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }

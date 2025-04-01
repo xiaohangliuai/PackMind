@@ -256,31 +256,6 @@ const PremiumScreen = ({ navigation, route }) => {
     }
   };
   
-  // Handle restore purchases
-  const handleRestorePurchases = async () => {
-    if (user?.isAnonymous) {
-      Alert.alert(
-        'Account Required',
-        'Please create a full account to restore purchases.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Create Account', 
-            onPress: handleCreateAccount
-          }
-        ]
-      );
-      return;
-    }
-    
-    try {
-      await restorePurchases();
-    } catch (error) {
-      console.error('Error restoring purchases:', error);
-      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
-    }
-  };
-  
   // Handle goBack
   const handleGoBack = () => {
     navigation.goBack();
@@ -691,15 +666,6 @@ const PremiumScreen = ({ navigation, route }) => {
           )}
         </TouchableOpacity>
         
-        {/* Restore Purchases button */}
-        <TouchableOpacity
-          style={styles.restoreButton}
-          onPress={handleRestorePurchases}
-          disabled={isProcessing}
-        >
-          <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-        </TouchableOpacity>
-        
         {/* Terms and conditions */}
         <Text style={styles.termsText}>
           By subscribing, you agree to our Terms of Service and Privacy Policy. 
@@ -947,20 +913,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#777',
     marginTop: 10,
-  },
-  restoreButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: THEME.PRIMARY,
-    borderRadius: 25,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  restoreButtonText: {
-    color: THEME.PRIMARY,
-    fontSize: 14,
-    fontWeight: '500',
   },
   trialUpgradeContainer: {
     width: '100%',

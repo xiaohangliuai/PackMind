@@ -148,7 +148,8 @@ const CreateListScreen = ({ navigation, route }) => {
   // Date time picker handlers
   const showDateTimePicker = () => {
     try {
-      if (!isPremium) {
+      // Check if user has premium access (includes both premium and trial users)
+      if (!isPremium && subscriptionType !== 'trial') {
         Alert.alert(
           'Premium Feature',
           'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',

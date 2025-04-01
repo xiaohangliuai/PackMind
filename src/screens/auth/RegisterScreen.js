@@ -60,18 +60,40 @@ const RegisterScreen = ({ navigation, route }) => {
   
   // Validate form
   const validateForm = () => {
-    if (!fullName || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!fullName.trim()) {
+      Alert.alert('Missing Name', 'Please enter your full name.');
       return false;
     }
     
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!email.trim()) {
+      Alert.alert('Missing Email', 'Please enter your email address.');
+      return false;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      return false;
+    }
+    
+    if (!password) {
+      Alert.alert('Missing Password', 'Please enter a password.');
       return false;
     }
     
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Password Too Short', 'Password must be at least 6 characters long.');
+      return false;
+    }
+    
+    if (!confirmPassword) {
+      Alert.alert('Missing Confirmation', 'Please confirm your password.');
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      Alert.alert('Passwords Do Not Match', 'Your password and confirmation do not match. Please try again.');
       return false;
     }
     
@@ -240,18 +262,51 @@ const RegisterScreen = ({ navigation, route }) => {
         );
       }
     } catch (error) {
-      let errorMessage = 'Failed to create account. Please try again.';
-      console.error('Registration error:', error);
+      console.error('Registration error:', error.code, error.message);
       
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email is already in use';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email format';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak';
+      // Provide specific error messages based on Firebase auth error codes
+      switch(error.code) {
+        case 'auth/email-already-in-use':
+          Alert.alert(
+            'Email Already Used', 
+            'An account with this email already exists. Please use a different email or try logging in instead.'
+          );
+          break;
+          
+        case 'auth/invalid-email':
+          Alert.alert(
+            'Invalid Email', 
+            'Please enter a valid email address.'
+          );
+          break;
+          
+        case 'auth/weak-password':
+          Alert.alert(
+            'Weak Password', 
+            'Your password is too weak. Please choose a stronger password with at least 6 characters.'
+          );
+          break;
+          
+        case 'auth/operation-not-allowed':
+          Alert.alert(
+            'Registration Disabled', 
+            'Account creation is currently disabled. Please try again later.'
+          );
+          break;
+          
+        case 'auth/network-request-failed':
+          Alert.alert(
+            'Network Error', 
+            'Unable to connect to authentication servers. Please check your internet connection and try again.'
+          );
+          break;
+          
+        default:
+          Alert.alert(
+            'Registration Failed',
+            'There was a problem creating your account. Please try again later.'
+          );
       }
-      
-      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
