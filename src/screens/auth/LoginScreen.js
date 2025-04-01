@@ -270,13 +270,15 @@ const LoginScreen = ({ navigation }) => {
                     <Ionicons name="logo-apple" size={24} color={THEME.TEXT.PRIMARY} />
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity 
-                  style={styles.socialButton}
-                  onPress={() => handleSocialLogin('Google')}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-google" size={24} color={THEME.TEXT.PRIMARY} />
-                </TouchableOpacity>
+                {Platform.OS !== 'ios' && (
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={() => handleSocialLogin('Google')}
+                    disabled={isLoading}
+                  >
+                    <Ionicons name="logo-google" size={24} color={THEME.TEXT.PRIMARY} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity 
                   style={styles.socialButton}
                   onPress={() => handleSocialLogin('Guest')}
