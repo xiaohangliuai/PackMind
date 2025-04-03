@@ -133,9 +133,9 @@ const getMockProducts = () => {
       productId: 'com.packmind.premium.lifetime',
       title: 'Lifetime Premium',
       description: 'Unlock all premium features forever',
-      price: '$49.99',
+      price: '$21.99',
       currency: 'USD',
-      localizedPrice: '$49.99',
+      localizedPrice: '$21.99',
       _isMock: true
     }
   ];
@@ -150,9 +150,9 @@ const getMockSubscriptions = () => {
       description: 'Unlock all premium features',
       subscriptionPeriodUnitIOS: 'MONTH',
       subscriptionPeriodAndroid: 'P1M',
-      price: '$2.99',
+      price: '$1.69',
       currency: 'USD',
-      localizedPrice: '$2.99',
+      localizedPrice: '$1.69',
       _isMock: true
     },
     {
@@ -161,9 +161,9 @@ const getMockSubscriptions = () => {
       description: 'Unlock all premium features',
       subscriptionPeriodUnitIOS: 'YEAR',
       subscriptionPeriodAndroid: 'P1Y',
-      price: '$19.99',
+      price: '$12.99',
       currency: 'USD',
-      localizedPrice: '$19.99',
+      localizedPrice: '$12.99',
       _isMock: true
     }
   ];

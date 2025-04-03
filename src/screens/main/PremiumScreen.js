@@ -23,9 +23,9 @@ const DEFAULT_PREMIUM_STATE = {
   isPremium: false,
   subscriptionType: null,
   pricing: {
-    MONTHLY: 2.99,
-    ANNUAL: 19.99, 
-    LIFETIME: 49.99
+    MONTHLY: 1.69,
+    ANNUAL: 12.99, 
+    LIFETIME: 21.99
   },
   limits: {
     MAX_LISTS: 3
@@ -127,13 +127,13 @@ const PremiumScreen = ({ navigation, route }) => {
       let planName = '';
       
       if (subscriptionType === 'monthly' && newPlan === 'annual') {
-        upgradePrice = 15.99;
+        upgradePrice = 10.99;
         planName = 'Annual';
       } else if (subscriptionType === 'monthly' && newPlan === 'lifetime') {
-        upgradePrice = 45.99;
+        upgradePrice = 19.99;
         planName = 'Lifetime';
       } else if (subscriptionType === 'annual' && newPlan === 'lifetime') {
-        upgradePrice = 26.99;
+        upgradePrice = 7.99;
         planName = 'Lifetime';
       }
 
@@ -471,11 +471,11 @@ const PremiumScreen = ({ navigation, route }) => {
                             </View>
                           </View>
                           <View style={styles.priceContainer}>
-                            <Text style={styles.planPrice}>${(15.99).toFixed(2)}</Text>
-                            <Text style={styles.originalPrice}>${(19.99).toFixed(2)}</Text>
+                            <Text style={styles.planPrice}>${(10.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(12.99).toFixed(2)}</Text>
                           </View>
                           <Text style={styles.planBilled}>billed annually</Text>
-                          <Text style={styles.discountText}>You save $4.00</Text>
+                          <Text style={styles.discountText}>You save $2.00</Text>
                           <Text style={styles.planDescription}>Get all premium features at a discounted rate</Text>
                         </TouchableOpacity>
                         
@@ -490,11 +490,11 @@ const PremiumScreen = ({ navigation, route }) => {
                             </View>
                           </View>
                           <View style={styles.priceContainer}>
-                            <Text style={styles.planPrice}>${(45.99).toFixed(2)}</Text>
-                            <Text style={styles.originalPrice}>${(49.99).toFixed(2)}</Text>
+                            <Text style={styles.planPrice}>${(19.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(21.99).toFixed(2)}</Text>
                           </View>
                           <Text style={styles.planBilled}>one-time payment</Text>
-                          <Text style={styles.discountText}>You save $4.00</Text>
+                          <Text style={styles.discountText}>You save $2.00</Text>
                           <Text style={styles.planDescription}>Pay once and unlock premium features forever</Text>
                         </TouchableOpacity>
                       </>
@@ -515,11 +515,11 @@ const PremiumScreen = ({ navigation, route }) => {
                             </View>
                           </View>
                           <View style={styles.priceContainer}>
-                            <Text style={styles.planPrice}>${(26.99).toFixed(2)}</Text>
-                            <Text style={styles.originalPrice}>${(49.99).toFixed(2)}</Text>
+                            <Text style={styles.planPrice}>${(7.99).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>${(21.99).toFixed(2)}</Text>
                           </View>
                           <Text style={styles.planBilled}>one-time payment</Text>
-                          <Text style={styles.discountText}>You save $23.00</Text>
+                          <Text style={styles.discountText}>You save $14.00</Text>
                           <Text style={styles.planDescription}>Pay once and unlock premium features forever</Text>
                         </TouchableOpacity>
                       </>
