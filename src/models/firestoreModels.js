@@ -3,6 +3,7 @@ import firebase from '../firebase/firebaseConfig';
 import { firestore } from '../config/firebase';
 import { db } from '../firebase/firebaseConfig';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // PackingList model
 const packingListsCollection = 'packingLists';
@@ -184,11 +185,70 @@ export const getActivityTemplates = async () => {
 // User profile functions
 export const createUserProfile = async (userId, data) => {
   try {
+    // Try using the modular API first
+    try {
+      // Get user info if available
+      let userInfo = {};
+      try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser && currentUser.uid === userId) {
+          userInfo = {
+            displayName: currentUser.displayName || '',
+            email: currentUser.email || '',
+          };
+        }
+      } catch (error) {
+        console.warn('Could not get user info for new profile:', error);
+      }
+      
+      // Ensure isPremium and premium are synchronized for backward compatibility
+      const profileData = {
+        ...userInfo,
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      if ('isPremium' in data && !('premium' in data)) {
+        profileData.premium = data.isPremium;
+      } else if ('premium' in data && !('isPremium' in data)) {
+        profileData.isPremium = data.premium;
+      }
+      
+      // Set default values if not provided
+      if (!('isPremium' in profileData) && !('premium' in profileData)) {
+        profileData.isPremium = false;
+        profileData.premium = false;
+      }
+      
+      const userDocRef = doc(db, 'users', userId);
+      await setDoc(userDocRef, profileData);
+      
+      return { userId, ...profileData };
+    } catch (modularError) {
+      console.warn('Modular API failed, falling back to compat:', modularError);
+    }
+    
+    // Fall back to compat API
     const profileData = {
       ...data,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+    
+    // Ensure isPremium and premium are synchronized for backward compatibility
+    if ('isPremium' in data && !('premium' in data)) {
+      profileData.premium = data.isPremium;
+    } else if ('premium' in data && !('isPremium' in data)) {
+      profileData.isPremium = data.premium;
+    }
+    
+    // Set default values if not provided
+    if (!('isPremium' in profileData) && !('premium' in profileData)) {
+      profileData.isPremium = false;
+      profileData.premium = false;
+    }
     
     await firebase.firestore().collection('userProfiles').doc(userId).set(profileData);
     return { userId, ...profileData };
@@ -241,6 +301,13 @@ export const updateUserProfile = async (userId, data) => {
         updatedAt: new Date()
       };
       
+      // Ensure isPremium and premium are synchronized for backward compatibility
+      if ('isPremium' in data && !('premium' in data)) {
+        updateData.premium = data.isPremium;
+      } else if ('premium' in data && !('isPremium' in data)) {
+        updateData.isPremium = data.premium;
+      }
+      
       const userDocRef = doc(db, 'users', userId);
       
       // Check if document exists first
@@ -250,8 +317,23 @@ export const updateUserProfile = async (userId, data) => {
         // Update the document
         await updateDoc(userDocRef, updateData);
       } else {
-        // Create the document
+        // Create the document - try to get user info if available
+        let userInfo = {};
+        try {
+          const auth = getAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser && currentUser.uid === userId) {
+            userInfo = {
+              displayName: currentUser.displayName || '',
+              email: currentUser.email || '',
+            };
+          }
+        } catch (error) {
+          console.warn('Could not get user info for new profile:', error);
+        }
+        
         await setDoc(userDocRef, {
+          ...userInfo,
           ...updateData,
           createdAt: new Date()
         });
@@ -268,6 +350,13 @@ export const updateUserProfile = async (userId, data) => {
       ...data,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+    
+    // Ensure isPremium and premium are synchronized for backward compatibility
+    if ('isPremium' in data && !('premium' in data)) {
+      updateData.premium = data.isPremium;
+    } else if ('premium' in data && !('isPremium' in data)) {
+      updateData.isPremium = data.premium;
+    }
     
     await firebase.firestore().collection('userProfiles').doc(userId).update(updateData);
     return { userId, ...updateData };

@@ -262,7 +262,7 @@ const PremiumScreen = ({ navigation, route }) => {
       if (success) {
         Alert.alert(
           'Free Trial Started!',
-          'Your 7-day free trial has been activated. Enjoy all premium features!',
+          'Your 14-day free trial has been activated. Enjoy all premium features!',
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       }
@@ -556,7 +556,7 @@ const PremiumScreen = ({ navigation, route }) => {
         </View>
         
         <View style={styles.freeTrialSection}>
-          <Text style={styles.freeTrialText}>Try Premium FREE for 7 days</Text>
+          <Text style={styles.freeTrialText}>Try Premium FREE for 14 days</Text>
           <TouchableOpacity
             style={styles.freeTrialButton}
             onPress={handleStartFreeTrial}

@@ -167,9 +167,9 @@ export const PremiumProvider = ({ children }) => {
     }
     
     try {
-      // Set trial expiry to 7 days from now
+      // Set trial expiry to 14 days from now (changed from 7 days)
       const trialExpiryDate = new Date();
-      trialExpiryDate.setDate(trialExpiryDate.getDate() + 7);
+      trialExpiryDate.setDate(trialExpiryDate.getDate() + 14);
       
       // Ensure db reference is valid
       if (!db) {
@@ -182,22 +182,49 @@ export const PremiumProvider = ({ children }) => {
       // Try to update the user document
       try {
         const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-          isPremium: true,
-          subscriptionType: 'trial',
-          subscriptionExpiryDate: trialExpiryDate,
-          trialStartedAt: new Date()
-        });
+        // First get the existing document to preserve fields like createdAt
+        const docSnap = await getDoc(userDocRef);
+        
+        if (docSnap.exists()) {
+          // Update existing document while preserving important fields
+          await updateDoc(userDocRef, {
+            displayName: user.displayName || '',
+            email: user.email || '',
+            isPremium: true,
+            premium: true,
+            subscriptionType: 'trial',
+            subscriptionExpiryDate: trialExpiryDate,
+            trialStartedAt: new Date(),
+            updatedAt: new Date()
+          });
+        } else {
+          // Create new document if it doesn't exist
+          await setDoc(userDocRef, {
+            displayName: user.displayName || '',
+            email: user.email || '',
+            isPremium: true,
+            premium: true,
+            subscriptionType: 'trial',
+            subscriptionExpiryDate: trialExpiryDate,
+            trialStartedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
       } catch (updateError) {
         console.log('User document may not exist, creating new document');
         // Create the document if it doesn't exist
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, {
+          displayName: user.displayName || '',
+          email: user.email || '',
           isPremium: true,
+          premium: true,
           subscriptionType: 'trial',
           subscriptionExpiryDate: trialExpiryDate,
           trialStartedAt: new Date(),
-          createdAt: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         });
       }
       
@@ -252,7 +279,9 @@ export const PremiumProvider = ({ children }) => {
             displayName: user.displayName || '',
             email: user.email || '',
             isPremium: false,
-            createdAt: new Date()
+            premium: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
           });
         }
       } catch (error) {
@@ -292,13 +321,37 @@ export const PremiumProvider = ({ children }) => {
           console.log('Updating user document:', user.uid);
           
           const userDocRef = doc(db, 'users', user.uid);
-          await updateDoc(userDocRef, {
-            isPremium: true,
-            subscriptionType: subscriptionType,
-            subscriptionExpiryDate: expiryDate,
-            customUpgradePrice: customPrice, // Store the custom price used for the upgrade
-            upgradedAt: new Date() // Track when the user upgraded
-          });
+          // First get the existing document to preserve fields
+          const docSnap = await getDoc(userDocRef);
+          
+          if (docSnap.exists()) {
+            // Update existing document while preserving important fields
+            await updateDoc(userDocRef, {
+              displayName: user.displayName || '',
+              email: user.email || '',
+              isPremium: true,
+              premium: true,
+              subscriptionType: subscriptionType,
+              subscriptionExpiryDate: expiryDate,
+              customUpgradePrice: customPrice, // Store the custom price used for the upgrade
+              upgradedAt: new Date(), // Track when the user upgraded
+              updatedAt: new Date()
+            });
+          } else {
+            // Create new document if it doesn't exist
+            await setDoc(userDocRef, {
+              displayName: user.displayName || '',
+              email: user.email || '',
+              isPremium: true,
+              premium: true,
+              subscriptionType: subscriptionType,
+              subscriptionExpiryDate: expiryDate,
+              customUpgradePrice: customPrice,
+              upgradedAt: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
           
           // Update local state
           setSubscriptionType(subscriptionType);
@@ -314,12 +367,16 @@ export const PremiumProvider = ({ children }) => {
             console.log('Attempting to create user document');
             const userDocRef = doc(db, 'users', user.uid);
             await setDoc(userDocRef, {
+              displayName: user.displayName || '',
+              email: user.email || '',
               isPremium: true,
+              premium: true,
               subscriptionType: subscriptionType,
               subscriptionExpiryDate: expiryDate,
               customUpgradePrice: customPrice,
               upgradedAt: new Date(),
-              createdAt: new Date()
+              createdAt: new Date(),
+              updatedAt: new Date()
             });
             
             // Update local state
