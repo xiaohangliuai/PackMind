@@ -22,8 +22,16 @@ const Stack = createStackNavigator();
 const AuthNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen 
+      name="Login" 
+      component={LoginScreen} 
+      options={{ gestureEnabled: false }} 
+    />
+    <Stack.Screen 
+      name="Register" 
+      component={RegisterScreen} 
+      options={{ gestureEnabled: false }}  
+    />
   </Stack.Navigator>
 );
 

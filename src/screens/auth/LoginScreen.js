@@ -238,11 +238,6 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             
-            {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-            
             {/* Login Button */}
             <TouchableOpacity 
               style={styles.loginButton}
@@ -381,20 +376,12 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 5,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: THEME.SPACING.LARGE,
-  },
-  forgotPasswordText: {
-    ...TYPOGRAPHY.BODY_2,
-    color: THEME.PRIMARY,
-    fontWeight: '600',
-  },
   loginButton: {
     borderRadius: THEME.RADIUS.MEDIUM,
     overflow: 'hidden',
     ...THEME.SHADOWS.MEDIUM,
     marginBottom: 60,
+    marginTop: THEME.SPACING.LARGE,
   },
   gradientButton: {
     height: 56,
