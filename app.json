@@ -43,7 +43,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSUserTrackingUsageDescription": "This allows PackMind to deliver timely packing reminders for your trips"
+        "NSUserTrackingUsageDescription": "This allows PackMind to deliver timely packing reminders for your trips",
+        "googleServicesFile": "./GoogleService-Info.plist"
       }
     },
     "android": {

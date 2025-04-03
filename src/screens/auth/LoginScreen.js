@@ -121,12 +121,18 @@ const LoginScreen = ({ navigation }) => {
       console.log('Apple login error:', error);
       // Don't show an error for user cancellations
       if (error.code !== 'ERR_CANCELED') {
-        // Handle audience mismatch specifically
+        // Specific error for Expo Go audience mismatch
         if (error.code === 'auth/invalid-credential' && error.message?.includes('audience')) {
           Alert.alert(
-            'Authentication Error', 
-            'There was a configuration issue with Apple Sign In. Please try again later or use email login.',
+            'Development Mode Issue',
+            'Apple Sign In has authentication restrictions when testing in Expo Go. We\'ve implemented a workaround that should work if you provided your email during Apple Sign In.',
             [{ text: 'OK' }]
+          );
+        } else if (error.message?.includes('No email provided from Apple')) {
+          Alert.alert(
+            'Email Required',
+            'For development testing in Expo Go, you need to share your email address with the app when signing in with Apple.',
+            [{ text: 'Try Again' }]
           );
         } else {
           Alert.alert('Error', 'Apple sign in failed. Please try again.');

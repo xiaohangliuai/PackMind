@@ -43,10 +43,41 @@ export const AuthProvider = ({ children }) => {
   // Sign in with Apple
   const signInWithApple = async () => {
     try {
+      console.log('AuthContext: Starting Apple Sign-In');
       const userCredential = await appleAuth.signInWithApple();
+      
+      // If we get here, the sign-in was successful
+      console.log('AuthContext: Apple Sign-In successful');
+      
+      // Update user activity if applicable
+      if (userCredential.user) {
+        try {
+          // Update lastLogin timestamp
+          const userRef = firebase.firestore().collection('users').doc(userCredential.user.uid);
+          await userRef.set({
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          
+          console.log('AuthContext: Updated user last login timestamp');
+        } catch (error) {
+          console.warn('Failed to update user activity after Apple login:', error);
+          // Non-critical error, do not throw
+        }
+      }
+      
       return userCredential.user;
     } catch (error) {
-      console.error('Apple sign in error:', error);
+      console.error('AuthContext: Apple sign in error:', error);
+      
+      // Specific handling for different error types
+      if (error.code === 'ERR_CANCELED') {
+        // User cancelled the sign-in flow, just log and rethrow
+        console.log('AuthContext: User cancelled Apple Sign-In');
+      } else if (error.code && error.code.startsWith('auth/')) {
+        // Firebase authentication errors
+        console.error('AuthContext: Firebase auth error during Apple Sign-In:', error.code);
+      }
+      
       throw error;
     }
   };

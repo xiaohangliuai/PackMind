@@ -31,6 +31,17 @@ if (!firebase.apps.length) {
   
   console.log("Firebase compat initialized successfully");
   
+  // Enable Apple Sign In provider
+  try {
+    const appleProvider = new firebase.auth.OAuthProvider('apple.com');
+    appleProvider.addScope('email');
+    appleProvider.addScope('name');
+    
+    console.log("Apple Sign In provider configured successfully");
+  } catch (error) {
+    console.error("Error configuring Apple Sign In provider:", error);
+  }
+  
   // Enable anonymous authentication for testing
   firebase.auth().onAuthStateChanged((user) => {
     console.log("Auth state changed:", user ? "User logged in" : "No user");
