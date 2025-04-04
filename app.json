@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "PackMind",
-    "slug": "PackMind",
+    "name": "PackMindPlus",
+    "slug": "packmindplus",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "entryPoint": "./index.ts",
@@ -31,20 +31,37 @@
           ]
         }
       ],
-      ["react-native-iap"]
+      [
+        "react-native-iap"
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "podfileProperties": {
+              "use_modular_headers!": true
+            }
+          }
+        }
+      ],
+      "@react-native-firebase/app"
+    
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yutoliu.packmind",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "usesAppleSignIn": true
       },
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ],
         "NSUserTrackingUsageDescription": "This allows PackMind to deliver timely packing reminders for your trips",
-        "googleServicesFile": "./GoogleService-Info.plist"
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -68,9 +85,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "3883ba58-589a-45c5-a4d8-56db6d1d3d3a"
       }
     },
-    "scheme": "com.yutoliu.packmind"
+    "scheme": "com.yutoliu.packmind",
+    "owner": "xiaohangliu"
   }
 }
