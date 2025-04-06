@@ -279,6 +279,27 @@ const PremiumScreen = ({ navigation, route }) => {
     navigation.goBack();
   };
   
+  // Handle restore purchases
+  const handleRestorePurchases = () => {
+    Alert.alert(
+      'Restore Purchases',
+      'This will restore any previous purchases you made with your current account. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Restore', 
+          onPress: async () => {
+            try {
+              await restorePurchases();
+            } catch (error) {
+              console.error('Error in restore purchases:', error);
+            }
+          } 
+        }
+      ]
+    );
+  };
+  
   // Check if premium context is available
   const isPremiumAvailable = premiumContext !== null;
   
@@ -528,6 +549,19 @@ const PremiumScreen = ({ navigation, route }) => {
                 )}
               </View>
             )}
+            
+            {/* Restore Purchases button for premium users */}
+            <TouchableOpacity
+              style={styles.premiumRestoreButton}
+              onPress={handleRestorePurchases}
+              disabled={isRestoring}
+            >
+              {isRestoring ? (
+                <ActivityIndicator size="small" color={THEME.PRIMARY} />
+              ) : (
+                <Text style={styles.premiumRestoreText}>Restore Purchases</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -612,7 +646,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
                 <Text style={styles.monthlyEquivalent}>
-                  (${(pricing.ANNUAL / 12).toFixed(2)}/month)
+                  ($1.08/month)
                 </Text>
               </TouchableOpacity>
               
@@ -684,6 +718,15 @@ const PremiumScreen = ({ navigation, route }) => {
               ) : (
                 <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
               )}
+            </TouchableOpacity>
+            
+            {/* Restore Purchases button */}
+            <TouchableOpacity
+              style={styles.restorePurchasesButton}
+              onPress={handleRestorePurchases}
+              disabled={isProcessing}
+            >
+              <Text style={styles.restorePurchasesText}>Restore Purchases</Text>
             </TouchableOpacity>
             
             {/* Terms and conditions */}
@@ -1050,6 +1093,37 @@ const styles = StyleSheet.create({
   lastOption: {
     borderBottomWidth: 0,
     paddingBottom: 0,
+  },
+  restorePurchasesButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: THEME.PRIMARY,
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  restorePurchasesText: {
+    color: THEME.PRIMARY,
+    fontWeight: '600',
+  },
+  premiumRestoreButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: THEME.PRIMARY,
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 20,
+    marginBottom: 5,
+    width: '70%',
+  },
+  premiumRestoreText: {
+    color: THEME.PRIMARY,
+    fontWeight: '600',
   },
 });
 
