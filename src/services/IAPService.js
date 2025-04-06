@@ -263,6 +263,11 @@ const validatePurchase = async (purchase, userId, productId) => {
       firestoreTimestamp = firebase.firestore.Timestamp.fromDate(expiryDate);
     }
     
+    // Get current user from Firebase Auth
+    const currentUser = firebase.auth().currentUser;
+    const userDisplayName = currentUser ? (currentUser.displayName || '') : '';
+    const userEmail = currentUser ? (currentUser.email || '') : '';
+    
     // Store purchase info in Firestore
     const db = firebase.firestore();
     const purchaseData = {
@@ -287,6 +292,8 @@ const validatePurchase = async (purchase, userId, productId) => {
     if (userDoc.exists) {
       // Update existing user document
       await userRef.update({
+        displayName: userDisplayName,
+        email: userEmail,
         isPremium: true,
         premium: true,
         subscriptionType,
@@ -297,6 +304,8 @@ const validatePurchase = async (purchase, userId, productId) => {
     } else {
       // Create new user document
       await userRef.set({
+        displayName: userDisplayName,
+        email: userEmail,
         isPremium: true,
         premium: true,
         subscriptionType,
