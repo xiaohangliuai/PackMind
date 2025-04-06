@@ -13,6 +13,7 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +23,7 @@ import { COLORS, THEME } from '../../constants/theme';
 import { useActivityTracker } from '../../hooks/useActivityTracker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firebase from '../../firebase/firebaseConfig';
+import * as Notifications from 'expo-notifications';
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -40,12 +42,63 @@ const SettingsScreen = ({ navigation }) => {
   // State
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
+  
+  // Reference to track app state changes
+  const appState = React.useRef(AppState.currentState);
   
   // Check if user is anonymous (guest)
   const isGuestUser = user && user.isAnonymous;
   
   // Track user activity for guest users
   useActivityTracker();
+  
+  // Open app notification settings
+  const openNotificationSettings = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        await Linking.openURL('app-settings:');
+      } else {
+        await Linking.openSettings();
+      }
+    } catch (error) {
+      console.error('Error opening settings:', error);
+      Alert.alert(
+        'Error',
+        'Could not open settings. Please open your device settings manually.'
+      );
+    }
+  };
+  
+  // Check notification permission status
+  const checkNotificationPermission = async () => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      console.log('Current notification permission status:', status);
+      setHasNotificationPermission(status === 'granted');
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
+    }
+  };
+  
+  // Listen for app state changes (e.g., when app comes to foreground from settings)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        console.log('App has come to the foreground - checking notification permissions');
+        checkNotificationPermission();
+      }
+      
+      appState.current = nextAppState;
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
   
   // Fetch user profile
   const fetchUserProfile = async () => {
@@ -71,6 +124,7 @@ const SettingsScreen = ({ navigation }) => {
   // Initial data fetch
   useEffect(() => {
     fetchUserProfile();
+    checkNotificationPermission();
   }, []);
   
   // Update settings in Firestore
@@ -303,6 +357,29 @@ const SettingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         )}
+        
+        {/* Notification Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={openNotificationSettings}
+          >
+            <Ionicons 
+              name={hasNotificationPermission ? "notifications" : "notifications-outline"} 
+              size={24} 
+              color={THEME.PRIMARY} 
+              style={styles.optionIcon} 
+            />
+            <View style={styles.optionInfo}>
+              <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Notification Settings</Text>
+            </View>
+            {hasNotificationPermission && (
+              <Text style={styles.enabledText}>Enabled</Text>
+            )}
+          </TouchableOpacity>
+        </View>
         
         {/* Support Section */}
         <View style={styles.section}>
@@ -545,6 +622,12 @@ const styles = StyleSheet.create({
   appCopyright: {
     fontSize: 12,
     color: '#999',
+  },
+  enabledText: {
+    color: COLORS.SUCCESS,
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginRight: 5,
   },
 });
 

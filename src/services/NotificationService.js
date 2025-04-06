@@ -1,10 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import { format, addDays } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { Alert } from 'react-native';
 
 // Configure notifications to show when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -57,8 +56,17 @@ export const sendTestNotification = async () => {
     // Check permissions first
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
-      console.log('Notification permission not granted, cannot send test notification');
-      throw new Error('Notification permission not granted');
+      console.log('Notification permission not granted, prompting user...');
+      
+      // Prompt for permission instead of immediately failing
+      const permissionGranted = await promptForNotificationPermission();
+      
+      if (!permissionGranted) {
+        console.log('Permission still not granted after prompt');
+        throw new Error('Notification permission not granted');
+      }
+      
+      console.log('Permission granted after prompt, continuing with test notification');
     }
     
     console.log('Scheduling immediate test notification...');
@@ -136,6 +144,120 @@ export const sendTestNotificationSequence = async () => {
 };
 
 /**
+ * Helper function to open app settings
+ */
+const openAppSettings = async () => {
+  if (Platform.OS === 'ios') {
+    await Linking.openURL('app-settings:');
+  } else {
+    await Linking.openSettings();
+  }
+};
+
+/**
+ * Request notification permissions with a user-friendly explanation alert
+ * Shows an alert explaining why notifications are needed before requesting system permission
+ */
+export const requestNotificationPermissionWithAlert = async () => {
+  try {
+    // First check current permission status
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('Current notification permission status:', existingStatus);
+    
+    // If already granted, return true
+    if (existingStatus === 'granted') {
+      console.log('Notifications already permitted');
+      return true;
+    }
+    
+    // If permissions are denied or blocked, show instructions to enable in settings
+    if (existingStatus === 'denied') {
+      Alert.alert(
+        'Notifications Disabled',
+        'To receive packing reminders, please enable notifications for PackM!nd+ in your device settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open Settings', 
+            onPress: openAppSettings
+          }
+        ]
+      );
+      return false;
+    }
+    
+    // For undetermined status, show the explanation first
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Enable Notifications',
+        'PackM!nd+ would like to send you notifications to remind you when it\'s time to pack for your trips.',
+        [
+          {
+            text: 'Not Now',
+            onPress: () => {
+              console.log('User declined to allow notifications');
+              resolve(false);
+            },
+            style: 'cancel',
+          },
+          {
+            text: 'Allow',
+            onPress: async () => {
+              try {
+                // Directly request permissions
+                console.log('User agreed to notifications, requesting system permission');
+                const { status } = await Notifications.requestPermissionsAsync({
+                  ios: {
+                    allowAlert: true,
+                    allowBadge: true,
+                    allowSound: true,
+                    allowDisplayInCarPlay: false,
+                    allowCriticalAlerts: true,
+                    provideAppNotificationSettings: true,
+                    allowProvisional: true,
+                    allowAnnouncements: true,
+                  },
+                });
+                
+                console.log('Permission request result:', status);
+                
+                // Handle result
+                if (status !== 'granted') {
+                  // If not granted after user agreed, they may have denied at system level
+                  console.log('User denied permission at system level');
+                  Alert.alert(
+                    'Notifications Disabled',
+                    'To receive packing reminders, please enable notifications for PackM!nd+ in your device settings.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Open Settings', 
+                        onPress: openAppSettings
+                      }
+                    ]
+                  );
+                  resolve(false);
+                } else {
+                  console.log('Notification permission granted');
+                  resolve(true);
+                }
+              } catch (error) {
+                console.error('Error requesting notification permission:', error);
+                resolve(false);
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    });
+  } catch (error) {
+    console.error('Error in notification permission flow:', error);
+    return false;
+  }
+};
+
+/**
  * Register for push notifications
  * @returns {Promise<string|null>} The notification token or null if not available
  */
@@ -164,29 +286,14 @@ export const registerForPushNotifications = async () => {
     
     if (existingStatus !== 'granted') {
       console.log('Requesting notification permission...');
-      const { status } = await Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowBadge: true,
-          allowSound: true,
-          allowDisplayInCarPlay: false,
-          allowCriticalAlerts: true,
-          provideAppNotificationSettings: true,
-          allowProvisional: true,
-          allowAnnouncements: true,
-        },
-      });
-      finalStatus = status;
-      console.log('Permission request result:', finalStatus);
+      
+      // Instead of directly requesting permission, show the friendly alert first
+      const permissionGranted = await requestNotificationPermissionWithAlert();
+      finalStatus = permissionGranted ? 'granted' : 'denied';
     }
     
     if (finalStatus !== 'granted') {
       console.log('Permission not granted for notifications');
-      Alert.alert(
-        'Notifications Disabled',
-        'To receive packing reminders, please enable notifications in your device settings.',
-        [{ text: 'OK' }]
-      );
       return null;
     }
 
@@ -396,8 +503,17 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
     // First check if notifications are permitted
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
-      console.log('Notification permission not granted, cannot schedule notification');
-      throw new Error('Notification permission not granted');
+      console.log('Notification permission not granted, prompting user...');
+      
+      // Prompt for permission instead of immediately failing
+      const permissionGranted = await promptForNotificationPermission();
+      
+      if (!permissionGranted) {
+        console.log('Permission still not granted after prompt');
+        throw new Error('Notification permission not granted');
+      }
+      
+      console.log('Permission granted after prompt, continuing with notification scheduling');
     }
     
     // Format the notification body
@@ -1246,8 +1362,17 @@ export const testDailyNotification = async () => {
     // Check permissions
     const permStatus = await Notifications.getPermissionsAsync();
     if (permStatus.status !== 'granted') {
-      console.log('Notification permissions not granted');
-      return { success: false, error: 'Permissions not granted' };
+      console.log('Notification permissions not granted, prompting user...');
+      
+      // Prompt for permission instead of immediately failing
+      const permissionGranted = await promptForNotificationPermission();
+      
+      if (!permissionGranted) {
+        console.log('Permission still not granted after prompt');
+        return { success: false, error: 'Permissions not granted' };
+      }
+      
+      console.log('Permission granted after prompt, continuing with test notifications');
     }
     
     // Get the current time
@@ -1324,6 +1449,26 @@ export const testDailyNotification = async () => {
   }
 };
 
+/**
+ * Trigger notification permission request from any screen
+ * This function checks the current permission status and shows the alert if needed
+ * @returns {Promise<boolean>} True if permission was granted, false otherwise
+ */
+export const promptForNotificationPermission = async () => {
+  // Check current permission status
+  const { status } = await Notifications.getPermissionsAsync();
+  
+  // If already granted, return true
+  if (status === 'granted') {
+    console.log('Notification permission already granted');
+    return true;
+  }
+  
+  // If not granted, show the alert and request permission
+  console.log('Requesting notification permission with user-friendly alert');
+  return await requestNotificationPermissionWithAlert();
+};
+
 export default {
   registerForPushNotifications,
   schedulePackingReminder,
@@ -1337,4 +1482,5 @@ export default {
   verifyNotification,
   listAllScheduledNotifications,
   testDailyNotification,
+  promptForNotificationPermission,
 }; 
