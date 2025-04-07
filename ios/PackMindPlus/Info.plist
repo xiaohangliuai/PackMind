@@ -59,7 +59,6 @@
 	<string>This allows PackMind to deliver timely packing reminders for your trips</string>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>processing</string>
 		<string>remote-notification</string>
 	</array>
 	<key>UILaunchStoryboardName</key>

@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   logoImage: {
     width: '100%',
-    height: '100%',
+    height: '86%',
   },
   titleContainer: {
     width: width * 0.8,
