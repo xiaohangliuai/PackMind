@@ -14,6 +14,8 @@ import {
   FlatList,
   Platform,
   Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -29,6 +31,7 @@ import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
 import { COLORS, THEME } from '../../constants/theme';
 import { useActivityTracker } from '../../hooks/useActivityTracker';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -605,6 +608,11 @@ const ListDetailsScreen = ({ route, navigation }) => {
     
     // Change item type/icon
     const handleChangeItemType = async (newType) => {
+      // Close any active editing first
+      if (isEditing) {
+        saveEdit();
+      }
+      
       try {
         // Clone the packingList to avoid modifying the shared value
         const updatedItems = packingList.items.map(i => 
@@ -633,6 +641,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       if (!editText.trim()) {
         setEditText(item.name);
         setIsEditing(false);
+        Keyboard.dismiss();
         return;
       }
       
@@ -662,6 +671,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       }
       
       setIsEditing(false);
+      Keyboard.dismiss();
     };
 
     return (
@@ -674,7 +684,13 @@ const ListDetailsScreen = ({ route, navigation }) => {
       >
         <TouchableOpacity 
           style={styles.checkboxContainer}
-          onPress={() => onToggleChecked(item.id)}
+          onPress={() => {
+            if (isEditing) {
+              saveEdit();
+            } else {
+              onToggleChecked(item.id);
+            }
+          }}
         >
           <View style={[
             styles.checkbox,
@@ -688,7 +704,15 @@ const ListDetailsScreen = ({ route, navigation }) => {
         
         <TouchableOpacity 
           style={styles.itemIconContainer}
-          onPress={() => item.type === 'default' ? null : handleChangeItemType('default')}
+          onPress={() => {
+            if (isEditing) {
+              saveEdit();
+            } else if (item.type === 'default') {
+              null;
+            } else {
+              handleChangeItemType('default');
+            }
+          }}
           onLongPress={() => handleChangeItemType(item.type === 'default' ? 'shirt' : 'default')}
         >
           <ItemIcon type={item.type || 'default'} size={24} />
@@ -702,6 +726,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
             autoFocus
             onBlur={saveEdit}
             onSubmitEditing={saveEdit}
+            blurOnSubmit={true}
+            returnKeyType="done"
           />
         ) : (
           <TouchableOpacity 
@@ -901,188 +927,207 @@ const ListDetailsScreen = ({ route, navigation }) => {
   
   return (
     <SafeAreaView style={styles.container}>
-      <GestureHandlerRootView style={styles.gestureContainer}>
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                if (isEditMode) {
-                  setIsEditMode(false);
-                  resetEditStates();
-                } else {
-                  navigation.goBack();
-                }
-              }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            
-            <Text style={styles.headerTitle}>
-              {isEditMode ? 'Edit Packing List' : 'Your Packing List'}
-            </Text>
-            
-            <View style={styles.headerButtons}>
-              {isOwner && (
-                <>
-                  {isEditMode ? (
-                    <TouchableOpacity 
-                      style={styles.headerButton}
-                      onPress={handleSaveEdits}
-                    >
-                      <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
-                    </TouchableOpacity>
-                  ) : (
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.gestureContainer}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <GestureHandlerRootView style={styles.gestureContainer}>
+            <View style={styles.content}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => {
+                    if (isEditMode) {
+                      setIsEditMode(false);
+                      resetEditStates();
+                    } else {
+                      navigation.goBack();
+                    }
+                  }}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                
+                <Text style={styles.headerTitle}>
+                  {isEditMode ? 'Edit Packing List' : 'Your Packing List'}
+                </Text>
+                
+                <View style={styles.headerButtons}>
+                  {isOwner && (
                     <>
-                      <TouchableOpacity 
-                        style={styles.headerButton}
-                        onPress={() => setIsEditMode(true)}
-                      >
-                        <Ionicons name="create-outline" size={22} color="#333" />
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.headerButton}
-                        onPress={handleDeleteList}
-                      >
-                        <Ionicons name="trash-outline" size={22} color="#FF5252" />
-                      </TouchableOpacity>
+                      {isEditMode ? (
+                        <TouchableOpacity 
+                          style={styles.headerButton}
+                          onPress={handleSaveEdits}
+                        >
+                          <Ionicons name="checkmark" size={24} color={THEME.PRIMARY} />
+                        </TouchableOpacity>
+                      ) : (
+                        <>
+                          <TouchableOpacity 
+                            style={styles.headerButton}
+                            onPress={() => setIsEditMode(true)}
+                          >
+                            <Ionicons name="create-outline" size={22} color="#333" />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.headerButton}
+                            onPress={handleDeleteList}
+                          >
+                            <Ionicons name="trash-outline" size={22} color="#FF5252" />
+                          </TouchableOpacity>
+                        </>
+                      )}
                     </>
                   )}
-                </>
+                  <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={handleShareList}
+                  >
+                    <Ionicons name="share-outline" size={22} color="#333" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* List Info Section */}
+              {!isEditMode && (
+                <View style={styles.infoSection}>
+                  {/* Title and Activity */}
+                  <View style={styles.titleRow}>
+                    <Text style={styles.activityEmoji}>
+                      {getActivityEmoji(packingList.activity)}
+                    </Text>
+                    <Text style={styles.title} numberOfLines={2}>
+                      {packingList.title}
+                    </Text>
+                  </View>
+                  
+                  {/* Destination and Date */}
+                  <View style={styles.detailsRow}>
+                    {packingList.destination && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="location-outline" size={16} color="#777" />
+                        <Text style={styles.detailText}>{packingList.destination}</Text>
+                      </View>
+                    )}
+                    {packingList.date && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="calendar-outline" size={16} color="#777" />
+                        <Text style={styles.detailText}>
+                          {packingList.date.toDate ? 
+                            format(new Date(packingList.date.toDate()), 'MMM d, h:mm a') :
+                            format(new Date(packingList.date), 'MMM d, h:mm a')}
+                        </Text>
+                      </View>
+                    )}
+                    {packingList.recurrence && packingList.recurrence.type !== 'none' && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="repeat" size={16} color="#777" />
+                        <Text style={styles.detailText}>
+                          {formatRecurrence(packingList.recurrence)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  {/* Progress Bar */}
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressInfo}>
+                      <Text style={styles.progressText}>
+                        {`${packingList.items.filter(item => item.checked).length}/${packingList.items.length} packed`}
+                      </Text>
+                      <Text style={styles.progressPercentage}>
+                        {`${Math.round(calculateProgress())}%`}
+                      </Text>
+                    </View>
+                    <View style={styles.progressBarContainer}>
+                      <View 
+                        style={[
+                          styles.progressBar, 
+                          { width: `${calculateProgress()}%` }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                </View>
               )}
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={handleShareList}
-              >
-                <Ionicons name="share-outline" size={22} color="#333" />
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          {/* List Info Section */}
-          {!isEditMode && (
-            <View style={styles.infoSection}>
-              {/* Title and Activity */}
-              <View style={styles.titleRow}>
-                <Text style={styles.activityEmoji}>
-                  {getActivityEmoji(packingList.activity)}
-                </Text>
-                <Text style={styles.title} numberOfLines={2}>
-                  {packingList.title}
-                </Text>
-              </View>
-              
-              {/* Destination and Date */}
-              <View style={styles.detailsRow}>
-                {packingList.destination && (
-                  <View style={styles.detailItem}>
-                    <Ionicons name="location-outline" size={16} color="#777" />
-                    <Text style={styles.detailText}>{packingList.destination}</Text>
-                  </View>
-                )}
-                {packingList.date && (
-                  <View style={styles.detailItem}>
-                    <Ionicons name="calendar-outline" size={16} color="#777" />
-                    <Text style={styles.detailText}>
-                      {packingList.date.toDate ? 
-                        format(new Date(packingList.date.toDate()), 'MMM d, h:mm a') :
-                        format(new Date(packingList.date), 'MMM d, h:mm a')}
-                    </Text>
-                  </View>
-                )}
-                {packingList.recurrence && packingList.recurrence.type !== 'none' && (
-                  <View style={styles.detailItem}>
-                    <Ionicons name="repeat" size={16} color="#777" />
-                    <Text style={styles.detailText}>
-                      {formatRecurrence(packingList.recurrence)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              
-              {/* Progress Bar */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressInfo}>
-                  <Text style={styles.progressText}>
-                    {`${packingList.items.filter(item => item.checked).length}/${packingList.items.length} packed`}
-                  </Text>
-                  <Text style={styles.progressPercentage}>
-                    {`${Math.round(calculateProgress())}%`}
-                  </Text>
-                </View>
-                <View style={styles.progressBarContainer}>
-                  <View 
-                    style={[
-                      styles.progressBar, 
-                      { width: `${calculateProgress()}%` }
-                    ]} 
-                  />
-                </View>
-              </View>
-            </View>
-          )}
 
-          {/* Edit Mode or Items List */}
-          {isEditMode ? (
-            <ScrollView style={styles.editScrollView}>
-              {renderEditMode()}
-            </ScrollView>
-          ) : (
-            <View style={styles.itemsSection}>
-              <Text style={styles.sectionTitle}>Items</Text>
-              {isLoading ? (
-                <ActivityIndicator size="large" color={THEME.PRIMARY} style={styles.loader} />
-              ) : packingList?.items?.length > 0 ? (
-                <DraggableFlatList
-                  data={packingList.items}
-                  renderItem={renderItem}
-                  keyExtractor={(item) => item.id}
-                  onDragEnd={handleReorderItems}
-                  activationDistance={20}
-                  dragHitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                  contentContainerStyle={styles.listContainer}
-                  scrollEnabled={true}
-                  autoscrollThreshold={50}
-                  showsVerticalScrollIndicator={true}
-                  onScrollOffsetChange={() => Keyboard.dismiss()}
-                />
+              {/* Edit Mode or Items List */}
+              {isEditMode ? (
+                <KeyboardAwareScrollView 
+                  style={styles.editScrollView}
+                  enableOnAndroid={true}
+                  enableAutomaticScroll={true}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 50 }}
+                  extraScrollHeight={Platform.OS === "ios" ? 20 : 50}
+                >
+                  {renderEditMode()}
+                </KeyboardAwareScrollView>
               ) : (
-                <View style={styles.emptyList}>
-                  <Text style={styles.emptyText}>No items in this list</Text>
+                <View style={styles.itemsSection}>
+                  <Text style={styles.sectionTitle}>Items</Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="large" color={THEME.PRIMARY} style={styles.loader} />
+                  ) : packingList?.items?.length > 0 ? (
+                    <DraggableFlatList
+                      data={packingList.items}
+                      renderItem={renderItem}
+                      keyExtractor={(item) => item.id}
+                      onDragEnd={handleReorderItems}
+                      activationDistance={20}
+                      dragHitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                      contentContainerStyle={[styles.listContainer, { paddingBottom: 60 }]}
+                      scrollEnabled={true}
+                      autoscrollThreshold={50}
+                      showsVerticalScrollIndicator={true}
+                      onScrollOffsetChange={() => Keyboard.dismiss()}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode="interactive"
+                    />
+                  ) : (
+                    <View style={styles.emptyList}>
+                      <Text style={styles.emptyText}>No items in this list</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Add Item Input */}
+              {isOwner && !isEditMode && (
+                <View style={styles.addItemContainer}>
+                  <TextInput
+                    style={styles.addItemInput}
+                    placeholder="Add a new item..."
+                    value={newItemText}
+                    onChangeText={setNewItemText}
+                    onSubmitEditing={handleAddItem}
+                    blurOnSubmit={true}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.addItemButton,
+                      !newItemText.trim() && styles.addItemButtonDisabled
+                    ]}
+                    onPress={handleAddItem}
+                    disabled={!newItemText.trim()}
+                  >
+                    <Ionicons
+                      name="add"
+                      size={24}
+                      color={newItemText.trim() ? THEME.PRIMARY : THEME.UI.DISABLED}
+                    />
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
-          )}
-
-          {/* Add Item Input */}
-          {isOwner && (
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.addItemInput}
-                placeholder="Add a new item..."
-                value={newItemText}
-                onChangeText={setNewItemText}
-                onSubmitEditing={handleAddItem}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.addItemButton,
-                  !newItemText.trim() && styles.addItemButtonDisabled
-                ]}
-                onPress={handleAddItem}
-                disabled={!newItemText.trim()}
-              >
-                <Ionicons
-                  name="add"
-                  size={24}
-                  color={newItemText.trim() ? THEME.PRIMARY : THEME.UI.DISABLED}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </GestureHandlerRootView>
+          </GestureHandlerRootView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -1284,12 +1329,18 @@ const styles = StyleSheet.create({
   },
   addItemContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
     paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: '#EEEEEE',
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 15 : 10, // Reduced padding on iOS
+    position: 'relative',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
   },
   addItemInput: {
     flex: 1,
@@ -1313,7 +1364,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 15,
-    paddingBottom: 100,
+    paddingBottom: 60,
   },
   editSection: {
     padding: 15,
@@ -1332,6 +1383,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: 50,
   },
   activityScroll: {
     marginBottom: 10,
@@ -1403,6 +1457,7 @@ const styles = StyleSheet.create({
   },
   editScrollView: {
     flex: 1,
+    paddingBottom: 50,
   },
 });
 
