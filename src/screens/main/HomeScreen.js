@@ -434,10 +434,18 @@ const HomeScreen = ({ navigation }) => {
   // Get activity color
   const getActivityColor = (activity) => {
     const colors = {
+      other: COLORS.INDIGO,
+      grocery: COLORS.LAVENDER,
       travel: COLORS.LAVENDER,
-      camping: COLORS.LAVENDER,
-      hiking: COLORS.LAVENDER,
+      snowboarding: COLORS.LAVENDER,
       beach: COLORS.LAVENDER,
+      hiking: COLORS.LAVENDER,
+      camping: COLORS.LAVENDER,
+      swimming: COLORS.LAVENDER,
+      cycling: COLORS.LAVENDER,
+      rockclimbing: COLORS.LAVENDER,
+      fishing: COLORS.LAVENDER,
+      yoga: COLORS.LAVENDER,
       skiing: COLORS.LAVENDER,
       business: COLORS.LAVENDER,
       gym: COLORS.LAVENDER,
@@ -450,10 +458,18 @@ const HomeScreen = ({ navigation }) => {
   // Get activity emoji
   const getActivityEmoji = (activity) => {
     const emojis = {
+      other: '📝',
+      grocery: '🛒',
       travel: '✈️',
-      camping: '🏕️',
-      hiking: '🥾',
+      snowboarding: '🏂',
       beach: '🏖️',
+      hiking: '🥾',
+      camping: '⛺',
+      swimming: '🏊‍♂️',
+      cycling: '🚴‍♀️',
+      rockclimbing: '🧗‍♀️',
+      fishing: '🎣',
+      yoga: '🧘‍♀️',
       skiing: '🎿',
       business: '💼',
       gym: '🏋️',

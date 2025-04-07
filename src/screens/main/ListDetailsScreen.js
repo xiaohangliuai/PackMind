@@ -557,10 +557,18 @@ const ListDetailsScreen = ({ route, navigation }) => {
   // Get activity emoji
   const getActivityEmoji = (activity) => {
     const emojis = {
+      other: '📝',
+      grocery: '🛒',
       travel: '✈️',
-      camping: '🏕️',
-      hiking: '🥾',
+      snowboarding: '🏂',
       beach: '🏖️',
+      hiking: '🥾',
+      camping: '⛺',
+      swimming: '🏊‍♂️',
+      cycling: '🚴‍♀️',
+      rockclimbing: '🧗‍♀️',
+      fishing: '🎣',
+      yoga: '🧘‍♀️',
       skiing: '🎿',
       business: '💼',
       gym: '🏋️',
@@ -799,12 +807,34 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
+                  selectedActivity === 'grocery' && styles.activityTypeSelected
+                ]}
+                onPress={() => setSelectedActivity('grocery')}
+              >
+                <Text style={styles.activityIcon}>🛒</Text>
+                <Text style={styles.activityLabel}>Grocery</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
                   selectedActivity === 'travel' && styles.activityTypeSelected
                 ]}
                 onPress={() => setSelectedActivity('travel')}
               >
                 <Text style={styles.activityIcon}>✈️</Text>
-                <Text style={styles.activityLabel}>Travel</Text>
+                <Text style={styles.activityLabel}>Traveling</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  selectedActivity === 'snowboarding' && styles.activityTypeSelected
+                ]}
+                onPress={() => setSelectedActivity('snowboarding')}
+              >
+                <Text style={styles.activityIcon}>🏂</Text>
+                <Text style={styles.activityLabel}>Snowboarding</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -821,17 +851,6 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  selectedActivity === 'camping' && styles.activityTypeSelected
-                ]}
-                onPress={() => setSelectedActivity('camping')}
-              >
-                <Text style={styles.activityIcon}>🏕️</Text>
-                <Text style={styles.activityLabel}>Camping</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.activityTypeButton,
                   selectedActivity === 'hiking' && styles.activityTypeSelected
                 ]}
                 onPress={() => setSelectedActivity('hiking')}
@@ -843,34 +862,67 @@ const ListDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  selectedActivity === 'skiing' && styles.activityTypeSelected
+                  selectedActivity === 'camping' && styles.activityTypeSelected
                 ]}
-                onPress={() => setSelectedActivity('skiing')}
+                onPress={() => setSelectedActivity('camping')}
               >
-                <Text style={styles.activityIcon}>🎿</Text>
-                <Text style={styles.activityLabel}>Skiing</Text>
+                <Text style={styles.activityIcon}>⛺</Text>
+                <Text style={styles.activityLabel}>Camping</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  selectedActivity === 'business' && styles.activityTypeSelected
+                  selectedActivity === 'swimming' && styles.activityTypeSelected
                 ]}
-                onPress={() => setSelectedActivity('business')}
+                onPress={() => setSelectedActivity('swimming')}
               >
-                <Text style={styles.activityIcon}>💼</Text>
-                <Text style={styles.activityLabel}>Business</Text>
+                <Text style={styles.activityIcon}>🏊‍♂️</Text>
+                <Text style={styles.activityLabel}>Swimming</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[
                   styles.activityTypeButton,
-                  selectedActivity === 'gym' && styles.activityTypeSelected
+                  selectedActivity === 'cycling' && styles.activityTypeSelected
                 ]}
-                onPress={() => setSelectedActivity('gym')}
+                onPress={() => setSelectedActivity('cycling')}
               >
-                <Text style={styles.activityIcon}>🏋️</Text>
-                <Text style={styles.activityLabel}>Gym</Text>
+                <Text style={styles.activityIcon}>🚴‍♀️</Text>
+                <Text style={styles.activityLabel}>Cycling</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  selectedActivity === 'rockclimbing' && styles.activityTypeSelected
+                ]}
+                onPress={() => setSelectedActivity('rockclimbing')}
+              >
+                <Text style={styles.activityIcon}>🧗‍♀️</Text>
+                <Text style={styles.activityLabel}>Rock Climbing</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  selectedActivity === 'fishing' && styles.activityTypeSelected
+                ]}
+                onPress={() => setSelectedActivity('fishing')}
+              >
+                <Text style={styles.activityIcon}>🎣</Text>
+                <Text style={styles.activityLabel}>Fishing</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.activityTypeButton,
+                  selectedActivity === 'yoga' && styles.activityTypeSelected
+                ]}
+                onPress={() => setSelectedActivity('yoga')}
+              >
+                <Text style={styles.activityIcon}>🧘‍♀️</Text>
+                <Text style={styles.activityLabel}>Yoga</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

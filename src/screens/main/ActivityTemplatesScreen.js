@@ -15,14 +15,18 @@ import { getActivityTemplates } from '../../models/firestoreModels';
 
 // Activity types with emojis and colors
 const activityTypes = [
-  { id: 'travel', label: 'Travel', emoji: '✈️', color: '#64B5F6' },
-  { id: 'beach', label: 'Beach', emoji: '🏖️', color: '#FFD54F' },
-  { id: 'camping', label: 'Camping', emoji: '🏕️', color: '#81C784' },
-  { id: 'hiking', label: 'Hiking', emoji: '🥾', color: '#AED581' },
-  { id: 'skiing', label: 'Skiing', emoji: '🎿', color: '#90CAF9' },
-  { id: 'business', label: 'Business', emoji: '💼', color: '#9FA8DA' },
-  { id: 'gym', label: 'Gym', emoji: '🏋️', color: '#F48FB1' },
   { id: 'other', label: 'Custom', emoji: '📦', color: '#BDBDBD' },
+  { id: 'grocery', label: 'Grocery', emoji: '🛒', color: '#81D4FA' },
+  { id: 'travel', label: 'Traveling', emoji: '✈️', color: '#64B5F6' },
+  { id: 'snowboarding', label: 'Snowboarding', emoji: '🏂', color: '#90CAF9' },
+  { id: 'beach', label: 'Beach', emoji: '🏖️', color: '#FFD54F' },
+  { id: 'hiking', label: 'Hiking', emoji: '🥾', color: '#AED581' },
+  { id: 'camping', label: 'Camping', emoji: '⛺', color: '#81C784' },
+  { id: 'swimming', label: 'Swimming', emoji: '🏊‍♂️', color: '#4FC3F7' },
+  { id: 'cycling', label: 'Cycling', emoji: '🚴‍♀️', color: '#7986CB' },
+  { id: 'rockclimbing', label: 'Rock Climbing', emoji: '🧗‍♀️', color: '#A1887F' },
+  { id: 'fishing', label: 'Fishing', emoji: '🎣', color: '#4DB6AC' },
+  { id: 'yoga', label: 'Yoga', emoji: '🧘‍♀️', color: '#F48FB1' },
 ];
 
 const ActivityTemplatesScreen = ({ navigation }) => {

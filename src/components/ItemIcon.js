@@ -15,12 +15,16 @@ const iconMap = {
   gloves: '🧤',
   swimwear: '🩱',
   sunglasses: '🕶️',
+  bra: '👙',
   
   // Footwear
   shoes: '👟',
   boots: '🥾',
   sandals: '👡',
   hikingBoots: '🥾',
+  waterShoes: '👟',
+  cyclingShoes: '👟',
+  climbingShoes: '🧗‍♀️',
   
   // Toiletries
   toothbrush: '🪥',
@@ -29,6 +33,9 @@ const iconMap = {
   soap: '🧼',
   towel: '🛁',
   razor: '🪒',
+  toiletries: '🧴',
+  sunscreen: '🧴',
+  bugSpray: '🦟',
   
   // Electronics
   phone: '📱',
@@ -36,6 +43,7 @@ const iconMap = {
   camera: '📷',
   laptop: '💻',
   headphones: '🎧',
+  powerBank: '🔋',
   
   // Documents
   passport: '📔',
@@ -43,21 +51,65 @@ const iconMap = {
   money: '💰',
   creditCard: '💳',
   id: '🪪',
+  wallet: '💰',
   
   // Sports & Activities
   skis: '🎿',
   snowboard: '🏂',
   tent: '⛺',
   sleepingBag: '💤',
+  sleepingPad: '🛌',
   ball: '⚽',
   racket: '🎾',
+  fishingRod: '🎣',
+  yogaMat: '🧘‍♀️',
+  bicycle: '🚲',
+  helmet: '🪖',
+  goggles: '🥽',
+  skiMask: '🥷',
+  rope: '🪢',
+  carabiners: '🪝',
+  harness: '🧗‍♀️',
+  chalk: '🧴',
+  
+  // Food & Groceries
+  eggs: '🥚',
+  steak: '🥩',
+  chickenBreast: '🍗',
+  bacon: '🥓',
+  milk: '🥛',
+  vegetables: '🥦',
+  tissues: '🧻',
+  bread: '🍞',
+  cheese: '🧀',
+  fruits: '🍎',
+  water: '💧',
+  snacks: '🍫',
+  
+  // Bags & Containers
+  shoppingBag: '👜',
+  tackleBox: '🧰',
+  yogaBag: '🎒',
+  climbingBag: '🎒',
+  
+  // Tools & Equipment
+  flashlight: '🔦',
+  lighter: '🔥',
+  firstAid: '🧰',
+  bikeLock: '🔒',
+  hooks: '🪝',
+  lures: '🪝',
+  fishingLine: '🧵',
+  chair: '🪑',
+  matCleaner: '🧼',
+  blanket: '🛌',
+  bodyProtection: '🛡️',
   
   // Misc
   umbrella: '☂️',
   book: '📚',
-  snacks: '🍪',
-  water: '💧',
   medicine: '💊',
+  swimCap: '🧢',
   
   // Default
   default: '📦'
