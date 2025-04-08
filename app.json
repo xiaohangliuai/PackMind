@@ -7,7 +7,6 @@
     "icon": "./assets/logo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "entryPoint": "./index.ts",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
