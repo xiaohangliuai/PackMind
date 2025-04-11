@@ -23,9 +23,9 @@ const DEFAULT_PREMIUM_STATE = {
   isPremium: false,
   subscriptionType: null,
   pricing: {
-    MONTHLY: 1.69,
-    ANNUAL: 12.99, 
-    LIFETIME: 21.99
+    MONTHLY: 1.99,
+    ANNUAL: 14.99, 
+    LIFETIME: 24.99
   },
   limits: {
     MAX_LISTS: 3
@@ -224,7 +224,9 @@ const PremiumScreen = ({ navigation, route }) => {
       if (success) {
         Alert.alert(
           'Subscription Successful!',
-          'Thank you for subscribing to PackMind+ Premium!',
+          selectedPlan === 'annual' 
+            ? 'Your 14-day free trial has been activated. Enjoy all premium features!'
+            : 'Thank you for subscribing to PackMind+ Premium!',
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       }
@@ -583,29 +585,53 @@ const PremiumScreen = ({ navigation, route }) => {
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.heroSection}>
-          <Ionicons name="star" size={36} color={COLORS.GOLD} style={styles.heroIcon} />
-          <Text style={styles.heroTitle}>PackMind+ Premium</Text>
-          <Text style={styles.heroSubtitle}>Unlock all features for a better experience</Text>
-        </View>
-        
-        <View style={styles.freeTrialSection}>
-          <Text style={styles.freeTrialText}>Try Premium FREE for 14 days</Text>
-          <TouchableOpacity
-            style={styles.freeTrialButton}
-            onPress={handleStartFreeTrial}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.freeTrialButtonText}>Start Free Trial</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-        
         {!user?.isAnonymous && (
           <>
+            {/* Premium Features */}
+            <View style={styles.featuresSection}>
+              <Text style={styles.featuresSectionTitle}>Premium Features</Text>
+              
+              <View style={styles.feature}>
+                <Ionicons name="infinite" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Unlimited Lists</Text>
+                  <Text style={styles.featureDescription}>
+                    Create as many packing lists as you need (Free: {limits.MAX_LISTS} lists)
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.feature}>
+                <Ionicons name="notifications" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Advanced Notifications</Text>
+                  <Text style={styles.featureDescription}>
+                    Custom reminders, recurring notifications, and more
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.feature}>
+                <Ionicons name="cloud-done" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Cloud Sync</Text>
+                  <Text style={styles.featureDescription}>
+                    Keep your lists in sync across all your devices
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.feature}>
+                <Ionicons name="headset" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureText}>Priority Support</Text>
+                  <Text style={styles.featureDescription}>
+                    Get help faster when you need it
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
             {/* Pricing Plans */}
             <View style={styles.pricingSection}>
               <Text style={styles.pricingSectionTitle}>Choose Your Plan</Text>
@@ -625,16 +651,21 @@ const PremiumScreen = ({ navigation, route }) => {
                   )}
                 </View>
                 <Text style={styles.planPrice}>{getProductPrice('monthly')}</Text>
+                <Text style={styles.planDescription}>Billed monthly</Text>
               </TouchableOpacity>
               
               {/* Annual Plan */}
               <TouchableOpacity
                 style={[
                   styles.planCard,
-                  selectedPlan === 'annual' && styles.selectedPlan
+                  selectedPlan === 'annual' && styles.selectedPlan,
+                  styles.recommendedPlan
                 ]}
                 onPress={() => handleSelectPlan('annual')}
               >
+                <View style={styles.recommendedBadge}>
+                  <Text style={styles.recommendedText}>RECOMMENDED</Text>
+                </View>
                 <View style={styles.planHeader}>
                   <Text style={styles.planTitle}>Annual</Text>
                   <View style={styles.saveBadge}>
@@ -646,8 +677,13 @@ const PremiumScreen = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
                 <Text style={styles.monthlyEquivalent}>
-                  ($1.25/month) Cancel anytime
+                  ($1.25/month)
                 </Text>
+                <View style={styles.freeTrialBadge}>
+                  <Ionicons name="gift-outline" size={16} color="white" />
+                  <Text style={styles.freeTrialBadgeText}>14-Day Free Trial</Text>
+                </View>
+                <Text style={styles.planDescription}>First 14 days free, then billed annually</Text>
               </TouchableOpacity>
               
               {/* Lifetime Plan */}
@@ -672,41 +708,6 @@ const PremiumScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             
-            {/* Premium Features */}
-            <View style={styles.featuresSection}>
-              <Text style={styles.featuresSectionTitle}>Premium Features</Text>
-              
-              <View style={styles.feature}>
-                <Ionicons name="infinite" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureText}>Unlimited Lists</Text>
-                  <Text style={styles.featureDescription}>
-                    Create as many packing lists as you need (Free: {limits.MAX_LISTS} lists)
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.feature}>
-                <Ionicons name="notifications" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureText}>Advanced Notifications</Text>
-                  <Text style={styles.featureDescription}>
-                    Custom reminders, recurring notifications, and more
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.feature}>
-                <Ionicons name="headset" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureText}>Priority Support</Text>
-                  <Text style={styles.featureDescription}>
-                    Get help faster when you need it
-                  </Text>
-                </View>
-              </View>
-            </View>
-            
             {/* Subscribe button */}
             <TouchableOpacity
               style={[styles.subscribeButton, isProcessing && styles.disabledButton]}
@@ -716,7 +717,9 @@ const PremiumScreen = ({ navigation, route }) => {
               {isProcessing ? (
                 <ActivityIndicator color="white" size="small" />
               ) : (
-                <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+                <Text style={styles.subscribeButtonText}>
+                  {selectedPlan === 'annual' ? 'Start Free Trial' : 'Subscribe Now'}
+                </Text>
               )}
             </TouchableOpacity>
             
@@ -732,6 +735,7 @@ const PremiumScreen = ({ navigation, route }) => {
             {/* Terms and conditions */}
             <Text style={styles.termsText}>
               By subscribing, you agree to our Terms of Service and Privacy Policy. 
+              {selectedPlan === 'annual' ? ' 14-day free trial available for new Annual subscribers. ' : ' '}
               Subscriptions automatically renew unless auto-renew is turned off at 
               least 24 hours before the end of the current period.
             </Text>
@@ -828,6 +832,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 2,
     borderColor: 'transparent',
+    position: 'relative',
   },
   selectedPlan: {
     borderColor: THEME.PRIMARY,
@@ -1124,6 +1129,43 @@ const styles = StyleSheet.create({
   premiumRestoreText: {
     color: THEME.PRIMARY,
     fontWeight: '600',
+  },
+  recommendedPlan: {
+    borderWidth: 2,
+    borderColor: THEME.PRIMARY,
+    paddingTop: 25,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: THEME.PRIMARY,
+    paddingVertical: 3,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    alignItems: 'center',
+  },
+  recommendedText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  freeTrialBadge: {
+    flexDirection: 'row',
+    backgroundColor: '#28a745',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+  freeTrialBadgeText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginLeft: 5,
   },
 });
 
