@@ -1,6 +1,18 @@
 // src/services/IAPService.js
 import { Platform, Alert } from 'react-native';
 import * as RNIap from 'react-native-iap';
+import { 
+  initConnection, 
+  getProducts as iapGetProducts, 
+  getSubscriptions as iapGetSubscriptions, 
+  requestPurchase, 
+  requestSubscription,
+  getAvailablePurchases,
+  getPurchaseHistory,
+  purchaseUpdatedListener,
+  purchaseErrorListener,
+  endConnection
+} from 'react-native-iap';
 import firebase from '../firebase/firebaseConfig';
 
 // Define your product IDs
@@ -17,6 +29,18 @@ export const productIds = Platform.select({
   ]
 });
 
+// Define subscription IDs (same as productIds in this case)
+export const subscriptionIds = Platform.select({
+  ios: [
+    'com.packmind.premium.monthly',
+    'com.packmind.premium.annual'
+  ],
+  android: [
+    'com.packmind.premium.monthly',
+    'com.packmind.premium.annual'
+  ]
+});
+
 // Map product IDs to subscription types
 export const productIdToType = {
   'com.packmind.premium.monthly': 'monthly',
@@ -24,24 +48,19 @@ export const productIdToType = {
   'com.packmind.premium.lifetime': 'lifetime'
 };
 
+const isAndroid = Platform.OS === 'android';
+
 // Initialize IAP
 export const initializeIAP = async () => {
   try {
     console.log('Initializing IAP...');
     
     try {
-      await RNIap.initConnection();
+      await initConnection();
       console.log('IAP initialized successfully');
       return true;
     } catch (error) {
       console.error('Error initializing IAP:', error);
-      
-      // In development, we'll simulate IAP is working
-      if (__DEV__) {
-        console.log('Running in development mode - simulating IAP availability');
-        return true;
-      }
-      
       return false;
     }
   } catch (error) {
@@ -53,174 +72,99 @@ export const initializeIAP = async () => {
 // End IAP connection
 export const endIAPConnection = async () => {
   try {
-    await RNIap.endConnection();
+    await endConnection();
     console.log('IAP connection ended');
   } catch (error) {
     console.error('Error ending IAP connection:', error);
   }
 };
 
-// Get products
-export const getProducts = async () => {
+// Get products information
+export const getProductsInfo = async () => {
   try {
     console.log('Getting IAP products...');
     
     // Check if we have product IDs
     if (!productIds || productIds.length === 0) {
       console.warn('No product IDs defined');
-      return getMockProducts();
+      return [];
     }
     
     try {
-      const products = await RNIap.getProducts(productIds);
+      const products = await iapGetProducts({ skus: productIds });
       console.log('Products fetched:', products);
-      
-      // If no products returned, use mock products
-      if (!products || products.length === 0) {
-        console.log('No products returned from store, using mock products');
-        return getMockProducts();
-      }
-      
       return products;
     } catch (error) {
       console.error('Error getting products from store:', error);
-      console.log('Using mock products for development');
-      return getMockProducts();
+      return [];
     }
   } catch (error) {
-    console.error('Error in getProducts:', error);
-    return getMockProducts();
+    console.error('Error in getProductsInfo:', error);
+    return [];
   }
 };
 
-// Get subscriptions
-export const getSubscriptions = async () => {
+// Get subscriptions information
+export const getSubscriptionsInfo = async () => {
   try {
     console.log('Getting IAP subscriptions...');
     
-    // Check if we have product IDs
-    if (!productIds || productIds.length === 0) {
-      console.warn('No product IDs defined');
-      return getMockSubscriptions();
+    // Check if we have subscription IDs
+    if (!subscriptionIds || subscriptionIds.length === 0) {
+      console.warn('No subscription IDs defined');
+      return [];
     }
     
     try {
-      const subscriptions = await RNIap.getSubscriptions(productIds);
+      const subscriptions = await iapGetSubscriptions({ skus: subscriptionIds });
       console.log('Subscriptions fetched:', subscriptions);
-      
-      // If no subscriptions returned, use mock subscriptions
-      if (!subscriptions || subscriptions.length === 0) {
-        console.log('No subscriptions returned from store, using mock subscriptions');
-        return getMockSubscriptions();
-      }
-      
       return subscriptions;
     } catch (error) {
       console.error('Error getting subscriptions from store:', error);
-      console.log('Using mock subscriptions for development');
-      return getMockSubscriptions();
+      return [];
     }
   } catch (error) {
-    console.error('Error in getSubscriptions:', error);
-    return getMockSubscriptions();
+    console.error('Error in getSubscriptionsInfo:', error);
+    return [];
   }
 };
 
-// Generate mock products for development
-const getMockProducts = () => {
-  return [
-    {
-      productId: 'com.packmind.premium.lifetime',
-      title: 'Lifetime Premium',
-      description: 'Unlock all premium features forever',
-      price: '$21.99',
-      currency: 'USD',
-      localizedPrice: '$21.99',
-      _isMock: true
+// Original function names for backward compatibility
+export const getProducts = getProductsInfo;
+export const getSubscriptions = getSubscriptionsInfo;
+
+// Set up purchase listener
+export const setupPurchaseListeners = (callback) => {
+  const purchaseUpdateSubscription = purchaseUpdatedListener((purchase) => {
+    console.log('Purchase updated:', purchase);
+    callback(purchase);
+  });
+  
+  const purchaseErrorSubscription = purchaseErrorListener((error) => {
+    console.error('Purchase error:', error);
+  });
+  
+  return {
+    remove: () => {
+      purchaseUpdateSubscription.remove();
+      purchaseErrorSubscription.remove();
     }
-  ];
+  };
 };
 
-// Generate mock subscriptions for development
-const getMockSubscriptions = () => {
-  return [
-    {
-      productId: 'com.packmind.premium.monthly',
-      title: 'Monthly Premium',
-      description: 'Unlock all premium features',
-      subscriptionPeriodUnitIOS: 'MONTH',
-      subscriptionPeriodAndroid: 'P1M',
-      price: '$1.69',
-      currency: 'USD',
-      localizedPrice: '$1.69',
-      _isMock: true
-    },
-    {
-      productId: 'com.packmind.premium.annual',
-      title: 'Annual Premium',
-      description: 'Unlock all premium features',
-      subscriptionPeriodUnitIOS: 'YEAR',
-      subscriptionPeriodAndroid: 'P1Y',
-      price: '$12.99',
-      currency: 'USD',
-      localizedPrice: '$12.99',
-      _isMock: true
-    }
-  ];
-};
-
-// Process purchase for premium
-export const purchasePremium = async (productId, userId) => {
+// Handle in-app purchase
+export const handlePurchase = async (product) => {
   try {
-    console.log(`Starting purchase for product: ${productId}`);
+    console.log(`Starting purchase for product: ${product.productId}`);
     
-    if (!userId) {
-      console.error('No user ID provided for purchase');
-      return { success: false, error: 'User not authenticated' };
-    }
+    const purchaseData = await requestPurchase({
+      sku: product.productId,
+      andDangerouslyFinishTransactionAutomaticallyIOS: false,
+      skus: productIds,
+    });
     
-    // In development, simulate a successful purchase
-    if (__DEV__) {
-      console.log('Development mode - simulating successful purchase');
-      
-      // Create a mock purchase object
-      const mockPurchase = {
-        productId,
-        transactionId: 'mock-transaction-' + Date.now(),
-        transactionDate: new Date().toISOString(),
-        transactionReceipt: 'mock-receipt',
-        _isMock: true
-      };
-      
-      try {
-        // Validate the purchase (this will update the user profile)
-        await validatePurchase(mockPurchase, userId, productId);
-        return { success: true, purchase: mockPurchase };
-      } catch (error) {
-        console.error('Error validating purchase:', error);
-        return { success: false, error: 'Purchase validation failed: ' + error.message };
-      }
-    }
-    
-    // Production purchase flow
-    // Request a purchase
-    let purchase;
-    if (Platform.OS === 'ios') {
-      purchase = await RNIap.requestPurchase(productId);
-    } else {
-      purchase = await RNIap.requestPurchase(productId, false);
-    }
-    
-    console.log('Purchase response:', purchase);
-    
-    try {
-      // Validate the purchase
-      await validatePurchase(purchase, userId, productId);
-      return { success: true, purchase };
-    } catch (error) {
-      console.error('Error validating purchase:', error);
-      return { success: false, error: 'Purchase validation failed: ' + error.message };
-    }
+    console.log('Purchase response:', purchaseData);
+    return { success: true, purchase: purchaseData };
   } catch (error) {
     console.error('Purchase error:', error);
     
@@ -233,34 +177,90 @@ export const purchasePremium = async (productId, userId) => {
   }
 };
 
+// Handle subscription purchase
+export const handleSubscription = async (subscription) => {
+  try {
+    console.log(`Starting subscription for: ${subscription.productId}`);
+    
+    const offerToken = isAndroid
+      ? subscription?.subscriptionOfferDetails[0]?.offerToken
+      : null;
+    
+    const purchaseData = await requestSubscription({
+      sku: subscription.productId,
+      ...(offerToken && {
+        subscriptionOffers: [{ sku: subscription.productId, offerToken }],
+      }),
+    });
+    
+    console.log('Subscription response:', purchaseData);
+    return { success: true, purchase: purchaseData };
+  } catch (error) {
+    console.error('Subscription error:', error);
+    
+    // Handle specific error cases
+    if (error.code === 'E_USER_CANCELLED') {
+      return { success: false, error: 'Subscription cancelled by user' };
+    }
+    
+    return { success: false, error: error.message || 'Subscription failed' };
+  }
+};
+
+// Get current available purchases
+export const getCurrentPurchases = async () => {
+  try {
+    const purchases = await getAvailablePurchases();
+    console.log('Available purchases:', purchases);
+    return purchases;
+  } catch (error) {
+    console.error('Error getting purchases:', error);
+    return [];
+  }
+};
+
+// Get purchase history
+export const getPurchaseHistoryData = async () => {
+  try {
+    const purchaseHistory = await getPurchaseHistory();
+    console.log('Purchase history:', purchaseHistory);
+    return purchaseHistory;
+  } catch (error) {
+    console.error('Error fetching purchase history:', error);
+    return [];
+  }
+};
+
 // Validate purchase and update user profile
-const validatePurchase = async (purchase, userId, productId) => {
+export const validatePurchase = async (purchase, userId) => {
   try {
     console.log('Validating purchase:', purchase);
     
-    // In a production app, you should validate the receipt with your backend
-    // For now, we'll assume it's valid and update the user profile
+    if (!userId) {
+      console.error('No user ID provided for validation');
+      return { success: false, error: 'User not authenticated' };
+    }
     
+    const productId = purchase.productId;
     const subscriptionType = productIdToType[productId];
+    
     if (!subscriptionType) {
       throw new Error('Invalid product ID');
     }
     
     // Calculate expiry date based on subscription type
     let expiryDate = null;
+    
     if (subscriptionType === 'monthly') {
       expiryDate = new Date();
       expiryDate.setMonth(expiryDate.getMonth() + 1);
     } else if (subscriptionType === 'annual') {
       expiryDate = new Date();
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-    }
-    // No expiry for lifetime plan
-    
-    // Create Firestore timestamp if there's an expiry
-    let firestoreTimestamp = null;
-    if (expiryDate) {
-      firestoreTimestamp = firebase.firestore.Timestamp.fromDate(expiryDate);
+    } else if (subscriptionType === 'lifetime') {
+      // For lifetime, set a far future date
+      expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 100);
     }
     
     // Get current user from Firebase Auth
@@ -268,147 +268,79 @@ const validatePurchase = async (purchase, userId, productId) => {
     const userDisplayName = currentUser ? (currentUser.displayName || '') : '';
     const userEmail = currentUser ? (currentUser.email || '') : '';
     
-    // Store purchase info in Firestore
-    const db = firebase.firestore();
-    const purchaseData = {
-      productId,
-      purchaseToken: purchase.transactionId || purchase.purchaseToken,
-      purchaseTime: firebase.firestore.FieldValue.serverTimestamp(),
-      subscriptionType,
-      platform: Platform.OS,
-      receipt: purchase.transactionReceipt || purchase.purchaseToken
-    };
+    // Update user subscription in Firebase
+    const userRef = firebase.firestore().collection('users').doc(userId);
     
-    // Add purchase to purchase history
-    await db.collection('purchases').add({
-      userId,
-      ...purchaseData
+    await userRef.update({
+      displayName: userDisplayName,
+      email: userEmail,
+      premium: true,
+      isPremium: true,
+      subscriptionType: subscriptionType,
+      expiryDate: expiryDate ? expiryDate.toISOString() : null,
+      lastPurchase: {
+        productId: productId,
+        transactionId: purchase.transactionId,
+        transactionDate: purchase.transactionDate,
+        receiptData: Platform.OS === 'ios' ? purchase.transactionReceipt : null,
+        purchaseToken: Platform.OS === 'android' ? purchase.purchaseToken : null
+      },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    // Check if user document exists
-    const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-    
-    if (userDoc.exists) {
-      // Update existing user document
-      await userRef.update({
-        displayName: userDisplayName,
-        email: userEmail,
-        isPremium: true,
-        premium: true,
-        subscriptionType,
-        subscriptionExpiryDate: firestoreTimestamp,
-        lastPurchase: purchaseData,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } else {
-      // Create new user document
-      await userRef.set({
-        displayName: userDisplayName,
-        email: userEmail,
-        isPremium: true,
-        premium: true,
-        subscriptionType,
-        subscriptionExpiryDate: firestoreTimestamp,
-        lastPurchase: purchaseData,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    
-    console.log('Purchase validated and user profile updated');
-    return true;
+    console.log(`User ${userId} subscription updated to ${subscriptionType}`);
+    return { success: true };
   } catch (error) {
     console.error('Error validating purchase:', error);
-    throw error;
+    return { success: false, error: error.message };
   }
 };
 
-// Restore purchases
+// Restore purchases for a user
 export const restorePurchases = async (userId) => {
   try {
-    console.log('Restoring purchases...');
+    console.log('Restoring purchases for user:', userId);
     
-    // In development, simulate successful restoration
-    if (__DEV__) {
-      console.log('Development mode - simulating successful purchase restoration');
-      
-      // Create a mock purchase for the most valuable subscription (lifetime)
-      const mockPurchase = {
-        productId: 'com.packmind.premium.lifetime',
-        transactionId: 'mock-restore-' + Date.now(),
-        transactionDate: new Date().toISOString(),
-        transactionReceipt: 'mock-receipt',
-        _isMock: true
-      };
-      
-      try {
-        // Validate the purchase (this will update the user profile)
-        await validatePurchase(mockPurchase, userId, mockPurchase.productId);
-        
-        return { 
-          success: true, 
-          message: 'Lifetime subscription restored successfully (development mode)' 
-        };
-      } catch (error) {
-        console.error('Error validating mock restore purchase:', error);
-        return {
-          success: false,
-          message: 'Failed to restore purchase: ' + (error.message || 'Unknown error')
-        };
-      }
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
     }
     
-    // Production restore flow
     // Get available purchases
-    const availablePurchases = await RNIap.getAvailablePurchases();
-    console.log('Available purchases:', availablePurchases);
+    const purchases = await getAvailablePurchases();
+    console.log('Available purchases to restore:', purchases);
     
-    if (!availablePurchases || availablePurchases.length === 0) {
-      console.log('No purchases to restore');
-      return { success: false, message: 'No previous purchases found' };
+    if (!purchases || purchases.length === 0) {
+      return { success: false, error: 'No purchases to restore' };
     }
     
-    // Find the most recent valid purchase
+    // Find the most recent valid subscription
     let validPurchase = null;
-    let subscriptionType = null;
     
-    for (const purchase of availablePurchases) {
-      const productId = purchase.productId;
-      if (productIds.includes(productId)) {
-        // This is one of our products
-        const type = productIdToType[productId];
-        
-        // For simplicity, we'll just take the most valuable subscription
-        // In a real app, you might want to check expiry dates
-        if (type === 'lifetime' || 
-            (type === 'annual' && subscriptionType !== 'lifetime') ||
-            (type === 'monthly' && !subscriptionType)) {
+    for (const purchase of purchases) {
+      // Check if this is one of our products
+      if (productIds.includes(purchase.productId)) {
+        if (!validPurchase || purchase.transactionDate > validPurchase.transactionDate) {
           validPurchase = purchase;
-          subscriptionType = type;
         }
       }
     }
     
-    if (validPurchase && subscriptionType) {
-      try {
-        // Validate the purchase and update user profile
-        await validatePurchase(validPurchase, userId, validPurchase.productId);
-        
-        return { 
-          success: true, 
-          message: `${subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1)} subscription restored successfully` 
-        };
-      } catch (error) {
-        console.error('Error validating restored purchase:', error);
-        return {
-          success: false,
-          message: 'Failed to restore purchase: ' + (error.message || 'Unknown error')
-        };
-      }
+    if (!validPurchase) {
+      return { success: false, error: 'No valid purchases found' };
     }
     
-    return { success: false, message: 'No valid premium subscriptions found' };
+    // Validate and update user profile
+    const result = await validatePurchase(validPurchase, userId);
+    
+    if (result.success) {
+      return { 
+        success: true, 
+        message: 'Purchase restored successfully',
+        purchase: validPurchase
+      };
+    } else {
+      return result;
+    }
   } catch (error) {
     console.error('Error restoring purchases:', error);
     return { success: false, error: error.message || 'Failed to restore purchases' };
@@ -436,4 +368,60 @@ export const handlePurchaseError = (error) => {
   }
   
   Alert.alert('Purchase Error', message);
+};
+
+// Backward compatibility for purchasePremium
+export const purchasePremium = async (productId, userId) => {
+  try {
+    console.log(`Starting purchase for product: ${productId}`);
+    
+    if (!userId) {
+      console.error('No user ID provided for purchase');
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    // Determine if this is a subscription or one-time purchase
+    const isSubscription = productId.includes('monthly') || productId.includes('annual');
+    
+    // Create a product/subscription object
+    const item = {
+      productId: productId
+    };
+    
+    let purchaseResult;
+    
+    if (isSubscription) {
+      // Handle as subscription
+      purchaseResult = await handleSubscription(item);
+    } else {
+      // Handle as one-time purchase
+      purchaseResult = await handlePurchase(item);
+    }
+    
+    if (purchaseResult.success) {
+      try {
+        // Validate the purchase (this will update the user profile)
+        const validationResult = await validatePurchase(purchaseResult.purchase, userId);
+        if (validationResult.success) {
+          return { success: true, purchase: purchaseResult.purchase };
+        } else {
+          return { success: false, error: 'Purchase validation failed: ' + validationResult.error };
+        }
+      } catch (error) {
+        console.error('Error validating purchase:', error);
+        return { success: false, error: 'Purchase validation failed: ' + error.message };
+      }
+    } else {
+      return purchaseResult; // Return the error from purchase attempt
+    }
+  } catch (error) {
+    console.error('Purchase error:', error);
+    
+    // Handle specific error cases
+    if (error.code === 'E_USER_CANCELLED') {
+      return { success: false, error: 'Purchase cancelled by user' };
+    }
+    
+    return { success: false, error: error.message || 'Purchase failed' };
+  }
 };
