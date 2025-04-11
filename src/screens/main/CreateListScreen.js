@@ -230,7 +230,7 @@ const CreateListScreen = ({ navigation, route }) => {
       if (!isPremium && subscriptionType !== 'trial') {
         Alert.alert(
           'Premium Feature',
-          'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+          'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
           [
             { text: 'Cancel', style: 'cancel' },
             { 
@@ -382,7 +382,7 @@ const CreateListScreen = ({ navigation, route }) => {
           // Show premium upgrade prompt
           Alert.alert(
             'Premium Feature',
-            'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+            'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
             [
               { text: 'Not Now', style: 'cancel' },
               { 

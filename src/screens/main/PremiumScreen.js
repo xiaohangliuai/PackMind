@@ -49,10 +49,6 @@ const PremiumScreen = ({ navigation, route }) => {
   let limits = DEFAULT_PREMIUM_STATE.limits;
   let products = [];
   let isRestoring = false;
-  let startFreeTrial = async () => {
-    Alert.alert('Error', 'Premium features are currently unavailable. Please try again later.');
-    return false;
-  };
   let subscribeToPremium = async () => {
     Alert.alert('Error', 'Premium features are currently unavailable. Please try again later.');
     return false;
@@ -73,7 +69,6 @@ const PremiumScreen = ({ navigation, route }) => {
       limits = premiumContext.limits || DEFAULT_PREMIUM_STATE.limits;
       products = premiumContext.products || [];
       isRestoring = premiumContext.isRestoring || false;
-      startFreeTrial = premiumContext.startFreeTrial;
       subscribeToPremium = premiumContext.subscribeToPremium;
       restorePurchases = premiumContext.restorePurchases;
     }
@@ -224,53 +219,13 @@ const PremiumScreen = ({ navigation, route }) => {
       if (success) {
         Alert.alert(
           'Subscription Successful!',
-          selectedPlan === 'annual' 
-            ? 'Your 14-day free trial has been activated. Enjoy all premium features!'
-            : 'Thank you for subscribing to PackMind+ Premium!',
+          'Thank you for subscribing to PackMind+ Premium!',
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       }
     } catch (error) {
       console.error('Error subscribing:', error);
       Alert.alert('Error', 'Failed to process subscription. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  // Handle start free trial
-  const handleStartFreeTrial = async () => {
-    if (user?.isAnonymous) {
-      // Show an alert before proceeding with account creation
-      Alert.alert(
-        'Account Required',
-        'You need to create an account to start your free trial. Your data will be preserved.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Create Account', 
-            onPress: handleCreateAccount
-          }
-        ]
-      );
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const success = await startFreeTrial();
-      
-      if (success) {
-        Alert.alert(
-          'Free Trial Started!',
-          'Your 14-day free trial has been activated. Enjoy all premium features!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      }
-    } catch (error) {
-      console.error('Error starting trial:', error);
-      Alert.alert('Error', 'Failed to start free trial. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -379,90 +334,13 @@ const PremiumScreen = ({ navigation, route }) => {
             </Text>
             
             <Text style={styles.currentPlanText}>
-              Current Plan: {subscriptionType === 'trial' ? 'Free Trial' : 
+              Current Plan: {
                             subscriptionType === 'monthly' ? 'Monthly' :
                             subscriptionType === 'annual' ? 'Annual' : 'Lifetime'}
             </Text>
             
-            {/* Show subscription options for trial users */}
-            {subscriptionType === 'trial' && (
-              <View style={styles.trialUpgradeContainer}>
-                <View style={styles.trialExpiryBanner}>
-                  <Ionicons name="time-outline" size={20} color={COLORS.WARNING} />
-                  <Text style={styles.trialExpiryText}>
-                    {subscriptionExpiryDate && typeof subscriptionExpiryDate.toLocaleDateString === 'function' ? 
-                      `Your trial expires on ${subscriptionExpiryDate.toLocaleDateString()}` : 
-                      'Your free trial will expire soon'}
-                  </Text>
-                </View>
-              
-                <Text style={styles.trialUpgradeText}>
-                  Upgrade now to continue enjoying premium features!
-                </Text>
-                
-                <View style={styles.planOptions}>
-                  {/* Monthly Plan */}
-                  <TouchableOpacity
-                    style={styles.trialPlanCard}
-                    onPress={() => {
-                      setSelectedPlan('monthly');
-                      handleSubscribe();
-                    }}
-                  >
-                    <View>
-                      <Text style={styles.trialPlanTitle}>Monthly</Text>
-                      <Text style={styles.planDescription}>Billed monthly</Text>
-                    </View>
-                    <Text style={styles.trialPlanPrice}>{getProductPrice('monthly')}</Text>
-                    <View style={styles.subscribeButton}>
-                      <Text style={styles.subscribeButtonText}>Subscribe</Text>
-                    </View>
-                  </TouchableOpacity>
-                  
-                  {/* Annual Plan */}
-                  <TouchableOpacity
-                    style={[styles.trialPlanCard, styles.bestValuePlan]}
-                    onPress={() => {
-                      setSelectedPlan('annual');
-                      handleSubscribe();
-                    }}
-                  >
-                    <View style={styles.bestValueTag}>
-                      <Text style={styles.bestValueTagText}>Best Value</Text>
-                    </View>
-                    <View>
-                      <Text style={styles.trialPlanTitle}>Annual</Text>
-                      <Text style={styles.planDescription}>Save 44%</Text>
-                    </View>
-                    <Text style={styles.trialPlanPrice}>{getProductPrice('annual')}</Text>
-                    <View style={[styles.subscribeButton, styles.highlightedButton]}>
-                      <Text style={[styles.subscribeButtonText, styles.highlightedButtonText]}>Subscribe</Text>
-                    </View>
-                  </TouchableOpacity>
-                  
-                  {/* Lifetime Plan */}
-                  <TouchableOpacity
-                    style={styles.trialPlanCard}
-                    onPress={() => {
-                      setSelectedPlan('lifetime');
-                      handleSubscribe();
-                    }}
-                  >
-                    <View>
-                      <Text style={styles.trialPlanTitle}>Lifetime</Text>
-                      <Text style={styles.planDescription}>One-time payment</Text>
-                    </View>
-                    <Text style={styles.trialPlanPrice}>{getProductPrice('lifetime')}</Text>
-                    <View style={styles.subscribeButton}>
-                      <Text style={styles.subscribeButtonText}>Subscribe</Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            
             {/* Show upgrade options for paid users - Monthly and Annual subscribers */}
-            {isPremium && subscriptionType !== 'lifetime' && subscriptionType !== 'trial' && (
+            {isPremium && subscriptionType !== 'lifetime' && (
               <View style={styles.upgradeContainer}>
                 <TouchableOpacity 
                   style={styles.upgradeButton}
@@ -658,14 +536,10 @@ const PremiumScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 style={[
                   styles.planCard,
-                  selectedPlan === 'annual' && styles.selectedPlan,
-                  styles.recommendedPlan
+                  selectedPlan === 'annual' && styles.selectedPlan
                 ]}
                 onPress={() => handleSelectPlan('annual')}
               >
-                <View style={styles.recommendedBadge}>
-                  <Text style={styles.recommendedText}>RECOMMENDED</Text>
-                </View>
                 <View style={styles.planHeader}>
                   <Text style={styles.planTitle}>Annual</Text>
                   <View style={styles.saveBadge}>
@@ -774,47 +648,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
-  },
-  heroSection: {
-    alignItems: 'center',
-    marginBottom: 25,
-  },
-  heroIcon: {
-    marginBottom: 10,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-  },
-  freeTrialSection: {
-    backgroundColor: COLORS.LAVENDER_LIGHT,
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-    marginBottom: 25,
-  },
-  freeTrialText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  freeTrialButton: {
-    backgroundColor: THEME.PRIMARY,
-    borderRadius: 25,
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-  },
-  freeTrialButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
   },
   pricingSection: {
     marginBottom: 25,
@@ -932,6 +765,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
   highlightedButton: {
     backgroundColor: THEME.PRIMARY,
   },
@@ -983,37 +819,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#777',
     marginTop: 10,
-  },
-  trialUpgradeContainer: {
-    width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 20,
-    marginTop: 20,
-  },
-  trialUpgradeText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-    alignSelf: 'flex-start',
-  },
-  trialExpiryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 193, 7, 0.15)',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 10,
-  },
-  trialExpiryText: {
-    fontSize: 14,
-    color: COLORS.WARNING,
-    fontWeight: '500',
-    marginLeft: 5,
-  },
-  planOptions: {
-    flexDirection: 'column',
   },
   upgradeContainer: {
     alignItems: 'center',
@@ -1130,27 +935,7 @@ const styles = StyleSheet.create({
     color: THEME.PRIMARY,
     fontWeight: '600',
   },
-  recommendedPlan: {
-    borderWidth: 2,
-    borderColor: THEME.PRIMARY,
-    paddingTop: 25,
-  },
-  recommendedBadge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: THEME.PRIMARY,
-    paddingVertical: 3,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    alignItems: 'center',
-  },
-  recommendedText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
+ 
   freeTrialBadge: {
     flexDirection: 'row',
     backgroundColor: '#28a745',
