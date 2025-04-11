@@ -35,7 +35,7 @@ export const checkPremiumNotificationAccess = async () => {
       console.log('User is not premium or trial, notifications restricted');
       Alert.alert(
         'Premium Feature',
-        'Push notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable this feature.',
+        'Push notifications are a premium feature. Please upgrade to PackMind+ Premium to enable this feature.',
         [{ text: 'OK' }]
       );
       return false;
@@ -74,7 +74,7 @@ export const sendTestNotification = async () => {
     // Try to schedule for 2 seconds in the future
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "PackM!nd+:",
+        title: "PackMind+:",
         body: "Don't forget to pack for \"Test Notification\"!",
         data: { test: true },
       },
@@ -111,7 +111,7 @@ export const sendTestNotificationSequence = async () => {
     // Immediate notification
     const immNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "PackM!nd+:",
+        title: "PackMind+:",
         body: "Don't forget to pack for \"Immediate Test\"!",
         data: { test: true },
       },
@@ -123,7 +123,7 @@ export const sendTestNotificationSequence = async () => {
     // Notification for 15 seconds later
     const delayedNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "PackM!nd+:",
+        title: "PackMind+:",
         body: "Don't forget to pack for \"Delayed Test\"!",
         data: { test: true, delayed: true },
       },
@@ -174,7 +174,7 @@ export const requestNotificationPermissionWithAlert = async () => {
     if (existingStatus === 'denied') {
       Alert.alert(
         'Notifications Disabled',
-        'To receive packing reminders, please enable notifications for PackM!nd+ in your device settings.',
+        'To receive packing reminders, please enable notifications for PackMind+ in your device settings.',
         [
           { text: 'Cancel', style: 'cancel' },
           { 
@@ -190,7 +190,7 @@ export const requestNotificationPermissionWithAlert = async () => {
     return new Promise((resolve) => {
       Alert.alert(
         'Enable Notifications',
-        'PackM!nd+ would like to send you notifications to remind you when it\'s time to pack for your trips.',
+        'PackMind+ would like to send you notifications to remind you when it\'s time to pack for your trips.',
         [
           {
             text: 'Not Now',
@@ -227,7 +227,7 @@ export const requestNotificationPermissionWithAlert = async () => {
                   console.log('User denied permission at system level');
                   Alert.alert(
                     'Notifications Disabled',
-                    'To receive packing reminders, please enable notifications for PackM!nd+ in your device settings.',
+                    'To receive packing reminders, please enable notifications for PackMind+ in your device settings.',
                     [
                       { text: 'Cancel', style: 'cancel' },
                       { 
@@ -417,7 +417,7 @@ const scheduleDailyOccurrences = async (listId, title, body, baseDate, daysToSch
         try {
           const id = await Notifications.scheduleNotificationAsync({
             content: {
-              title: `PackM!nd+:`,
+              title: `PackMind+:`,
               body: `Don't forget to pack for "${title}"!`,
               data: { 
                 listId, 
@@ -457,7 +457,7 @@ const scheduleDailyOccurrences = async (listId, title, body, baseDate, daysToSch
     
     const refreshId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "PackM!nd+: Updating Reminders",
+        title: "PackMind+: Updating Reminders",
         body: "We're refreshing your daily packing reminders",
         data: { 
           isRefreshTrigger: true,
@@ -561,7 +561,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         // Schedule the one-time notification
         const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: `PackM!nd+:`,
+            title: `PackMind+:`,
             body: `Don't forget to pack for "${title}"!`,
             data: { listId },
             sound: true,
@@ -649,7 +649,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `PackM!nd+:`,
+                  title: `PackMind+:`,
                   body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
@@ -677,7 +677,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         
         const refreshId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: "PackM!nd+: Updating Reminders",
+            title: "PackMind+: Updating Reminders",
             body: "We're refreshing your weekly packing reminders",
             data: { 
               isWeeklyRefreshTrigger: true,
@@ -739,7 +739,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `PackM!nd+:`,
+                  title: `PackMind+:`,
                   body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
@@ -767,7 +767,7 @@ export const schedulePackingReminder = async (listId, title, body, date, recurre
         
         const refreshId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: "PackM!nd+: Updating Reminders",
+            title: "PackMind+: Updating Reminders",
             body: "We're refreshing your monthly packing reminders",
             data: { 
               isMonthlyRefreshTrigger: true,
@@ -957,7 +957,7 @@ export const handleNotificationResponse = async (response, navigation) => {
             try {
               const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `PackM!nd+:`,
+                  title: `PackMind+:`,
                   body: `Don't forget to pack for "${title}"!`,
                   data: { 
                     listId, 
@@ -986,7 +986,7 @@ export const handleNotificationResponse = async (response, navigation) => {
       
       const refreshId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "PackM!nd+: Updating Reminders",
+          title: "PackMind+: Updating Reminders",
           body: "We're refreshing your weekly packing reminders",
           data: { 
             isWeeklyRefreshTrigger: true,
@@ -1056,7 +1056,7 @@ export const handleNotificationResponse = async (response, navigation) => {
           try {
             const notificationId = await Notifications.scheduleNotificationAsync({
               content: {
-                title: `PackM!nd+:`,
+                title: `PackMind+:`,
                 body: `Don't forget to pack for "${title}"!`,
                 data: { 
                   listId, 
@@ -1084,7 +1084,7 @@ export const handleNotificationResponse = async (response, navigation) => {
       
       const refreshId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "PackM!nd+: Updating Reminders",
+          title: "PackMind+: Updating Reminders",
           body: "We're refreshing your monthly packing reminders",
           data: { 
             isMonthlyRefreshTrigger: true,
@@ -1121,7 +1121,7 @@ export const handleNotificationResponse = async (response, navigation) => {
       // Schedule the final notification
       Notifications.scheduleNotificationAsync({
         content: {
-          title: `PackM!nd+:`,
+          title: `PackMind+:`,
           body: `Don't forget to pack for "${title}"!`,
           data: { listId },
           categoryIdentifier: 'PACKING_REMINDER',
@@ -1399,7 +1399,7 @@ export const testDailyNotification = async () => {
       try {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: `PackM!nd+:`,
+            title: `PackMind+:`,
             body: `Don't forget to pack for "Daily Test (Day ${i+1})"!`,
             data: { 
               isTestDailyOccurrence: true,

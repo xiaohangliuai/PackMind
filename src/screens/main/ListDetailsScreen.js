@@ -305,7 +305,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
       if (!hasPremiumAccess) {
         Alert.alert(
           'Premium Feature',
-          'Notifications are a premium feature. Please upgrade to PackM!nd+ Premium to enable reminders for your packing lists.',
+          'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
           [
             { text: 'Cancel', style: 'cancel' },
             { 
@@ -525,7 +525,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
         .map(item => `- ${item.name}`)
         .join('\n');
       
-      const message = `Check out my packing list for ${packingList.title}!\n\n${itemsList}\n\nCreated with PackM!nd+`;
+      const message = `Check out my packing list for ${packingList.title}!\n\n${itemsList}\n\nCreated with PackMind+`;
       
       await Share.share({
         message,

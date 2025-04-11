@@ -14,9 +14,9 @@ export const PremiumContext = createContext();
 
 // Define pricing constants
 export const PREMIUM_PRICING = {
-  MONTHLY: 2.99,
-  ANNUAL: 19.99,
-  LIFETIME: 49.99
+  MONTHLY: 1.99,
+  ANNUAL: 14.99,
+  LIFETIME: 24.99
 };
 
 // Define feature limits

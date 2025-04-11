@@ -198,7 +198,7 @@ const SettingsScreen = ({ navigation }) => {
   const handleShareApp = async () => {
     try {
       await Share.share({
-        message: 'Check out PackM!nd+, the smart packing list app! Download it from the App Store or Google Play',
+        message: 'Check out PackMind+, the smart packing list app! Download it from the App Store or Google Play',
       });
     } catch (error) {
       console.error('Error sharing app:', error);
@@ -436,7 +436,7 @@ const SettingsScreen = ({ navigation }) => {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2025 PackM!nd+</Text>
+          <Text style={styles.appCopyright}>© 2025 PackMind+</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

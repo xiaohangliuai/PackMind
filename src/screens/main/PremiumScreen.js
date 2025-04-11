@@ -224,7 +224,7 @@ const PremiumScreen = ({ navigation, route }) => {
       if (success) {
         Alert.alert(
           'Subscription Successful!',
-          'Thank you for subscribing to PackM!nd+ Premium!',
+          'Thank you for subscribing to PackMind+ Premium!',
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       }
@@ -585,7 +585,7 @@ const PremiumScreen = ({ navigation, route }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroSection}>
           <Ionicons name="star" size={36} color={COLORS.GOLD} style={styles.heroIcon} />
-          <Text style={styles.heroTitle}>PackM!nd+ Premium</Text>
+          <Text style={styles.heroTitle}>PackMind+ Premium</Text>
           <Text style={styles.heroSubtitle}>Unlock all features for a better experience</Text>
         </View>
         
@@ -638,7 +638,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 <View style={styles.planHeader}>
                   <Text style={styles.planTitle}>Annual</Text>
                   <View style={styles.saveBadge}>
-                    <Text style={styles.saveText}>Save 44%</Text>
+                    <Text style={styles.saveText}>Save 37%</Text>
                   </View>
                   {selectedPlan === 'annual' && (
                     <Ionicons name="checkmark-circle" size={24} color={THEME.PRIMARY} />
@@ -646,7 +646,7 @@ const PremiumScreen = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.planPrice}>{getProductPrice('annual')}</Text>
                 <Text style={styles.monthlyEquivalent}>
-                  ($1.08/month)
+                  ($1.25/month) Cancel anytime
                 </Text>
               </TouchableOpacity>
               
