@@ -226,26 +226,11 @@ const CreateListScreen = ({ navigation, route }) => {
   // Date time picker handlers
   const showDateTimePicker = () => {
     try {
-      // Check if user has premium access (includes both premium and trial users)
-      if (!isPremium && subscriptionType !== 'trial') {
-        Alert.alert(
-          'Premium Feature',
-          'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'View Premium', 
-              onPress: () => navigation.navigate('Premium')
-            }
-          ]
-        );
-        return;
-      }
-      
+      // Always allow date time picker to show for all users
       setDateTimePickerVisible(true);
     } catch (error) {
       console.log('Error in showDateTimePicker:', error);
-      // Default to showing picker if premium context fails
+      // Default to showing picker if there's an error
       setDateTimePickerVisible(true);
     }
   };
@@ -255,8 +240,15 @@ const CreateListScreen = ({ navigation, route }) => {
   };
   
   const handleSaveDateTime = (selectedDate, reminderRecurrence) => {
+    // Check if this is a navigation to premium request
+    if (selectedDate === null && reminderRecurrence?.navigateToPremium) {
+      navigation.navigate('Premium');
+      return;
+    }
+    
     setDate(selectedDate);
     setRecurrence(reminderRecurrence);
+    hideDateTimePicker();
   };
   
   // Add new item to the list
@@ -334,6 +326,9 @@ const CreateListScreen = ({ navigation, route }) => {
       try {
         const user = firebase.auth().currentUser;
         
+        // Check if user is a guest/anonymous first
+        const isGuestUser = user.isAnonymous;
+        
         // Check list limit for all users
         // Allow both premium users and trial users to have unlimited lists
         if (!isPremium && subscriptionType !== 'trial') {
@@ -345,15 +340,78 @@ const CreateListScreen = ({ navigation, route }) => {
             
           const currentListCount = snapshot.docs.length;
           
-          // If reached limit, show premium upgrade prompt
+          // If reached limit, show prompt based on user type
           if (currentListCount >= limits.MAX_LISTS) {
+            if (isGuestUser) {
+              // For guest users, direct them to create a full account
+              Alert.alert(
+                'List Limit Reached',
+                `You've reached the maximum of ${limits.MAX_LISTS} lists on the free plan. Create an account to upgrade to Premium for unlimited lists.`,
+                [
+                  { text: 'Not Now', style: 'cancel' },
+                  { 
+                    text: 'Create Account', 
+                    onPress: () => {
+                      setIsLoading(false);
+                      navigation.navigate('AuthStack');
+                    }
+                  }
+                ]
+              );
+            } else {
+              // For regular users, show premium upgrade prompt
+              Alert.alert(
+                'List Limit Reached',
+                `You've reached the maximum of ${limits.MAX_LISTS} lists on the free plan. Upgrade to Premium for unlimited lists.`,
+                [
+                  { text: 'Not Now', style: 'cancel' },
+                  { 
+                    text: 'View Premium', 
+                    onPress: () => {
+                      setIsLoading(false);
+                      navigation.navigate('Premium');
+                    }
+                  }
+                ]
+              );
+            }
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Check premium status for notification settings only
+        // Allow both premium and trial users to have notification access
+        const hasNotificationAccess = isPremium || subscriptionType === 'trial';
+        
+        // If recurrence exists and notifications are enabled, check access
+        if (recurrence && recurrence.notificationsEnabled) {
+          // For guest users, always show the "create account" message
+          if (isGuestUser) {
             Alert.alert(
-              'List Limit Reached',
-              `You've reached the maximum of ${limits.MAX_LISTS} lists on the free plan. ${
-                user.isAnonymous 
-                  ? 'Create an account and upgrade to Premium for unlimited lists.' 
-                  : 'Upgrade to Premium for unlimited lists.'
-              }`,
+              'Account Required',
+              'Guest accounts cannot use notifications. Please create a full account and upgrade to Premium to enable this feature.',
+              [
+                { text: 'Not Now', style: 'cancel' },
+                { 
+                  text: 'Create Account', 
+                  onPress: () => {
+                    setIsLoading(false);
+                    navigation.navigate('Settings');
+                    return;
+                  }
+                }
+              ]
+            );
+            setIsLoading(false);
+            return;
+          }
+          // For non-guest but still non-premium users
+          else if (!hasNotificationAccess) {
+            // Show premium upgrade prompt for notifications only
+            Alert.alert(
+              'Premium Feature',
+              'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
               [
                 { text: 'Not Now', style: 'cancel' },
                 { 
@@ -361,6 +419,7 @@ const CreateListScreen = ({ navigation, route }) => {
                   onPress: () => {
                     setIsLoading(false);
                     navigation.navigate('Premium');
+                    return;
                   }
                 }
               ]
@@ -369,37 +428,8 @@ const CreateListScreen = ({ navigation, route }) => {
             return;
           }
         }
-
-        // Check premium status for notification settings
-        // Allow both premium and trial users to have notification access
-        const hasNotificationAccess = isPremium || subscriptionType === 'trial';
         
-        // If user is trying to use notifications but isn't premium or trial
-        if (!hasNotificationAccess && 
-            recurrence && 
-            recurrence.notificationsEnabled) {
-          
-          // Show premium upgrade prompt
-          Alert.alert(
-            'Premium Feature',
-            'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
-            [
-              { text: 'Not Now', style: 'cancel' },
-              { 
-                text: 'View Premium', 
-                onPress: () => {
-                  setIsLoading(false);
-                  navigation.navigate('Premium');
-                  return;
-                }
-              }
-            ]
-          );
-          setIsLoading(false);
-          return;
-        }
-        
-        // If user is not premium, disable notifications entirely
+        // If user is not premium, disable notifications entirely but keep date/time
         const finalRecurrence = hasNotificationAccess ? recurrence : {
           ...recurrence,
           notificationsEnabled: false,

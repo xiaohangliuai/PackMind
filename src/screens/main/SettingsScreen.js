@@ -352,7 +352,11 @@ const SettingsScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('Premium')}
             >
               <Text style={styles.premiumButtonText}>
-                {isPremium ? 'Manage Subscription' : 'View Premium Features'}
+                {isPremium 
+                  ? 'Manage Subscription' 
+                  : isGuestUser 
+                    ? 'Create Account' 
+                    : 'View Premium Features'}
               </Text>
             </TouchableOpacity>
           </View>

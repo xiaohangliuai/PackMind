@@ -301,26 +301,11 @@ const ListDetailsScreen = ({ route, navigation }) => {
   // Date picker handlers
   const showDateTimePicker = () => {
     try {
-      // Check if user has premium access (includes both premium and trial users)
-      if (!hasPremiumAccess) {
-        Alert.alert(
-          'Premium Feature',
-          'Notifications are a premium feature. Please upgrade to PackMind+ Premium to enable reminders for your packing lists.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'View Premium', 
-              onPress: () => navigation.navigate('Premium')
-            }
-          ]
-        );
-        return;
-      }
-      
+      // Always allow date time picker to show for all users
       setDateTimePickerVisible(true);
     } catch (error) {
       console.log('Error in showDateTimePicker:', error);
-      // Default to showing picker if premium context fails
+      // Default to showing picker if there's an error
       setDateTimePickerVisible(true);
     }
   };
@@ -330,6 +315,12 @@ const ListDetailsScreen = ({ route, navigation }) => {
   };
   
   const handleSaveDateTime = (selectedDate, reminderRecurrence) => {
+    // Check if this is a navigation to premium request
+    if (selectedDate === null && reminderRecurrence?.navigateToPremium) {
+      navigation.navigate('Premium');
+      return;
+    }
+    
     setDate(selectedDate);
     setRecurrence(reminderRecurrence);
     hideDateTimePicker();
@@ -380,6 +371,35 @@ const ListDetailsScreen = ({ route, navigation }) => {
     setIsLoading(true);
     
     try {
+      // Check if user is a guest/anonymous
+      const isGuestUser = user && user.isAnonymous;
+      
+      // Update notification if recurrence or date changed
+      const shouldScheduleNotification = recurrence && 
+                                       (recurrence.notificationsEnabled === true) && 
+                                       (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
+
+      // For guest users, check notifications separately
+      if (shouldScheduleNotification && isGuestUser) {
+        Alert.alert(
+          'Account Required',
+          'Guest accounts cannot use notifications. Please create a full account and upgrade to Premium to enable this feature.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { 
+              text: 'Create Account', 
+              onPress: () => {
+                setIsLoading(false);
+                navigation.navigate('Settings');
+                return;
+              }
+            }
+          ]
+        );
+        setIsLoading(false);
+        return;
+      }
+      
       // Create the updates object without modifying the original packingList
       const updates = {
         title: title.trim(),
@@ -404,16 +424,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
         updatedAt: new Date() // Temporary local value until Firestore updates
       });
       
-      // Update notification if recurrence or date changed
-      const shouldScheduleNotification = recurrence && 
-                                       (recurrence.notificationsEnabled === true) && 
-                                       (recurrence.notificationType === 'one-time' || recurrence.notificationType === 'recurring');
-
-      console.log('Should update notification:', shouldScheduleNotification);
-      console.log('Recurrence details:', recurrence);
-      console.log('Notification type:', recurrence?.notificationType);
-
-      if (shouldScheduleNotification) {
+      // Only continue with notification if not guest
+      if (shouldScheduleNotification && !isGuestUser) {
         try {
           console.log('Attempting to update notification for list:', listId);
           const notificationId = await NotificationService.updatePackingReminders(

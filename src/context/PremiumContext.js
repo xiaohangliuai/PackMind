@@ -74,6 +74,9 @@ export const PremiumProvider = ({ children }) => {
         if (user && !user.isAnonymous) {
           console.log('Loading premium status for user:', user.uid);
           
+          // Save user type as registered
+          await AsyncStorage.setItem('user_type', 'registered');
+          
           // Try both the 'users' and 'userProfiles' collections
           let userProfile = null;
           
@@ -131,6 +134,11 @@ export const PremiumProvider = ({ children }) => {
           setSubscriptionExpiryDate(null);
           await AsyncStorage.setItem('user_is_premium', 'false');
           await AsyncStorage.setItem('subscription_type', 'none');
+          
+          // Save user type as guest/anonymous
+          if (user && user.isAnonymous) {
+            await AsyncStorage.setItem('user_type', 'guest');
+          }
         }
       } catch (error) {
         console.error('Error loading premium status:', error);

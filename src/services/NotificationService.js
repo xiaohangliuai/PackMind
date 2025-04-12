@@ -26,18 +26,30 @@ export const checkPremiumNotificationAccess = async () => {
     // Get premium status from storage first for a quick check
     const isPremiumStr = await AsyncStorage.getItem('user_is_premium');
     const subscriptionTypeStr = await AsyncStorage.getItem('subscription_type');
+    const userTypeStr = await AsyncStorage.getItem('user_type');
     
     const isPremium = isPremiumStr === 'true';
     const isTrialUser = subscriptionTypeStr === 'trial';
+    const isGuestUser = userTypeStr === 'anonymous' || userTypeStr === 'guest';
     
     // Consider both premium and trial users as having premium access
     if (!isPremium && !isTrialUser) {
       console.log('User is not premium or trial, notifications restricted');
-      Alert.alert(
-        'Premium Feature',
-        'Push notifications are a premium feature. Please upgrade to PackMind+ Premium to enable this feature.',
-        [{ text: 'OK' }]
-      );
+      
+      // Show different messages for guest users vs regular non-premium users
+      if (isGuestUser) {
+        Alert.alert(
+          'Account Required',
+          'Guest accounts cannot use notifications. Please create a full account and upgrade to Premium to enable this feature.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Premium Feature',
+          'Push notifications are a premium feature. Please upgrade to PackMind+ Premium to enable this feature.',
+          [{ text: 'OK' }]
+        );
+      }
       return false;
     }
     

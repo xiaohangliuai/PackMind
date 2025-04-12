@@ -5,6 +5,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import appleAuth from '../utils/appleAuth';
 import { signInAnonymously } from '../firebase/firebaseConfig';
 import { updateUserActivity, registerGuestUser } from '../utils/userActivityTracker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Create the context
 export const AuthContext = createContext();
@@ -98,6 +99,9 @@ export const AuthProvider = ({ children }) => {
       // Register guest user for activity tracking
       await registerGuestUser(userCredential.uid);
       
+      // Save user type to AsyncStorage
+      await AsyncStorage.setItem('user_type', 'guest');
+      
       return userCredential;
     } catch (error) {
       console.error('Guest login error:', error);
@@ -127,7 +131,7 @@ export const AuthProvider = ({ children }) => {
     console.log("Setting up auth state listener");
     setLoading(true);
 
-    const unsubscribe = firebase.auth().onAuthStateChanged((currentUser) => {
+    const unsubscribe = firebase.auth().onAuthStateChanged(async (currentUser) => {
       if (currentUser) {
         console.log("User authenticated:", currentUser.uid);
         setUser(currentUser);
@@ -135,10 +139,19 @@ export const AuthProvider = ({ children }) => {
         // Update activity timestamp on login for guest users
         if (currentUser.isAnonymous) {
           updateUserActivity(currentUser.uid);
+          
+          // Set user type in AsyncStorage
+          await AsyncStorage.setItem('user_type', 'guest');
+        } else {
+          // Regular logged in user
+          await AsyncStorage.setItem('user_type', 'registered');
         }
       } else {
         console.log("No user authenticated");
         setUser(null);
+        
+        // Clear user type when logged out
+        await AsyncStorage.removeItem('user_type');
       }
       setLoading(false);
     });

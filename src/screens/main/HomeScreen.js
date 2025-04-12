@@ -171,25 +171,41 @@ const HomeScreen = ({ navigation }) => {
       if (canCreate) {
         handleCreateList();
       } else {
-        // Show upgrade prompt
-        Alert.alert(
-          'List Limit Reached',
-          `You've reached the maximum of ${limits?.MAX_LISTS || 3} lists on the free plan. ${
-            user?.isAnonymous 
-              ? 'Create an account and upgrade to Premium for unlimited lists.' 
-              : 'Upgrade to Premium for unlimited lists.'
-          }`,
-          [
-            { 
-              text: 'Not Now', 
-              style: 'cancel' 
-            },
-            { 
-              text: 'View Premium', 
-              onPress: () => navigation.navigate('Premium')
-            }
-          ]
-        );
+        const isGuestUser = user && user.isAnonymous;
+        
+        if (isGuestUser) {
+          // For guest users, direct them to Settings where they can create an account
+          Alert.alert(
+            'List Limit Reached',
+            `You've reached the maximum of ${limits?.MAX_LISTS || 3} lists on the free plan. Create an account to upgrade to Premium for unlimited lists.`,
+            [
+              { 
+                text: 'Not Now', 
+                style: 'cancel' 
+              },
+              { 
+                text: 'Create Account', 
+                onPress: () => navigation.navigate('Settings')
+              }
+            ]
+          );
+        } else {
+          // For regular users, show premium upgrade prompt
+          Alert.alert(
+            'List Limit Reached',
+            `You've reached the maximum of ${limits?.MAX_LISTS || 3} lists on the free plan. Upgrade to Premium for unlimited lists.`,
+            [
+              { 
+                text: 'Not Now', 
+                style: 'cancel' 
+              },
+              { 
+                text: 'View Premium', 
+                onPress: () => navigation.navigate('Premium')
+              }
+            ]
+          );
+        }
       }
     } catch (error) {
       console.log('Error in checkListLimitAndCreate:', error);

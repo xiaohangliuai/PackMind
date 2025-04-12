@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Platform,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { Calendar } from 'react-native-calendars';
@@ -14,6 +15,7 @@ import ScrollPicker from 'react-native-wheel-scrollview-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { COLORS, THEME } from '../constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +33,37 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // For time picker on Android
 const HOURS = Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0'));
 const MINUTES = Array.from({length: 60}, (_, i) => i.toString().padStart(2, '0'));
+
+// Check if user has premium access to notifications
+const checkPremiumNotificationAccess = async () => {
+  try {
+    // Get premium status from storage
+    const isPremiumStr = await AsyncStorage.getItem('user_is_premium');
+    const subscriptionTypeStr = await AsyncStorage.getItem('subscription_type');
+    
+    const isPremium = isPremiumStr === 'true';
+    const isTrialUser = subscriptionTypeStr === 'trial';
+    
+    // Both premium and trial users have premium access
+    return isPremium || isTrialUser;
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
+};
+
+// Check if user is a guest account
+const isGuestUser = async () => {
+  try {
+    // Get current user
+    const userTypeStr = await AsyncStorage.getItem('user_type');
+    const userIsAnonymous = userTypeStr === 'anonymous' || userTypeStr === 'guest';
+    return userIsAnonymous;
+  } catch (error) {
+    console.error('Error checking if user is guest:', error);
+    return false;
+  }
+};
 
 const CustomDateTimePicker = ({
   isVisible,
@@ -50,10 +83,35 @@ const CustomDateTimePicker = ({
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedHour, setSelectedHour] = useState(initialDate.getHours());
   const [selectedMinute, setSelectedMinute] = useState(initialDate.getMinutes());
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false); // Default to disabled
   
   // Timer ref for debouncing time selection
   const timeoutRef = useRef(null);
+
+  // Initialize notification state based on user type
+  useEffect(() => {
+    const checkUserType = async () => {
+      try {
+        // Check premium status first (if user is premium, they should have notifications enabled by default)
+        const hasPremium = await checkPremiumNotificationAccess();
+        
+        // If not premium, check if guest user
+        if (!hasPremium) {
+          // For guest users, notifications should be disabled by default
+          setNotificationsEnabled(false);
+        } else {
+          // For premium users, enable notifications by default
+          setNotificationsEnabled(true);
+        }
+      } catch (error) {
+        console.error('Error initializing notification state:', error);
+        // Default to disabled for safety
+        setNotificationsEnabled(false);
+      }
+    };
+    
+    checkUserType();
+  }, []);
 
   // Handle initial time values for Android wheel picker
   useEffect(() => {
@@ -74,6 +132,13 @@ const CustomDateTimePicker = ({
 
   // Handle save
   const handleSave = () => {
+    // Check if this is a navigation to premium request
+    if (arguments[0] === null && arguments[1]?.navigateToPremium) {
+      // Just pass the navigation request through
+      onSave(null, { navigateToPremium: true });
+      return;
+    }
+    
     // Combine date and time into a single Date object
     const combinedDate = new Date(date);
     combinedDate.setHours(time.getHours());
@@ -214,6 +279,51 @@ const CustomDateTimePicker = ({
     }
   };
 
+  // Handle notifications toggle with premium check
+  const handleNotificationsToggle = async () => {
+    // If trying to enable notifications, check premium status
+    if (!notificationsEnabled) {
+      // First check if user is a guest
+      const userIsGuest = await isGuestUser();
+      
+      if (userIsGuest) {
+        Alert.alert(
+          'Account Required',
+          'Guest accounts cannot use notifications. Please create a full account and upgrade to Premium to enable this feature.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // Then check premium status for non-guest users
+      const hasPremiumAccess = await checkPremiumNotificationAccess();
+      
+      if (!hasPremiumAccess) {
+        // For non-guest but non-premium users, show premium upgrade option
+        Alert.alert(
+          'Premium Feature',
+          'Push notifications are a premium feature. Please upgrade to PackMind+ Premium to enable this feature.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'View Premium', 
+              onPress: () => {
+                // Close the current picker and navigate to premium screen
+                onClose();
+                // Pass navigation callback through onSave with a special flag
+                onSave(null, { navigateToPremium: true });
+              }
+            }
+          ]
+        );
+        return;
+      }
+    }
+    
+    // Toggle notifications state if premium or already enabled
+    setNotificationsEnabled(!notificationsEnabled);
+  };
+
   // Render the main view
   const renderMainView = () => (
     <View style={styles.mainContainer}>
@@ -282,7 +392,7 @@ const CustomDateTimePicker = ({
         {/* Push Notification */}
         <TouchableOpacity 
           style={[styles.optionRow, styles.lastRow]}
-          onPress={() => setNotificationsEnabled(!notificationsEnabled)}
+          onPress={handleNotificationsToggle}
         >
           <View style={styles.iconLabelContainer}>
             <Ionicons name="notifications-outline" size={24} color="#333" />
