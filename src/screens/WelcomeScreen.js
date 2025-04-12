@@ -198,7 +198,7 @@ const WelcomeScreen = ({ navigation }) => {
           ]}
         >
           <Image 
-            source={require('../../assets/logo.jpg')} 
+            source={require('../../assets/welcome-logo.jpg')} 
             style={styles.logoImage}
             resizeMode="contain"
           />
