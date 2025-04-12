@@ -13,7 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "notification": {
-      "icon": "./assets/notification-icon.png",
+      "icon": "./assets/logo.jpg",
       "color": "#a6c13c",
       "androidMode": "default",
       "androidCollapsedTitle": "PackMind",
@@ -23,7 +23,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/logo.jpg",
           "color": "#a6c13c",
           "sounds": [
             "./assets/notification-sound.wav"
