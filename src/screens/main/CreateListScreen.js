@@ -27,6 +27,7 @@ import firebase from '../../firebase/firebaseConfig';
 import * as NotificationService from '../../services/NotificationService';
 import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
 import { useActivityTracker } from '../../hooks/useActivityTracker';
+import EmojiInputModal from '../../components/EmojiInputModal';
 
 // Activity types with emojis
 const activityTypes = [
@@ -194,6 +195,9 @@ const CreateListScreen = ({ navigation, route }) => {
     console.log('Premium context not yet available, using defaults');
   }
   
+  // Consider trial users the same as premium users
+  const hasPremiumAccess = isPremium || subscriptionType === 'trial';
+  
   // Track user activity for guest users
   useActivityTracker();
   
@@ -207,6 +211,10 @@ const CreateListScreen = ({ navigation, route }) => {
   const [newItemName, setNewItemName] = useState('');
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Add state for emoji modal
+  const [isEmojiModalVisible, setEmojiModalVisible] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
   
   // Set template items when activity changes
   useEffect(() => {
@@ -281,6 +289,56 @@ const CreateListScreen = ({ navigation, route }) => {
       }
       return item;
     }));
+  };
+  
+  // Open emoji input modal
+  const handleOpenEmojiModal = (itemId) => {
+    // Check if user has premium access
+    if (!hasPremiumAccess) {
+      // Check if user is a guest/anonymous
+      const isGuestUser = firebase.auth().currentUser.isAnonymous;
+      
+      if (isGuestUser) {
+        Alert.alert(
+          'Account Required',
+          'Guest accounts cannot change emoji icons. Please create a full account and upgrade to Premium to enable this feature.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { 
+              text: 'Create Account', 
+              onPress: () => {
+                navigation.navigate('Settings');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Premium Feature',
+          'Custom icons are a premium feature. Upgrade to PackMind+ Premium to unlock custom icons for your items.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { 
+              text: 'View Premium', 
+              onPress: () => {
+                navigation.navigate('Premium');
+              }
+            }
+          ]
+        );
+      }
+      return;
+    }
+    
+    setSelectedItemId(itemId);
+    setEmojiModalVisible(true);
+  };
+
+  // Handle custom emoji save from modal
+  const handleSaveCustomEmoji = (emoji) => {
+    if (selectedItemId && emoji) {
+      handleChangeItemType(selectedItemId, `custom:${emoji}`);
+    }
   };
   
   // Validate form before saving
@@ -629,8 +687,8 @@ const CreateListScreen = ({ navigation, route }) => {
         <View style={styles.itemInfo}>
           <TouchableOpacity 
             style={styles.itemIconContainer}
-            onPress={() => item.type === 'default' ? null : handleChangeItemType(item.id, 'default')}
-            onLongPress={() => handleChangeItemType(item.id, item.type === 'default' ? 'shirt' : 'default')}
+            onPress={() => handleOpenEmojiModal(item.id)}
+            onLongPress={() => handleChangeItemType(item.id, item.type === 'default' ? 'lighter' : 'default')}
           >
             <ItemIcon type={item.type} size={24} />
           </TouchableOpacity>
@@ -848,6 +906,13 @@ const CreateListScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      {/* Emoji Input Modal */}
+      <EmojiInputModal 
+        isVisible={isEmojiModalVisible}
+        onClose={() => setEmojiModalVisible(false)}
+        onSave={handleSaveCustomEmoji}
+      />
     </SafeAreaView>
   );
 };

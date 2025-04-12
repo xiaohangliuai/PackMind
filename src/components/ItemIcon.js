@@ -116,6 +116,16 @@ const iconMap = {
 };
 
 const ItemIcon = ({ type, size = 24, style, backgroundColor = '#E8F5E9' }) => {
+  // Check if the type is a custom emoji (starting with "custom:")
+  if (type && type.startsWith('custom:')) {
+    const customEmoji = type.substring(7); // Remove the "custom:" prefix
+    return (
+      <View style={[styles.container, { width: size * 2, height: size * 2, backgroundColor }, style]}>
+        <Text style={{ fontSize: size }}>{customEmoji}</Text>
+      </View>
+    );
+  }
+  
   // Get the icon or use default if not found
   const icon = iconMap[type] || iconMap.default;
   

@@ -407,7 +407,7 @@ const SettingsScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.optionButton}
-            onPress={() => Linking.openURL('mailto:support@packmind.app')}
+            onPress={() => Linking.openURL('mailto:2024@xiaohangliuai.com')}
           >
             <Ionicons name="mail-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
             <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Contact Support</Text>

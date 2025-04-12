@@ -293,11 +293,11 @@ const PremiumScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.feature}>
-                <Ionicons name="cloud-done" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
+                <Ionicons name="happy" size={24} color={THEME.PRIMARY} style={styles.featureIcon} />
                 <View style={styles.featureContent}>
-                  <Text style={styles.featureText}>Cloud Sync</Text>
+                  <Text style={styles.featureText}>Custom Emoji Icons</Text>
                   <Text style={styles.featureDescription}>
-                    Keep your lists in sync across all your devices
+                    Personalize your packing list items with custom emoji icons
                   </Text>
                 </View>
               </View>

@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePremium } from '../../context/PremiumContext';
 import { getPackingList, updatePackingList, deletePackingList } from '../../models/firestoreModels';
 import ItemIcon from '../../components/ItemIcon';
+import EmojiInputModal from '../../components/EmojiInputModal';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -70,6 +71,8 @@ const ListDetailsScreen = ({ route, navigation }) => {
   const [recurrence, setRecurrence] = useState(
     packingList?.recurrence || { type: 'none', interval: 1, days: [] }
   );
+  const [isEmojiModalVisible, setIsEmojiModalVisible] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
   
   // Fetch packing list data
   const fetchPackingList = async () => {
@@ -727,13 +730,11 @@ const ListDetailsScreen = ({ route, navigation }) => {
           onPress={() => {
             if (isEditing) {
               saveEdit();
-            } else if (item.type === 'default') {
-              null;
             } else {
-              handleChangeItemType('default');
+              handleOpenEmojiModal(item.id);
             }
           }}
-          onLongPress={() => handleChangeItemType(item.type === 'default' ? 'shirt' : 'default')}
+          onLongPress={() => handleChangeItemType(item.type === 'default' ? 'lighter' : 'default')}
         >
           <ItemIcon type={item.type || 'default'} size={24} />
         </TouchableOpacity>
@@ -989,6 +990,77 @@ const ListDetailsScreen = ({ route, navigation }) => {
     />
   );
   
+  // Open emoji input modal
+  const handleOpenEmojiModal = (itemId) => {
+    // Check if user has premium access
+    if (!hasPremiumAccess) {
+      // Check if user is a guest/anonymous
+      const isGuestUser = firebase.auth().currentUser.isAnonymous;
+      
+      if (isGuestUser) {
+        Alert.alert(
+          'Account Required',
+          'Guest accounts cannot change emoji icons. Please create a full account and upgrade to Premium to enable this feature.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { 
+              text: 'Create Account', 
+              onPress: () => {
+                navigation.navigate('Settings');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Premium Feature',
+          'Custom icons are a premium feature. Upgrade to PackMind+ Premium to unlock custom icons for your items.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { 
+              text: 'View Premium', 
+              onPress: () => {
+                navigation.navigate('Premium');
+              }
+            }
+          ]
+        );
+      }
+      return;
+    }
+    
+    setSelectedItemId(itemId);
+    setIsEmojiModalVisible(true);
+  };
+
+  // Handle custom emoji save from modal
+  const handleSaveCustomEmoji = async (emoji) => {
+    if (selectedItemId && emoji) {
+      try {
+        // Clone the packingList to avoid modifying the shared value
+        const updatedItems = packingList.items.map(item => 
+          item.id === selectedItemId ? { ...item, type: `custom:${emoji}` } : item
+        );
+        
+        const updates = { 
+          items: updatedItems,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await updatePackingList(listId, updates);
+        
+        setPackingList(prevList => ({
+          ...prevList,
+          items: updatedItems,
+          updatedAt: new Date()
+        }));
+      } catch (error) {
+        console.error('Error updating item emoji:', error);
+        Alert.alert('Error', 'Failed to update item emoji');
+      }
+    }
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -1192,6 +1264,13 @@ const ListDetailsScreen = ({ route, navigation }) => {
           </GestureHandlerRootView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+      
+      {/* Emoji Input Modal */}
+      <EmojiInputModal 
+        isVisible={isEmojiModalVisible}
+        onClose={() => setIsEmojiModalVisible(false)}
+        onSave={handleSaveCustomEmoji}
+      />
     </SafeAreaView>
   );
 };
