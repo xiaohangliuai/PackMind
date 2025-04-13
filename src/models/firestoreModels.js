@@ -365,3 +365,56 @@ export const updateUserProfile = async (userId, data) => {
     throw error;
   }
 };
+
+/**
+ * Deletes all user data from Firestore
+ * This function is called when a user cancels their account
+ * It removes:
+ * 1. The user profile from the 'users' collection
+ * 2. All packing lists created by the user
+ * 3. Removes the user from any shared packing lists (as a collaborator)
+ * 
+ * All operations are performed in a batch to ensure atomicity
+ * 
+ * @param {string} userId - The ID of the user to delete
+ * @returns {Promise<boolean>} - Returns true if deletion was successful
+ */
+export const deleteUserData = async (userId) => {
+  try {
+    const db = firebase.firestore();
+    const batch = db.batch();
+    
+    // Delete user profile
+    const userRef = db.collection('users').doc(userId);
+    batch.delete(userRef);
+    
+    // Delete user's packing lists
+    const packingListsSnapshot = await db
+      .collection(packingListsCollection)
+      .where('userId', '==', userId)
+      .get();
+      
+    packingListsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    // Remove user from collaborators in shared lists
+    const sharedListsSnapshot = await db
+      .collection(packingListsCollection)
+      .where('collaborators', 'array-contains', userId)
+      .get();
+      
+    sharedListsSnapshot.forEach(doc => {
+      const listData = doc.data();
+      const updatedCollaborators = listData.collaborators.filter(id => id !== userId);
+      batch.update(doc.ref, { collaborators: updatedCollaborators });
+    });
+    
+    // Commit all the batched operations
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.error('Error deleting user data:', error);
+    throw error;
+  }
+};

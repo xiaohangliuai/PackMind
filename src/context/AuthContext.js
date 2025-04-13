@@ -6,6 +6,7 @@ import appleAuth from '../utils/appleAuth';
 import { signInAnonymously } from '../firebase/firebaseConfig';
 import { updateUserActivity, registerGuestUser } from '../utils/userActivityTracker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteUserData } from '../models/firestoreModels';
 
 // Create the context
 export const AuthContext = createContext();
@@ -119,6 +120,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Cancels and permanently deletes a user account
+   * This process consists of two steps:
+   * 1. Deleting all user data from Firestore (using deleteUserData)
+   * 2. Deleting the Firebase Authentication account
+   * 
+   * After deletion, the onAuthStateChanged listener will detect that
+   * the user is no longer authenticated and update the app state
+   * 
+   * @returns {Promise<void>}
+   */
+  const cancelAccount = async () => {
+    try {
+      // Get current user
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+
+      const userId = currentUser.uid;
+      
+      // Delete all user data from Firestore first
+      await deleteUserData(userId);
+      
+      // Delete the Firebase Authentication account
+      await currentUser.delete();
+      
+      // The onAuthStateChanged listener will handle setting user to null
+      console.log('User account successfully deleted');
+      
+    } catch (error) {
+      console.error('Error canceling account:', error);
+      throw error;
+    }
+  };
+
   // Update user activity (used throughout the app)
   const trackUserActivity = async () => {
     if (user && user.isAnonymous) {
@@ -169,7 +206,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     signInWithApple,
     guestLogin,
-    trackUserActivity
+    trackUserActivity,
+    cancelAccount
   };
 
   // Provider return

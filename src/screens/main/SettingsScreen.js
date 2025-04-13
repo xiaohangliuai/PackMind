@@ -26,7 +26,7 @@ import firebase from '../../firebase/firebaseConfig';
 import * as Notifications from 'expo-notifications';
 
 const SettingsScreen = ({ navigation }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, cancelAccount } = useAuth();
   
   // Try to get premium context - use try/catch to prevent errors during initialization
   let isPremium = false;
@@ -252,6 +252,43 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
   
+  // Handle cancel account
+  const handleCancelAccount = () => {
+    Alert.alert(
+      'Cancel Account',
+      'Are you sure you want to cancel your account? This will permanently delete all your data and cannot be undone.',
+      [
+        {
+          text: 'No, Keep My Account',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes, Cancel My Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              
+              // Delete the account
+              await cancelAccount();
+              
+              // Show success message before auto-logout happens
+              Alert.alert(
+                'Account Deleted',
+                'Your account has been successfully deleted.',
+                [{ text: 'OK' }]
+              );
+              
+              // Navigation will be handled by auth context
+            } catch (error) {
+              console.error('Error canceling account:', error);
+              Alert.alert('Error', 'Failed to cancel your account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+  
   // Handle navigation back
   const handleGoBack = () => {
     navigation.navigate('Home');
@@ -414,28 +451,32 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         
-        {/* Account Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Actions</Text>
-          
-          {isGuestUser && (
-            <TouchableOpacity 
-              style={styles.optionButton}
-              onPress={handleUpgradeAccount}
+        {/* Account Management Section */}
+        {!isGuestUser && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account Management</Text>
+            
+            {/* Cancel Account */}
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleCancelAccount}
             >
-              <Ionicons name="person-add-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-              <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Create Full Account</Text>
+              <View style={styles.settingItemContent}>
+                <Ionicons name="trash-outline" size={24} color={COLORS.ERROR} style={styles.optionIcon} />
+                <Text style={[styles.optionText, {color: COLORS.ERROR}]}>Cancel Account</Text>
+              </View>
             </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleLogout}
-          >
-            <Ionicons name="log-out-outline" size={24} color="#FF5252" style={styles.optionIcon} />
-            <Text style={[styles.optionText, styles.logoutText]}>Log Out</Text>
-          </TouchableOpacity>
-        </View>
+            
+            {/* Logout */}
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={24} color={COLORS.ERROR} style={styles.optionIcon} />
+              <Text style={[styles.optionText, styles.logoutText]}>Log Out</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         
         {/* App Info */}
         <View style={styles.appInfo}>
@@ -632,6 +673,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     marginRight: 5,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  settingItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingItemText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 
