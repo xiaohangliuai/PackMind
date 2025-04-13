@@ -4,7 +4,7 @@
     "slug": "packmindplus",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.jpg",
+    "icon": "./assets/app-logo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {

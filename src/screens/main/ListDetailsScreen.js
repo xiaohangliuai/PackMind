@@ -813,7 +813,7 @@ const ListDetailsScreen = ({ route, navigation }) => {
                 ]}
                 onPress={() => setSelectedActivity('other')}
               >
-                <Text style={styles.activityIcon}>📦</Text>
+                <Text style={styles.activityIcon}>📝</Text>
                 <Text style={styles.activityLabel}>Custom</Text>
               </TouchableOpacity>
               
