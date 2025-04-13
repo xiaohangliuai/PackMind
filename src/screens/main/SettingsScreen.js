@@ -221,6 +221,15 @@ const SettingsScreen = ({ navigation }) => {
     });
   };
   
+  // Handle contact support
+  const handleContactSupport = () => {
+    Alert.alert(
+      'Contact Support',
+      'Please email to 2024@xiaohangliuai.com for support',
+      [{ text: 'OK' }]
+    );
+  };
+  
   // Handle logout
   const handleLogout = () => {
     const message = isGuestUser ? 
@@ -444,7 +453,7 @@ const SettingsScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.optionButton}
-            onPress={() => Linking.openURL('mailto:2024@xiaohangliuai.com')}
+            onPress={handleContactSupport}
           >
             <Ionicons name="mail-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
             <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Contact Support</Text>
