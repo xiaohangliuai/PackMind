@@ -238,7 +238,7 @@ const SettingsScreen = ({ navigation }) => {
   // Handle logout
   const handleLogout = () => {
     const message = isGuestUser ? 
-      'Are you sure you want to log out? All your data will be lost as you are using a guest account. Remember that guest data is automatically deleted after 3 days of inactivity.' :
+      'Are you sure you want to log out? All your data will be permanently deleted as you are using a guest account.' :
       'Are you sure you want to log out?';
 
     Alert.alert(
@@ -254,10 +254,40 @@ const SettingsScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (isGuestUser) {
+                // Delete guest user data from Firebase before logging out
+                console.log('Deleting guest user data from Firebase...');
+                
+                // Delete user packing lists
+                const packingListsRef = firebase.firestore().collection('packingLists').where('userId', '==', user.uid);
+                const packingListsSnapshot = await packingListsRef.get();
+                
+                const batch = firebase.firestore().batch();
+                
+                // Add packing lists to batch for deletion
+                packingListsSnapshot.forEach(doc => {
+                  batch.delete(doc.ref);
+                });
+                
+                // Delete user profile if exists
+                const userProfileRef = firebase.firestore().collection('userProfiles').doc(user.uid);
+                const userProfileSnapshot = await userProfileRef.get();
+                
+                if (userProfileSnapshot.exists) {
+                  batch.delete(userProfileRef);
+                }
+                
+                // Execute the batch delete
+                await batch.commit();
+                
+                console.log('Guest data successfully deleted');
+              }
+              
+              // Log out the user
               await logout();
               // Navigation will be handled by auth context
             } catch (error) {
-              console.error('Error logging out:', error);
+              console.error('Error during logout process:', error);
               Alert.alert('Error', 'Failed to log out. Please try again.');
             }
           },
@@ -391,12 +421,14 @@ const SettingsScreen = ({ navigation }) => {
               <Text style={styles.guestBannerText}>
                 You're using a guest account. Your data is only stored on this device and will be automatically deleted after 3 days of inactivity.
               </Text>
-              <TouchableOpacity 
-                style={styles.guestUpgradeButton}
-                onPress={handleUpgradeAccount}
-              >
-                <Text style={styles.guestUpgradeText}>Create Full Account</Text>
-              </TouchableOpacity>
+              <View style={styles.guestButtons}>
+                <TouchableOpacity 
+                  style={styles.guestUpgradeButton}
+                  onPress={handleUpgradeAccount}
+                >
+                  <Text style={styles.guestUpgradeText}>Create Full Account</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
@@ -487,7 +519,7 @@ const SettingsScreen = ({ navigation }) => {
         
         {/* Legal Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal</Text>
+          <Text style={styles.sectionTitle}>Privacy & Terms</Text>
           
           <TouchableOpacity 
             style={styles.optionButton}
@@ -507,11 +539,11 @@ const SettingsScreen = ({ navigation }) => {
         </View>
         
         {/* Account Management Section */}
-        {!isGuestUser && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account Management</Text>
-            
-            {/* Cancel Account */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Actions</Text>
+          
+          {!isGuestUser && (
+            /* Cancel Account */
             <TouchableOpacity
               style={styles.settingItem}
               onPress={handleCancelAccount}
@@ -521,17 +553,17 @@ const SettingsScreen = ({ navigation }) => {
                 <Text style={[styles.optionText, {color: COLORS.ERROR}]}>Cancel Account</Text>
               </View>
             </TouchableOpacity>
-            
-            {/* Logout */}
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleLogout}
-            >
-              <Ionicons name="log-out-outline" size={24} color={COLORS.ERROR} style={styles.optionIcon} />
-              <Text style={[styles.optionText, styles.logoutText]}>Log Out</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+          
+          {/* Logout */}
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={24} color={COLORS.ERROR} style={styles.optionIcon} />
+            <Text style={[styles.optionText, styles.logoutText]}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
         
         {/* App Info */}
         <View style={styles.appInfo}>
@@ -903,6 +935,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  guestButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   optionInfo: {
     flexDirection: 'row',
