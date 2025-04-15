@@ -58,7 +58,6 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSUserTrackingUsageDescription": "This allows PackMind to deliver timely packing reminders for your trips",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
