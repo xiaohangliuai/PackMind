@@ -4,16 +4,16 @@
     "slug": "packmindplus",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app-logo.jpg",
+    "icon": "./assets/app-icon.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/app-icon.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "notification": {
-      "icon": "./assets/logo.jpg",
+      "icon": "./assets/app-icon.jpg",
       "color": "#a6c13c",
       "androidMode": "default",
       "androidCollapsedTitle": "PackMind",
@@ -23,7 +23,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/logo.jpg",
+          "icon": "./assets/app-icon.jpg",
           "color": "#a6c13c",
           "sounds": [
             "./assets/notification-sound.wav"

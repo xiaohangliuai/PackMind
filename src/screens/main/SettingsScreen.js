@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   premiumActiveButton: {
-    backgroundColor: COLORS.SUCCESS,
+    backgroundColor: THEME.PRIMARY,
   },
   premiumButtonText: {
     color: 'white',
