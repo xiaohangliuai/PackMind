@@ -15,19 +15,64 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Register a new user
   const register = async (email, password, displayName) => {
     try {
+      setIsRegistering(true);
       const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
       // Update the user profile with displayName
       await userCredential.user.updateProfile({
         displayName: displayName
       });
+      
+      // Send email verification
+      await userCredential.user.sendEmailVerification();
+      
+      // Log out the user to force them to log in after verification
+      await firebase.auth().signOut();
+      
       return userCredential.user;
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  // Send email verification to current user
+  const sendVerificationEmail = async () => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      await currentUser.sendEmailVerification();
+      return true;
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      throw error;
+    }
+  };
+  
+  // Check if user's email is verified
+  const checkEmailVerification = async () => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        return false;
+      }
+      
+      // Reload user to get latest verification status
+      await currentUser.reload();
+      const freshUser = firebase.auth().currentUser;
+      return freshUser.emailVerified;
+    } catch (error) {
+      console.error('Error checking email verification:', error);
+      return false;
     }
   };
 
@@ -35,6 +80,18 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+      
+      // Check if email is verified for non-anonymous users
+      if (!userCredential.user.emailVerified && !userCredential.user.isAnonymous) {
+        // Log the user out immediately
+        await firebase.auth().signOut();
+        
+        // Throw specific error for unverified email
+        const error = new Error('Email not verified');
+        error.code = 'auth/email-not-verified';
+        throw error;
+      }
+      
       return userCredential.user;
     } catch (error) {
       console.error('Login error:', error);
@@ -169,6 +226,14 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
 
     const unsubscribe = firebase.auth().onAuthStateChanged(async (currentUser) => {
+      // If we're in the registration process, don't set the user
+      // This prevents automatic login after registration
+      if (isRegistering) {
+        console.log("Ignoring auth state change during registration");
+        setLoading(false);
+        return;
+      }
+      
       if (currentUser) {
         console.log("User authenticated:", currentUser.uid);
         setUser(currentUser);
@@ -195,7 +260,7 @@ export const AuthProvider = ({ children }) => {
 
     // Cleanup subscription
     return () => unsubscribe();
-  }, []);
+  }, [isRegistering]);
 
   // Context value
   const value = {
@@ -207,7 +272,9 @@ export const AuthProvider = ({ children }) => {
     signInWithApple,
     guestLogin,
     trackUserActivity,
-    cancelAccount
+    cancelAccount,
+    sendVerificationEmail,
+    checkEmailVerification
   };
 
   // Provider return

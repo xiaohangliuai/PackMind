@@ -213,33 +213,23 @@ const RegisterScreen = ({ navigation, route }) => {
         // Transfer data from guest/anonymous to new account
         const transferSuccess = await transferGuestData(user.uid, oldUserId);
         
+        // Immediately navigate to Login screen
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+        
         if (transferSuccess) {
           Alert.alert(
             'Account Created', 
-            'Your account has been created successfully and your data has been transferred! Please refresh the screen to see your data.',
-            [{ 
-              text: 'OK',
-              onPress: () => {
-                // If coming from Premium screen, navigate back there
-                if (fromAnonymous && returnScreen) {
-                  navigation.navigate(returnScreen);
-                }
-              }
-            }]
+            'Your account has been created successfully and your data has been transferred! You MUST verify your email by clicking the link we sent before you can log in.',
+            [{ text: 'OK' }]
           );
         } else {
           Alert.alert(
             'Account Created', 
-            'Your account has been created successfully, but we encountered an issue transferring your data.',
-            [{ 
-              text: 'OK',
-              onPress: () => {
-                // If coming from Premium screen, navigate back there
-                if (fromAnonymous && returnScreen) {
-                  navigation.navigate(returnScreen);
-                }
-              }
-            }]
+            'Your account has been created successfully, but we encountered an issue transferring your data. You MUST verify your email by clicking the link we sent before you can log in.',
+            [{ text: 'OK' }]
           );
         }
       } else {
@@ -254,10 +244,16 @@ const RegisterScreen = ({ navigation, route }) => {
           premium: false
         });
         
-        // Show success message and navigate to login
+        // Immediately navigate to Login screen
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+        
+        // Show email verification message
         Alert.alert(
-          'Registration Successful', 
-          'Your account has been created successfully!',
+          'Verify Your Email', 
+          'Your account has been created! You MUST verify your email by clicking the link we sent before you can log in.',
           [{ text: 'OK' }]
         );
       }

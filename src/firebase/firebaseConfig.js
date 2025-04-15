@@ -1,10 +1,12 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
+import 'firebase/compat/functions';
 
 // Import modular version for v9 API
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -51,6 +53,7 @@ if (!firebase.apps.length) {
 // Initialize Firebase (modular v9 version)
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
+const functions = getFunctions(firebaseApp);
 
 // Helper for anonymous sign in (for testing)
 export const signInAnonymously = async () => {
@@ -64,6 +67,30 @@ export const signInAnonymously = async () => {
   }
 };
 
+// Helper for checking email verification via Cloud Function
+export const checkEmailVerificationForAction = async () => {
+  try {
+    const checkEmailVerification = httpsCallable(functions, 'checkEmailVerification');
+    const result = await checkEmailVerification();
+    return result.data;
+  } catch (error) {
+    console.error("Error checking email verification:", error);
+    throw error;
+  }
+};
+
+// Helper for resending verification email via Cloud Function
+export const resendVerificationEmail = async (email) => {
+  try {
+    const resendVerificationEmailFn = httpsCallable(functions, 'resendVerificationEmail');
+    const result = await resendVerificationEmailFn({ email });
+    return result.data;
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    throw error;
+  }
+};
+
 // Export both the compat and modular versions
-export { db };
+export { db, functions };
 export default firebase; 

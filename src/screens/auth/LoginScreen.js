@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { COLORS, THEME, TYPOGRAPHY, GRADIENTS } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import firebase from '../../firebase/firebaseConfig';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -41,6 +42,49 @@ const LoginScreen = ({ navigation }) => {
     })();
   }, []);
   
+  // Handle email verification error
+  const handleEmailVerificationError = async () => {
+    try {
+      // Get the user by email first
+      const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+      if (methods && methods.length > 0) {
+        // Temporarily sign in to send verification email
+        try {
+          const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+          // Send a verification email
+          await userCredential.user.sendEmailVerification();
+          // Sign out immediately
+          await firebase.auth().signOut();
+          
+          Alert.alert(
+            'Email Not Verified',
+            'You need to verify your email before logging in. We\'ve sent a verification email to your address.',
+            [{ text: 'OK' }]
+          );
+        } catch (err) {
+          console.error('Error during temporary sign-in:', err);
+          Alert.alert(
+            'Email Not Verified',
+            'You need to verify your email before logging in. Please check your inbox for the verification link.',
+            [{ text: 'OK' }]
+          );
+        }
+      } else {
+        Alert.alert(
+          'Account Not Found',
+          'No account exists with this email address.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error handling verification:', error);
+      Alert.alert(
+        'Verification Failed',
+        'Could not send verification email. Please try again later or use a different login method.'
+      );
+    }
+  };
+  
   // Handle login
   const handleLogin = async () => {
     if (!email || !password) {
@@ -55,6 +99,13 @@ const LoginScreen = ({ navigation }) => {
       console.log('Login successful:', user?.email);
     } catch (error) {
       console.error('Login error:', error.code, error.message);
+      
+      // Handle verification error specifically
+      if (error.code === 'auth/email-not-verified') {
+        handleEmailVerificationError();
+        setIsLoading(false);
+        return;
+      }
       
       // Provide specific error messages based on Firebase auth error codes
       switch(error.code) {
@@ -82,7 +133,36 @@ const LoginScreen = ({ navigation }) => {
         case 'auth/too-many-requests':
           Alert.alert(
             'Too Many Attempts', 
-            'Too many failed login attempts. Please try again later or reset your password.'
+            'Too many failed login attempts. Please wait a few minutes before trying again or reset your password.',
+            [
+              { 
+                text: 'Reset Password',
+                onPress: () => {
+                  if (email) {
+                    firebase.auth().sendPasswordResetEmail(email)
+                      .then(() => {
+                        Alert.alert(
+                          'Password Reset Email Sent',
+                          'Check your email for instructions to reset your password.'
+                        );
+                      })
+                      .catch(err => {
+                        console.error('Error sending password reset:', err);
+                        Alert.alert(
+                          'Error',
+                          'Could not send password reset. Please try again later.'
+                        );
+                      });
+                  } else {
+                    Alert.alert('Enter Email', 'Please enter your email address first');
+                  }
+                }
+              },
+              {
+                text: 'OK',
+                style: 'cancel'
+              }
+            ]
           );
           break;
         

@@ -14,6 +14,100 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 /**
+ * HTTP function to check if a user's email is verified
+ * This can be called from the client app to enforce verification for certain actions
+ */
+exports.checkEmailVerification = functions.https.onCall(async (data, context) => {
+  try {
+    // Check if the user is authenticated
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'The function must be called while authenticated.'
+      );
+    }
+    
+    // Get the user record
+    const userRecord = await admin.auth().getUser(context.auth.uid);
+    
+    // Check if the user's email is verified
+    const isEmailVerified = userRecord.emailVerified;
+    
+    // If the user is anonymous or email is verified, allow the action
+    if (userRecord.providerData.length === 0 || isEmailVerified) {
+      return { 
+        verified: true,
+        message: 'User is verified or anonymous' 
+      };
+    }
+    
+    // Email is not verified
+    return { 
+      verified: false,
+      message: 'Email is not verified. Please verify your email before performing this action.' 
+    };
+  } catch (error) {
+    console.error('Error checking email verification:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * HTTP function to resend a verification email
+ * This can be called from the client app to resend verification emails
+ */
+exports.resendVerificationEmail = functions.https.onCall(async (data, context) => {
+  try {
+    const email = data.email;
+    
+    if (!email) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Email is required to resend verification'
+      );
+    }
+
+    // Find the user by email
+    const userRecord = await admin.auth().getUserByEmail(email)
+      .catch(error => {
+        // If user not found, throw a more user-friendly error
+        if (error.code === 'auth/user-not-found') {
+          throw new functions.https.HttpsError(
+            'not-found',
+            'No user found with this email'
+          );
+        }
+        throw error;
+      });
+    
+    // Check if email is already verified
+    if (userRecord.emailVerified) {
+      return { 
+        success: false,
+        message: 'Email is already verified' 
+      };
+    }
+    
+    // Generate a verification link
+    const link = await admin.auth().generateEmailVerificationLink(email, {
+      url: 'https://packmind-568eb.firebaseapp.com/login',
+      handleCodeInApp: false
+    });
+    
+    // In a real application, you would send the email here using a service like Sendgrid, Mailgun, etc.
+    // For this example, we just return the link
+    return { 
+      success: true,
+      message: 'Verification email sent successfully',
+      link: link // You wouldn't normally return this in production
+    };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
  * Scheduled function that runs daily to clean up inactive guest accounts
  * Deletes user data if they haven't been active for more than 3 days
  */
