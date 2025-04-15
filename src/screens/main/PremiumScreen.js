@@ -483,125 +483,156 @@ const PremiumScreen = ({ navigation, route }) => {
                 PackMind+ is a personal organization application that helps users create and manage packing lists for various activities and trips. By downloading, installing, or using PackMind+ ("App"), you agree to be bound by these Terms of Service. If you do not agree with these terms, please do not use the App.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>2. User Responsibilities</Text>
-              <Text style={styles.legalSubtitle}>2.1 Accurate Information</Text>
+              <Text style={styles.legalSectionTitle}>2. Email Verification</Text>
+              <Text style={styles.legalText}>
+                The email verification feature ensures that users verify their email addresses before they can log in to the app. This helps improve security, reduces spam accounts, and ensures that users provide valid contact information.
+              </Text>
+              
+              <Text style={styles.legalSubtitle}>2.1 How It Works</Text>
+              <Text style={styles.legalText}>
+                Registration Process:
+                {'\n'}1. When a user registers with an email and password, a verification email is automatically sent.
+                {'\n'}2. After registration, the user is automatically logged out and redirected to the login screen.
+                {'\n'}3. The user is prompted to check their email and verify their account before attempting to log in.
+                {'\n'}4. The user must click the verification link in the email to complete the verification process.
+              </Text>
+              
+              <Text style={styles.legalSubtitle}>2.2 Login Process</Text>
+              <Text style={styles.legalText}>
+                1. When a user tries to log in, the system checks if their email is verified.
+                {'\n'}2. If their email is not verified:
+                {'\n'}   - They are prevented from logging in
+                {'\n'}   - They are given the option to resend the verification email via a Cloud Function
+                {'\n'}   - They must verify their email before they can access the app
+              </Text>
+              
+              <Text style={styles.legalSubtitle}>2.3 Verification Emails</Text>
+              <Text style={styles.legalText}>
+                - Initial verification emails are sent automatically during registration
+                {'\n'}- Users can request additional verification emails if needed
+                {'\n'}- Verification is handled via Firebase's built-in email verification system
+                {'\n'}- A custom Cloud Function is used to resend verification emails when needed
+              </Text>
+              
+              <Text style={styles.legalSectionTitle}>3. User Responsibilities</Text>
+              <Text style={styles.legalSubtitle}>3.1 Accurate Information</Text>
               <Text style={styles.legalText}>
                 You agree to provide accurate and complete information when creating an account and using the App.
               </Text>
-              <Text style={styles.legalSubtitle}>2.2 Lawful Use</Text>
+              <Text style={styles.legalSubtitle}>3.2 Lawful Use</Text>
               <Text style={styles.legalText}>
                 You agree not to use the App for any illegal or unauthorized purpose. You must not attempt to interfere with the App's functionality or security.
               </Text>
-              <Text style={styles.legalSubtitle}>2.3 User Conduct</Text>
+              <Text style={styles.legalSubtitle}>3.3 User Conduct</Text>
               <Text style={styles.legalText}>
                 You are responsible for all activities that occur under your account. You must not engage in any activity that could harm, disable, or impair the App.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>3. Account & Access</Text>
-              <Text style={styles.legalSubtitle}>3.1 Firebase Integration</Text>
+              <Text style={styles.legalSectionTitle}>4. Account & Access</Text>
+              <Text style={styles.legalSubtitle}>4.1 Firebase Integration</Text>
               <Text style={styles.legalText}>
                 We use Firebase for data storage and authentication. Your use of the App is also subject to Google's Terms of Service for Firebase.
               </Text>
-              <Text style={styles.legalSubtitle}>3.2 Account Security</Text>
+              <Text style={styles.legalSubtitle}>4.2 Account Security</Text>
               <Text style={styles.legalText}>
                 You are responsible for maintaining the confidentiality of your account credentials and for all activities performed under your account.
               </Text>
-              <Text style={styles.legalSubtitle}>3.3 Data Synchronization</Text>
+              <Text style={styles.legalSubtitle}>4.3 Data Synchronization</Text>
               <Text style={styles.legalText}>
                 Your packing lists and preferences may be synchronized across devices using your account credentials.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>4. Subscription & In-App Purchases</Text>
-              <Text style={styles.legalSubtitle}>4.1 Subscription Options</Text>
+              <Text style={styles.legalSectionTitle}>5. Subscription & In-App Purchases</Text>
+              <Text style={styles.legalSubtitle}>5.1 Subscription Options</Text>
               <Text style={styles.legalText}>
                 We offer the following premium subscription options:
                 {'\n'}- Monthly subscription
                 {'\n'}- Annual subscription (includes a 14-day free trial)
                 {'\n'}- Lifetime purchase (one-time payment)
               </Text>
-              <Text style={styles.legalSubtitle}>4.2 Free Trial</Text>
+              <Text style={styles.legalSubtitle}>5.2 Free Trial</Text>
               <Text style={styles.legalText}>
                 Users who select the annual subscription receive a 14-day free trial. If you do not cancel before the trial period ends, you will be automatically charged for the annual subscription.
               </Text>
-              <Text style={styles.legalSubtitle}>4.3 Payment Processing</Text>
+              <Text style={styles.legalSubtitle}>5.3 Payment Processing</Text>
               <Text style={styles.legalText}>
                 All payments are processed through the App Store. Subscription fees are set at the time of purchase.
               </Text>
-              <Text style={styles.legalSubtitle}>4.4 Auto-Renewal</Text>
+              <Text style={styles.legalSubtitle}>5.4 Auto-Renewal</Text>
               <Text style={styles.legalText}>
                 Subscriptions automatically renew unless canceled at least 24 hours before the current period ends. Refunds must be requested from the App Store.
               </Text>
-              <Text style={styles.legalSubtitle}>4.5 Subscription Management</Text>
+              <Text style={styles.legalSubtitle}>5.5 Subscription Management</Text>
               <Text style={styles.legalText}>
                 You can manage or cancel your subscription through your App Store account settings.
               </Text>
-              <Text style={styles.legalSubtitle}>4.6 Refund Policy</Text>
+              <Text style={styles.legalSubtitle}>5.6 Refund Policy</Text>
               <Text style={styles.legalText}>
                 We do not process refunds directly. All refund requests must be submitted through the App Store according to their policies.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>5. Intellectual Property</Text>
-              <Text style={styles.legalSubtitle}>5.1 App Ownership</Text>
+              <Text style={styles.legalSectionTitle}>6. Intellectual Property</Text>
+              <Text style={styles.legalSubtitle}>6.1 App Ownership</Text>
               <Text style={styles.legalText}>
                 PackMind+ and its original content, features, and functionality are owned by the developer and are protected by international copyright, trademark, and other intellectual property laws.
               </Text>
-              <Text style={styles.legalSubtitle}>5.2 User Content</Text>
+              <Text style={styles.legalSubtitle}>6.2 User Content</Text>
               <Text style={styles.legalText}>
                 You retain ownership of any content you create using the App. However, you grant us a non-exclusive license to use this content to provide and improve the App's services.
               </Text>
-              <Text style={styles.legalSubtitle}>5.3 Restrictions</Text>
+              <Text style={styles.legalSubtitle}>6.3 Restrictions</Text>
               <Text style={styles.legalText}>
                 You may not copy, modify, distribute, sell, or lease any part of the App without explicit permission.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>6. Termination</Text>
-              <Text style={styles.legalSubtitle}>6.1 Termination by Developer</Text>
+              <Text style={styles.legalSectionTitle}>7. Termination</Text>
+              <Text style={styles.legalSubtitle}>7.1 Termination by Developer</Text>
               <Text style={styles.legalText}>
                 We may suspend or terminate your account and access to the App immediately, without prior notice for conduct that we believe violates these Terms of Service or is harmful to other users, us, or third parties.
               </Text>
-              <Text style={styles.legalSubtitle}>6.2 Termination by User</Text>
+              <Text style={styles.legalSubtitle}>7.2 Termination by User</Text>
               <Text style={styles.legalText}>
                 You may terminate your use of the App at any time by uninstalling the App and discontinuing its use. If you have an active subscription, you must cancel it separately through your App Store account.
               </Text>
-              <Text style={styles.legalSubtitle}>6.3 Effect of Termination</Text>
+              <Text style={styles.legalSubtitle}>7.3 Effect of Termination</Text>
               <Text style={styles.legalText}>
                 Upon termination, your right to use the App will immediately cease. If you terminate your account, we may retain certain data for legitimate business purposes.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>7. Limitation of Liability</Text>
-              <Text style={styles.legalSubtitle}>7.1 Disclaimer of Warranties</Text>
+              <Text style={styles.legalSectionTitle}>8. Limitation of Liability</Text>
+              <Text style={styles.legalSubtitle}>8.1 Disclaimer of Warranties</Text>
               <Text style={styles.legalText}>
                 THE APP IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DO NOT GUARANTEE THAT THE APP WILL BE UNINTERRUPTED, TIMELY, SECURE, OR ERROR-FREE.
               </Text>
-              <Text style={styles.legalSubtitle}>7.2 Limitation of Liability</Text>
+              <Text style={styles.legalSubtitle}>8.2 Limitation of Liability</Text>
               <Text style={styles.legalText}>
                 TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE APP, INCLUDING BUT NOT LIMITED TO DATA LOSS OR CORRUPTION, DEVICE DAMAGE, OR FINANCIAL LOSS.
               </Text>
-              <Text style={styles.legalSubtitle}>7.3 Data Responsibility</Text>
+              <Text style={styles.legalSubtitle}>8.3 Data Responsibility</Text>
               <Text style={styles.legalText}>
                 You are responsible for maintaining backup copies of your data. We are not responsible for data loss resulting from user actions, device failures, or service interruptions.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>8. Apple App Store Terms</Text>
-              <Text style={styles.legalSubtitle}>8.1 Third-Party Beneficiary</Text>
+              <Text style={styles.legalSectionTitle}>9. Apple App Store Terms</Text>
+              <Text style={styles.legalSubtitle}>9.1 Third-Party Beneficiary</Text>
               <Text style={styles.legalText}>
                 Apple and its subsidiaries are third-party beneficiaries of this agreement. Upon your acceptance of these terms, Apple will have the right to enforce this agreement against you as a third-party beneficiary.
               </Text>
-              <Text style={styles.legalSubtitle}>8.2 Responsibility for App</Text>
+              <Text style={styles.legalSubtitle}>9.2 Responsibility for App</Text>
               <Text style={styles.legalText}>
                 We, not Apple, are solely responsible for the App and its services, including maintenance, support, warranties, and addressing any claims.
               </Text>
-              <Text style={styles.legalSubtitle}>8.3 Compliance with Third-Party Terms</Text>
+              <Text style={styles.legalSubtitle}>9.3 Compliance with Third-Party Terms</Text>
               <Text style={styles.legalText}>
                 You agree to comply with all applicable third-party agreements when using the App, such as your wireless data service agreement.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>9. Changes to Terms</Text>
+              <Text style={styles.legalSectionTitle}>10. Changes to Terms</Text>
               <Text style={styles.legalText}>
                 We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting in the App. Your continued use of the App after any changes indicates your acceptance of the modified Terms.
               </Text>
               
-              <Text style={styles.legalSectionTitle}>10. Contact Information</Text>
+              <Text style={styles.legalSectionTitle}>11. Contact Information</Text>
               <Text style={styles.legalText}>
                 For questions about these Terms, please contact:
                 {'\n'}Email: 2024@xiaohangliuai.com
