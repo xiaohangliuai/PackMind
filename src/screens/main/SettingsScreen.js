@@ -14,7 +14,6 @@ import {
   Platform,
   ActivityIndicator,
   AppState,
-  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -53,10 +52,6 @@ const SettingsScreen = ({ navigation }) => {
   
   // Track user activity for guest users
   useActivityTracker();
-  
-  // State for modals
-  const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
-  const [isPrivacyModalVisible, setIsPrivacyModalVisible] = useState(false);
   
   // Open app notification settings
   const openNotificationSettings = async () => {
@@ -338,26 +333,6 @@ const SettingsScreen = ({ navigation }) => {
     navigation.navigate('Home');
   };
   
-  // Handle open Terms of Service
-  const handleOpenTerms = () => {
-    setIsTermsModalVisible(true);
-  };
-  
-  // Handle close Terms of Service
-  const handleCloseTerms = () => {
-    setIsTermsModalVisible(false);
-  };
-  
-  // Handle open Privacy Policy
-  const handleOpenPrivacy = () => {
-    setIsPrivacyModalVisible(true);
-  };
-  
-  // Handle close Privacy Policy
-  const handleClosePrivacy = () => {
-    setIsPrivacyModalVisible(false);
-  };
-  
   // Get avatar initials
   const getInitials = (name) => {
     if (!name) return '?';
@@ -517,27 +492,6 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         
-        {/* Legal Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy & Terms</Text>
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleOpenTerms}
-          >
-            <Ionicons name="document-text-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Terms of Service</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={handleOpenPrivacy}
-          >
-            <Ionicons name="shield-outline" size={24} color={THEME.PRIMARY} style={styles.optionIcon} />
-            <Text style={[styles.optionText, { color: THEME.PRIMARY }]}>Privacy Policy</Text>
-          </TouchableOpacity>
-        </View>
-        
         {/* Account Management Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Actions</Text>
@@ -571,253 +525,6 @@ const SettingsScreen = ({ navigation }) => {
           <Text style={styles.appCopyright}>© 2025 PackMind+</Text>
         </View>
       </ScrollView>
-      
-      {/* Terms of Service Modal */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={isTermsModalVisible}
-        onRequestClose={handleCloseTerms}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              style={styles.modalBackButton}
-              onPress={handleCloseTerms}
-            >
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Terms of Service</Text>
-            <View style={styles.headerRight} />
-          </View>
-          
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.legalContent}>
-              <Text style={styles.legalTitle}>PackMind+ Terms of Service</Text>
-              <Text style={styles.legalDate}>Last Updated: April 13, 2025</Text>
-              
-              <Text style={styles.legalSectionTitle}>1. Introduction</Text>
-              <Text style={styles.legalText}>
-                PackMind+ is a personal organization application that helps users create and manage packing lists for various activities and trips. By downloading, installing, or using PackMind+ ("App"), you agree to be bound by these Terms of Service. If you do not agree with these terms, please do not use the App.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>2. User Responsibilities</Text>
-              <Text style={styles.legalSubtitle}>2.1 Accurate Information</Text>
-              <Text style={styles.legalText}>
-                You agree to provide accurate and complete information when creating an account and using the App.
-              </Text>
-              <Text style={styles.legalSubtitle}>2.2 Lawful Use</Text>
-              <Text style={styles.legalText}>
-                You agree not to use the App for any illegal or unauthorized purpose. You must not attempt to interfere with the App's functionality or security.
-              </Text>
-              <Text style={styles.legalSubtitle}>2.3 User Conduct</Text>
-              <Text style={styles.legalText}>
-                You are responsible for all activities that occur under your account. You must not engage in any activity that could harm, disable, or impair the App.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>3. Account & Access</Text>
-              <Text style={styles.legalSubtitle}>3.1 Firebase Integration</Text>
-              <Text style={styles.legalText}>
-                We use Firebase for data storage and authentication. Your use of the App is also subject to Google's Terms of Service for Firebase.
-              </Text>
-              <Text style={styles.legalSubtitle}>3.2 Account Security</Text>
-              <Text style={styles.legalText}>
-                You are responsible for maintaining the confidentiality of your account credentials and for all activities performed under your account.
-              </Text>
-              <Text style={styles.legalSubtitle}>3.3 Data Synchronization</Text>
-              <Text style={styles.legalText}>
-                Your packing lists and preferences may be synchronized across devices using your account credentials.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>4. Subscription & In-App Purchases</Text>
-              <Text style={styles.legalSubtitle}>4.1 Subscription Options</Text>
-              <Text style={styles.legalText}>
-                We offer the following premium subscription options:
-                {'\n'}- Monthly subscription
-                {'\n'}- Annual subscription (includes a 14-day free trial)
-                {'\n'}- Lifetime purchase (one-time payment)
-              </Text>
-              <Text style={styles.legalSubtitle}>4.2 Free Trial</Text>
-              <Text style={styles.legalText}>
-                Users who select the annual subscription receive a 14-day free trial. If you do not cancel before the trial period ends, you will be automatically charged for the annual subscription.
-              </Text>
-              <Text style={styles.legalSubtitle}>4.3 Payment Processing</Text>
-              <Text style={styles.legalText}>
-                All payments are processed through the App Store. Subscription fees are set at the time of purchase.
-              </Text>
-              <Text style={styles.legalSubtitle}>4.4 Auto-Renewal</Text>
-              <Text style={styles.legalText}>
-                Subscriptions automatically renew unless canceled at least 24 hours before the current period ends. Refunds must be requested from the App Store.
-              </Text>
-              <Text style={styles.legalSubtitle}>4.5 Subscription Management</Text>
-              <Text style={styles.legalText}>
-                You can manage or cancel your subscription through your App Store account settings.
-              </Text>
-              <Text style={styles.legalSubtitle}>4.6 Refund Policy</Text>
-              <Text style={styles.legalText}>
-                We do not process refunds directly. All refund requests must be submitted through the App Store according to their policies.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>5. Intellectual Property</Text>
-              <Text style={styles.legalSubtitle}>5.1 App Ownership</Text>
-              <Text style={styles.legalText}>
-                PackMind+ and its original content, features, and functionality are owned by the developer and are protected by international copyright, trademark, and other intellectual property laws.
-              </Text>
-              <Text style={styles.legalSubtitle}>5.2 User Content</Text>
-              <Text style={styles.legalText}>
-                You retain ownership of any content you create using the App. However, you grant us a non-exclusive license to use this content to provide and improve the App's services.
-              </Text>
-              <Text style={styles.legalSubtitle}>5.3 Restrictions</Text>
-              <Text style={styles.legalText}>
-                You may not copy, modify, distribute, sell, or lease any part of the App without explicit permission.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>6. Termination</Text>
-              <Text style={styles.legalSubtitle}>6.1 Termination by Developer</Text>
-              <Text style={styles.legalText}>
-                We may suspend or terminate your account and access to the App immediately, without prior notice for conduct that we believe violates these Terms of Service or is harmful to other users, us, or third parties.
-              </Text>
-              <Text style={styles.legalSubtitle}>6.2 Termination by User</Text>
-              <Text style={styles.legalText}>
-                You may terminate your use of the App at any time by uninstalling the App and discontinuing its use. If you have an active subscription, you must cancel it separately through your App Store account.
-              </Text>
-              <Text style={styles.legalSubtitle}>6.3 Effect of Termination</Text>
-              <Text style={styles.legalText}>
-                Upon termination, your right to use the App will immediately cease. If you terminate your account, we may retain certain data for legitimate business purposes.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>7. Limitation of Liability</Text>
-              <Text style={styles.legalSubtitle}>7.1 Disclaimer of Warranties</Text>
-              <Text style={styles.legalText}>
-                THE APP IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DO NOT GUARANTEE THAT THE APP WILL BE UNINTERRUPTED, TIMELY, SECURE, OR ERROR-FREE.
-              </Text>
-              <Text style={styles.legalSubtitle}>7.2 Limitation of Liability</Text>
-              <Text style={styles.legalText}>
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE APP, INCLUDING BUT NOT LIMITED TO DATA LOSS OR CORRUPTION, DEVICE DAMAGE, OR FINANCIAL LOSS.
-              </Text>
-              <Text style={styles.legalSubtitle}>7.3 Data Responsibility</Text>
-              <Text style={styles.legalText}>
-                You are responsible for maintaining backup copies of your data. We are not responsible for data loss resulting from user actions, device failures, or service interruptions.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>8. Apple App Store Terms</Text>
-              <Text style={styles.legalSubtitle}>8.1 Third-Party Beneficiary</Text>
-              <Text style={styles.legalText}>
-                Apple and its subsidiaries are third-party beneficiaries of this agreement. Upon your acceptance of these terms, Apple will have the right to enforce this agreement against you as a third-party beneficiary.
-              </Text>
-              <Text style={styles.legalSubtitle}>8.2 Responsibility for App</Text>
-              <Text style={styles.legalText}>
-                We, not Apple, are solely responsible for the App and its services, including maintenance, support, warranties, and addressing any claims.
-              </Text>
-              <Text style={styles.legalSubtitle}>8.3 Compliance with Third-Party Terms</Text>
-              <Text style={styles.legalText}>
-                You agree to comply with all applicable third-party agreements when using the App, such as your wireless data service agreement.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>9. Changes to Terms</Text>
-              <Text style={styles.legalText}>
-                We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting in the App. Your continued use of the App after any changes indicates your acceptance of the modified Terms.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>10. Contact Information</Text>
-              <Text style={styles.legalText}>
-                For questions about these Terms, please contact:
-                {'\n'}Email: 2024@xiaohangliuai.com
-              </Text>
-              
-              <Text style={styles.legalDate}>Effective Date: April 13, 2025</Text>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-      
-      {/* Privacy Policy Modal */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={isPrivacyModalVisible}
-        onRequestClose={handleClosePrivacy}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              style={styles.modalBackButton}
-              onPress={handleClosePrivacy}
-            >
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Privacy Policy</Text>
-            <View style={styles.headerRight} />
-          </View>
-          
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.legalContent}>
-              <Text style={styles.legalTitle}>PackMind+ Privacy Policy</Text>
-              <Text style={styles.legalDate}>Last Updated: April 13, 2025</Text>
-              
-              <Text style={styles.legalSectionTitle}>Introduction</Text>
-              <Text style={styles.legalText}>
-                PackMind+ ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Information Collected</Text>
-              <Text style={styles.legalText}>
-                We may collect the following types of information:
-              </Text>
-              <Text style={styles.legalSectionTitle}>Personal Information</Text>
-              <Text style={styles.legalText}>
-                • Account Information: Name, email address, your packing list information and so on
-                {'\n'}• Firebase ID: Unique identifier for authentication and data synchronization
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>How We Use Your Information</Text>
-              <Text style={styles.legalText}>
-                We use the information we collect to:
-                {'\n'}• Create and manage your account
-                {'\n'}• Synchronize your packing lists across devices
-                {'\n'}• Send reminder notifications for your scheduled activities
-                {'\n'}• Troubleshoot technical issues
-                {'\n'}• Process and manage your subscription
-                {'\n'}• Communicate important updates about the app
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Data Sharing & Third Parties</Text>
-              <Text style={styles.legalSectionTitle}>Firebase</Text>
-              <Text style={styles.legalText}>
-                We use Google Firebase for authentication, data storage, and synchronization. Your use of these services is subject to Google's Privacy Policy.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Apple Services</Text>
-              <Text style={styles.legalText}>
-                Payment information for subscriptions is processed directly by Apple. We do not store your payment details on our servers.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Data Protection Commitment</Text>
-              <Text style={styles.legalText}>
-                We are committed to protecting your personal data. As part of this commitment, we will never sell, rent, or trade your personal information to any third parties for marketing or advertising purposes. Any sharing of your data is strictly limited to what is necessary to provide our services and will only occur with your explicit consent, except where required by law.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Security Measures</Text>
-              <Text style={styles.legalText}>
-                Your privacy and the security of your data are of utmost importance to us. We implement industry-standard technical safeguards and administrative protocols to protect your information from unauthorized access, accidental loss, or alteration. While no digital system can guarantee absolute security, we continuously review and enhance our security practices to provide the highest level of protection possible for your personal information.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Policy Updates</Text>
-              <Text style={styles.legalText}>
-                We may update this Privacy Policy from time to time. The updated version will be indicated by an updated "Last Updated" date at the top of this policy. When we make significant changes, you will be notified through an app update, and the latest privacy policy will always be available within the current version of the app. To ensure you're aware of any changes, we recommend keeping your app updated to the latest version and reviewing this Privacy Policy periodically.
-              </Text>
-              
-              <Text style={styles.legalSectionTitle}>Contact Information</Text>
-              <Text style={styles.legalText}>
-                If you have questions or concerns about this Privacy Policy, please contact us at:
-                {'\n'}Email: 2024@xiaohangliuai.com
-              </Text>
-              
-              <Text style={styles.legalDate}>Effective Date: April 13, 2025</Text>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -1028,64 +735,6 @@ const styles = StyleSheet.create({
   settingItemText: {
     fontSize: 16,
     color: '#333',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  modalBackButton: {
-    padding: 5,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  legalContent: {
-    padding: 20,
-  },
-  legalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  legalDate: {
-    fontSize: 14,
-    color: '#777',
-    marginBottom: 20,
-  },
-  legalSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  legalSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  legalText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#444',
-    marginBottom: 10,
   },
 });
 
