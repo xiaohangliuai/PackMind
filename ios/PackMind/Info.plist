@@ -39,6 +39,12 @@
           <string>com.googleusercontent.apps.850172508224-soc3v3636nljeodb0n4a1tn162osld1k</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>exp+packmindplus</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
